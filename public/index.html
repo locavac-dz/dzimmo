@@ -1011,6 +1011,29 @@
       <div id="sn-res" style="display:none;background:linear-gradient(135deg,rgba(34,197,94,.09),rgba(34,197,94,.03));border:1.5px solid rgba(34,197,94,.35);border-radius:10px;padding:1.25rem;margin-top:1rem"></div>
     </div>
     <p style="font-size:.78rem;color:var(--text-muted);margin-top:1rem;text-align:center" data-i18n="sn_disclaimer">Estimation indicative. Consultez un notaire pour un calcul exact.</p>
+
+    <!-- Base légale -->
+    <details style="margin-top:1.25rem;background:var(--bg-card,var(--bg));border:1.5px solid var(--border);border-radius:10px;padding:1rem 1.25rem">
+      <summary style="cursor:pointer;font-weight:700;font-size:.9rem;color:var(--text);list-style:none;display:flex;justify-content:space-between;align-items:center" data-i18n="sn_legal_toggle">📋 Base légale — références juridiques</summary>
+      <div style="margin-top:1rem">
+        <div style="margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border)">
+          <div style="font-weight:700;font-size:.85rem;color:var(--text);margin-bottom:.3rem" data-i18n="sn_legal_enreg_title">Taxe d'enregistrement</div>
+          <div style="font-size:.82rem;line-height:1.65;color:var(--text-secondary)" data-i18n-html="sn_legal_enreg_text"></div>
+        </div>
+        <div style="margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border)">
+          <div style="font-weight:700;font-size:.85rem;color:var(--text);margin-bottom:.3rem" data-i18n="sn_legal_pub_title">Taxe de publicité foncière</div>
+          <div style="font-size:.82rem;line-height:1.65;color:var(--text-secondary)" data-i18n-html="sn_legal_pub_text"></div>
+        </div>
+        <div style="margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border)">
+          <div style="font-weight:700;font-size:.85rem;color:var(--text);margin-bottom:.3rem" data-i18n="sn_legal_hon_title">Honoraires du notaire</div>
+          <div style="font-size:.82rem;line-height:1.65;color:var(--text-secondary)" data-i18n-html="sn_legal_hon_text"></div>
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:.85rem;color:var(--text);margin-bottom:.3rem" data-i18n="sn_legal_divers_title">Frais divers</div>
+          <div style="font-size:.82rem;line-height:1.65;color:var(--text-secondary)" data-i18n-html="sn_legal_divers_text"></div>
+        </div>
+      </div>
+    </details>
   </div>
 </div>
 
@@ -1252,6 +1275,15 @@ const TRANSLATIONS = {
     sn_hon:'Honoraires notaire', sn_divers:'Frais divers (timbre, copies)',
     sn_total:'Total estimé', sn_pct_label:'du prix de vente',
     sn_disclaimer:'Estimation indicative. Consultez un notaire pour un calcul exact.',
+    sn_legal_toggle:'📋 Base légale — références juridiques',
+    sn_legal_enreg_title:"Taxe d'enregistrement",
+    sn_legal_enreg_text:'<strong>Ord. n° 76-105 du 9 déc. 1976</strong> (Code de l\'enregistrement), modifiée par les lois de finances successives — art. 35 et s.<br>Taux : <strong>3 %</strong> pour les biens urbains (usage autre qu\'habitation) ; <strong>2 %</strong> pour les immeubles ruraux et terrains agricoles.<br>Assiette : prix de cession ou valeur vénale si supérieure. Payable à la recette des impôts.',
+    sn_legal_pub_title:'Taxe de publicité foncière',
+    sn_legal_pub_text:'<strong>Décret législatif n° 93-03 du 1er mars 1993</strong> relatif à la conservation foncière.<br>Taux : <strong>1 %</strong> du prix de cession. Versée à la Conservation foncière pour la transcription de l\'acte et son opposabilité aux tiers.',
+    sn_legal_hon_title:'Honoraires du notaire',
+    sn_legal_hon_text:'<strong>Décret exécutif n° 06-23 du 18 janvier 2006</strong> portant tarif des actes notariaux. Barème dégressif appliqué sur le prix de cession :<br><table style="margin-top:.4rem;font-size:.78rem;width:100%;border-collapse:collapse"><tr><td style="padding:.25rem .5rem;border:1px solid var(--border)">≤ 500 000 DZD</td><td style="padding:.25rem .5rem;border:1px solid var(--border);text-align:right;font-weight:700">3 %</td></tr><tr><td style="padding:.25rem .5rem;border:1px solid var(--border)">500 001 → 2 000 000 DZD</td><td style="padding:.25rem .5rem;border:1px solid var(--border);text-align:right;font-weight:700">2 %</td></tr><tr><td style="padding:.25rem .5rem;border:1px solid var(--border)">2 000 001 → 10 000 000 DZD</td><td style="padding:.25rem .5rem;border:1px solid var(--border);text-align:right;font-weight:700">1 %</td></tr><tr><td style="padding:.25rem .5rem;border:1px solid var(--border)">&gt; 10 000 000 DZD</td><td style="padding:.25rem .5rem;border:1px solid var(--border);text-align:right;font-weight:700">0,5 %</td></tr></table>',
+    sn_legal_divers_title:'Frais divers',
+    sn_legal_divers_text:'<strong>Code du timbre</strong> (Ord. n° 76-104 du 9 déc. 1976). Comprend : droits de timbre sur l\'acte, copies exécutoires, frais d\'inscription et de dossier.<br>Montant forfaitaire indicatif : <strong>~15 000 DZD</strong>.',
     sc_title:'Simulation de crédit', sc_sub:'Calculez vos mensualités et le coût total de votre emprunt.',
     sc_lbl_montant:'Montant emprunté (DZD)', sc_lbl_duree:'Durée (années)', sc_lbl_taux:'Taux annuel (%)',
     sc_ph_montant:'ex : 8 000 000',
@@ -1372,6 +1404,15 @@ const TRANSLATIONS = {
     sn_hon:'أتعاب الموثق', sn_divers:'رسوم متنوعة (طوابع، نسخ)',
     sn_total:'المجموع التقديري', sn_pct_label:'من سعر البيع',
     sn_disclaimer:'تقدير استرشادي. استشر موثقًا للحصول على حساب دقيق.',
+    sn_legal_toggle:'📋 المرجعية القانونية',
+    sn_legal_enreg_title:'رسم التسجيل',
+    sn_legal_enreg_text:'<strong>الأمر رقم 76-105 المؤرخ في 9 ديسمبر 1976</strong> (قانون التسجيل)، المعدَّل بقوانين المالية المتعاقبة — المادة 35 وما يليها.<br>النسبة: <strong>3%</strong> للعقارات الحضرية (غير السكنية)؛ <strong>2%</strong> للعقارات الريفية والأراضي الزراعية.<br>الوعاء: سعر التنازل أو القيمة التجارية أيهما أكبر. تُدفع لمديرية الضرائب.',
+    sn_legal_pub_title:'رسم الشهر العقاري',
+    sn_legal_pub_text:'<strong>المرسوم التشريعي رقم 93-03 المؤرخ في 1 مارس 1993</strong> المتعلق بالمحافظة العقارية.<br>النسبة: <strong>1%</strong> من سعر التنازل. يُدفع للمحافظة العقارية لتسجيل العقد وإمكانية الاحتجاج به في مواجهة الغير.',
+    sn_legal_hon_title:'أتعاب الموثق',
+    sn_legal_hon_text:'<strong>المرسوم التنفيذي رقم 06-23 المؤرخ في 18 يناير 2006</strong> المتضمن تعريفة العقود التوثيقية. سلّم تنازلي مطبَّق على سعر التنازل:<br><table style="margin-top:.4rem;font-size:.78rem;width:100%;border-collapse:collapse"><tr><td style="padding:.25rem .5rem;border:1px solid var(--border)">≤ 500,000 د.ج</td><td style="padding:.25rem .5rem;border:1px solid var(--border);text-align:right;font-weight:700">3%</td></tr><tr><td style="padding:.25rem .5rem;border:1px solid var(--border)">500,001 → 2,000,000 د.ج</td><td style="padding:.25rem .5rem;border:1px solid var(--border);text-align:right;font-weight:700">2%</td></tr><tr><td style="padding:.25rem .5rem;border:1px solid var(--border)">2,000,001 → 10,000,000 د.ج</td><td style="padding:.25rem .5rem;border:1px solid var(--border);text-align:right;font-weight:700">1%</td></tr><tr><td style="padding:.25rem .5rem;border:1px solid var(--border)">&gt; 10,000,000 د.ج</td><td style="padding:.25rem .5rem;border:1px solid var(--border);text-align:right;font-weight:700">0.5%</td></tr></table>',
+    sn_legal_divers_title:'الرسوم المتنوعة',
+    sn_legal_divers_text:'<strong>قانون الطابع الجبائي</strong> (الأمر رقم 76-104 المؤرخ في 9 ديسمبر 1976). يشمل: طوابع العقد، النسخ التنفيذية، رسوم التسجيل والملف.<br>مبلغ جزافي استرشادي: <strong>~15,000 د.ج</strong>.',
     sc_title:'محاكاة القرض', sc_sub:'احسب أقساطك الشهرية والتكلفة الإجمالية لقرضك.',
     sc_lbl_montant:'مبلغ القرض (د.ج)', sc_lbl_duree:'المدة (سنوات)', sc_lbl_taux:'الفائدة السنوية (%)',
     sc_ph_montant:'مثال: 8,000,000',
@@ -1905,7 +1946,7 @@ function calcNotaire() {
   const tEnreg = price * (zone === 'rural' ? 0.02 : 0.03);
   const tPub   = price * 0.01;
   let hon = 0;
-  const tranches = [[500000,0.03],[1500000,0.02],[8000000,0.01],[Infinity,0.005]];
+  const tranches = [[500000,0.03],[2000000,0.02],[10000000,0.01],[Infinity,0.005]];
   let reste = price, prev = 0;
   for (const [limit, rate] of tranches) {
     const slice = Math.min(reste, limit - prev);
@@ -1918,8 +1959,8 @@ function calcNotaire() {
   const pct    = (total / price * 100).toFixed(2);
   const td = (a, b, bold) => `<tr><td style="padding:.4rem 0;color:var(--text-secondary)">${a}</td><td style="text-align:right;font-weight:${bold?'800':'600'};${bold?'font-size:1.05rem;color:var(--primary)':''}">${b}</td></tr>`;
   res.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.9rem">
-    ${td(T('sn_enreg'), fmtDZD(tEnreg))}
-    ${td(T('sn_pub'),   fmtDZD(tPub))}
+    ${td(`${T('sn_enreg')} (${zone === 'rural' ? '2' : '3'}%)`, fmtDZD(tEnreg))}
+    ${td(`${T('sn_pub')} (1%)`,   fmtDZD(tPub))}
     ${td(T('sn_hon'),   fmtDZD(hon))}
     ${td(T('sn_divers'),fmtDZD(divers))}
     <tr style="border-top:2px solid var(--border)">${td(T('sn_total'), fmtDZD(total), true)}</tr>
