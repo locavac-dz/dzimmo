@@ -397,6 +397,31 @@
     .footer-col a:hover { color: #fff; }
     .footer-bottom { text-align: center; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,.1); font-size: 0.82rem; opacity: 0.6; }
 
+    /* ── Langue / RTL ── */
+    .lang-toggle { display:flex;gap:.2rem;align-items:center;margin-left:.5rem; }
+    .lang-btn { padding:.25rem .55rem;border-radius:6px;border:1.5px solid var(--border);background:transparent;cursor:pointer;font-size:.8rem;font-weight:700;color:var(--text-muted);transition:all .15s; }
+    .lang-btn.active { background:var(--primary);color:#fff;border-color:var(--primary); }
+    .lang-btn:hover:not(.active) { border-color:var(--primary);color:var(--primary); }
+    [dir="rtl"] body { font-family: 'Arial','Segoe UI',sans-serif; }
+    [dir="rtl"] .header-inner { flex-direction:row-reverse; }
+    [dir="rtl"] .nav { flex-direction:row-reverse; }
+    [dir="rtl"] .header-actions { flex-direction:row-reverse; }
+    [dir="rtl"] .footer-inner { direction:rtl;text-align:right; }
+    [dir="rtl"] .footer-col a { text-align:right; }
+    [dir="rtl"] #hero h1,[dir="rtl"] #hero p { text-align:right; }
+    [dir="rtl"] #search-box { direction:rtl; }
+    [dir="rtl"] .mode-tabs { direction:rtl; }
+    [dir="rtl"] .section-header { flex-direction:row-reverse; }
+    [dir="rtl"] .form-card { direction:rtl; }
+    [dir="rtl"] .form-group label { text-align:right; }
+    [dir="rtl"] .features-grid { direction:rtl; }
+    [dir="rtl"] .modal { direction:rtl;text-align:right; }
+    [dir="rtl"] .modal .form-row label { text-align:right; }
+    [dir="rtl"] .dashboard-tabs { direction:rtl; }
+    [dir="rtl"] .dashboard-stats { direction:rtl; }
+    [dir="rtl"] .detail-body { direction:rtl; }
+    [dir="rtl"] .card-meta { direction:rtl; }
+
     /* ── Responsive ── */
     @media (max-width: 768px) {
       #search-box { grid-template-columns: 1fr 1fr; }
@@ -418,15 +443,19 @@
   <div class="header-inner">
     <div class="logo" onclick="showPage('home')" style="cursor:pointer">Dz<span>Immo</span> <span style="font-size:.6rem;font-weight:400;color:var(--text-muted);font-family:Arial">🇩🇿</span></div>
     <nav class="nav">
-      <a class="nav-link active" data-page="home" onclick="showPage('home')">Accueil</a>
-      <a class="nav-link" data-page="annonces" onclick="showPage('annonces')">Annonces</a>
-      <a class="nav-link" data-page="agences" onclick="showPage('agences')">Agences</a>
+      <a class="nav-link active" data-page="home" onclick="showPage('home')" data-i18n="nav_home">Accueil</a>
+      <a class="nav-link" data-page="annonces" onclick="showPage('annonces')" data-i18n="nav_annonces">Annonces</a>
+      <a class="nav-link" data-page="agences" onclick="showPage('agences')" data-i18n="nav_agences">Agences</a>
     </nav>
     <div class="header-actions">
-      <button class="btn btn-primary btn-sm" id="btn-publier" onclick="tryPublier()">+ Publier</button>
+      <div class="lang-toggle">
+        <button class="lang-btn active" data-lang="fr" onclick="applyLang('fr')">FR</button>
+        <button class="lang-btn" data-lang="ar" onclick="applyLang('ar')">ع</button>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btn-publier" onclick="tryPublier()" data-i18n="btn_publier">+ Publier</button>
       <div id="auth-btns" style="display:flex;gap:.4rem">
-        <button class="btn btn-outline btn-sm" onclick="openModal('login')">Connexion</button>
-        <button class="btn btn-primary btn-sm" onclick="openModal('register')">S'inscrire</button>
+        <button class="btn btn-outline btn-sm" onclick="openModal('login')" data-i18n="btn_login">Connexion</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('register')" data-i18n="btn_register">S'inscrire</button>
       </div>
       <div id="user-btns" class="hidden" style="display:flex;align-items:center;gap:.4rem">
         <button class="btn btn-outline btn-sm" onclick="showPage('messages')" style="position:relative">
@@ -442,8 +471,8 @@
 <div id="page-home">
   <!-- Héros -->
   <section id="hero">
-    <h1>Trouvez votre bien immobilier en Algérie</h1>
-    <p>Plus de 50 000 annonces · Appartements, villas, terrains, locaux</p>
+    <h1 data-i18n="hero_title">Trouvez votre bien immobilier en Algérie</h1>
+    <p data-i18n="hero_sub">Plus de 50 000 annonces · Appartements, villas, terrains, locaux</p>
     <div id="search-box">
       <select id="s-wilaya" class="full-mobile">
         <option value="">Toutes les wilayas</option>
@@ -465,13 +494,13 @@
         <option value="ferme">Ferme</option>
         <option value="entrepot">Entrepôt</option>
       </select>
-      <button id="btn-search" onclick="doSearch()">🔍 Rechercher</button>
+      <button id="btn-search" onclick="doSearch()" data-i18n="btn_search">🔍 Rechercher</button>
     </div>
     <div class="mode-tabs">
-      <div class="mode-tab active" onclick="filterMode('')">Tout</div>
-      <div class="mode-tab" onclick="filterMode('vente')">Vente</div>
-      <div class="mode-tab" onclick="filterMode('location_longue')">Location longue</div>
-      <div class="mode-tab" onclick="filterMode('location_courte')">Location courte</div>
+      <div class="mode-tab active" onclick="filterMode('')" data-i18n="tab_tout">Tout</div>
+      <div class="mode-tab" onclick="filterMode('vente')" data-i18n="tab_vente">Vente</div>
+      <div class="mode-tab" onclick="filterMode('location_longue')" data-i18n="tab_loc_long">Location longue</div>
+      <div class="mode-tab" onclick="filterMode('location_courte')" data-i18n="tab_loc_court">Location courte</div>
     </div>
   </section>
 
@@ -479,13 +508,13 @@
   <div id="main">
     <div class="section-header">
       <div>
-        <div class="section-title">Annonces récentes</div>
+        <div class="section-title" data-i18n="recent_listings">Annonces récentes</div>
       </div>
       <span class="count-badge" id="props-count">Chargement…</span>
     </div>
     <div class="grid" id="home-grid"><div class="loading"><div class="spinner"></div></div></div>
     <div style="text-align:center;margin-top:2rem">
-      <button class="btn btn-outline" onclick="showPage('annonces')">Voir toutes les annonces →</button>
+      <button class="btn btn-outline" onclick="showPage('annonces')" data-i18n="see_all">Voir toutes les annonces →</button>
     </div>
   </div>
 </div>
@@ -565,16 +594,16 @@
 <div id="page-publier" class="hidden">
   <div id="main">
     <div class="form-card">
-      <h2>📋 Publier une annonce</h2>
+      <h2><span data-i18n="pub_heading">📋 Publier une annonce</span></h2>
       <div id="pub-error" class="error-msg hidden"></div>
       <div id="pub-success" class="success-msg hidden"></div>
       <div class="form-grid">
         <div class="form-group full">
-          <label>Titre de l'annonce *</label>
-          <input id="pub-title" type="text" placeholder="ex: Appartement F3 lumineux à Hydra">
+          <label data-i18n="pub_title_label">Titre de l'annonce *</label>
+          <input id="pub-title" type="text" data-i18n-attr="placeholder" data-i18n="pub_title_ph" placeholder="ex: Appartement F3 lumineux à Hydra">
         </div>
         <div class="form-group">
-          <label>Mode *</label>
+          <label data-i18n="pub_mode">Mode *</label>
           <select id="pub-mode">
             <option value="vente">Vente</option>
             <option value="location_longue">Location longue durée</option>
@@ -582,7 +611,7 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Type de bien *</label>
+          <label data-i18n="pub_type">Type de bien *</label>
           <select id="pub-type">
             <option value="appartement">Appartement</option>
             <option value="villa">Villa</option>
@@ -595,73 +624,73 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Prix (DZD) *</label>
+          <label data-i18n="pub_price">Prix (DZD) *</label>
           <input id="pub-price" type="number" placeholder="5000000">
         </div>
         <div class="form-group">
-          <label>Surface (m²)</label>
+          <label data-i18n="pub_surface">Surface (m²)</label>
           <input id="pub-surface" type="number" placeholder="80">
         </div>
         <div class="form-group">
-          <label>Pièces</label>
+          <label data-i18n="pub_rooms">Pièces</label>
           <input id="pub-rooms" type="number" placeholder="3">
         </div>
         <div class="form-group">
-          <label>Salles de bain</label>
+          <label data-i18n="pub_baths">Salles de bain</label>
           <input id="pub-baths" type="number" placeholder="1">
         </div>
         <div class="form-group">
-          <label>Étage</label>
+          <label data-i18n="pub_floor">Étage</label>
           <input id="pub-floor" type="number" placeholder="2">
         </div>
         <div class="form-group">
-          <label>Wilaya *</label>
+          <label data-i18n="pub_wilaya">Wilaya *</label>
           <select id="pub-wilaya"></select>
         </div>
         <div class="form-group">
-          <label>Commune</label>
-          <input id="pub-commune" type="text" placeholder="ex: Hydra">
+          <label data-i18n="pub_commune">Commune</label>
+          <input id="pub-commune" type="text" data-i18n="pub_commune_ph" data-i18n-attr="placeholder" placeholder="ex: Hydra">
         </div>
         <div class="form-group full">
-          <label>Adresse</label>
-          <input id="pub-address" type="text" placeholder="Adresse précise (optionnel)">
+          <label data-i18n="pub_address">Adresse</label>
+          <input id="pub-address" type="text" data-i18n="pub_address_ph" data-i18n-attr="placeholder" placeholder="Adresse précise (optionnel)">
         </div>
         <div class="form-group full">
-          <label>Description</label>
-          <textarea id="pub-desc" placeholder="Décrivez votre bien : état, équipements, environnement…" rows="4"></textarea>
+          <label data-i18n="pub_desc">Description</label>
+          <textarea id="pub-desc" data-i18n="pub_desc_ph" data-i18n-attr="placeholder" placeholder="Décrivez votre bien : état, équipements, environnement…" rows="4"></textarea>
         </div>
       </div>
 
       <div class="form-section">
-        <div class="form-section-title">🏷️ Caractéristiques</div>
+        <div class="form-section-title" data-i18n="pub_features">🏷️ Caractéristiques</div>
         <div class="features-grid" id="features-grid">
-          <button type="button" class="feature-toggle" data-v="meuble">Meublé</button>
-          <button type="button" class="feature-toggle" data-v="parking">Parking</button>
-          <button type="button" class="feature-toggle" data-v="balcon">Balcon</button>
-          <button type="button" class="feature-toggle" data-v="terrasse">Terrasse</button>
-          <button type="button" class="feature-toggle" data-v="ascenseur">Ascenseur</button>
-          <button type="button" class="feature-toggle" data-v="gardien">Gardien</button>
-          <button type="button" class="feature-toggle" data-v="piscine">Piscine</button>
-          <button type="button" class="feature-toggle" data-v="climatisation">Climatisation</button>
-          <button type="button" class="feature-toggle" data-v="chauffage">Chauffage central</button>
-          <button type="button" class="feature-toggle" data-v="wifi">Wi-Fi</button>
-          <button type="button" class="feature-toggle" data-v="cave">Cave</button>
-          <button type="button" class="feature-toggle" data-v="jardin">Jardin</button>
-          <button type="button" class="feature-toggle" data-v="alarme">Alarme</button>
-          <button type="button" class="feature-toggle" data-v="interphone">Interphone</button>
-          <button type="button" class="feature-toggle" data-v="eau">Eau courante</button>
-          <button type="button" class="feature-toggle" data-v="electricite">Électricité</button>
-          <button type="button" class="feature-toggle" data-v="gaz">Gaz naturel</button>
-          <button type="button" class="feature-toggle" data-v="route">Accès route</button>
-          <button type="button" class="feature-toggle" data-v="fibre">Fibre optique</button>
+          <button type="button" class="feature-toggle" data-v="meuble" data-i18n="f_meuble">Meublé</button>
+          <button type="button" class="feature-toggle" data-v="parking" data-i18n="f_parking">Parking</button>
+          <button type="button" class="feature-toggle" data-v="balcon" data-i18n="f_balcon">Balcon</button>
+          <button type="button" class="feature-toggle" data-v="terrasse" data-i18n="f_terrasse">Terrasse</button>
+          <button type="button" class="feature-toggle" data-v="ascenseur" data-i18n="f_ascenseur">Ascenseur</button>
+          <button type="button" class="feature-toggle" data-v="gardien" data-i18n="f_gardien">Gardien</button>
+          <button type="button" class="feature-toggle" data-v="piscine" data-i18n="f_piscine">Piscine</button>
+          <button type="button" class="feature-toggle" data-v="climatisation" data-i18n="f_clim">Climatisation</button>
+          <button type="button" class="feature-toggle" data-v="chauffage" data-i18n="f_chauff">Chauffage central</button>
+          <button type="button" class="feature-toggle" data-v="wifi" data-i18n="f_wifi">Wi-Fi</button>
+          <button type="button" class="feature-toggle" data-v="cave" data-i18n="f_cave">Cave</button>
+          <button type="button" class="feature-toggle" data-v="jardin" data-i18n="f_jardin">Jardin</button>
+          <button type="button" class="feature-toggle" data-v="alarme" data-i18n="f_alarme">Alarme</button>
+          <button type="button" class="feature-toggle" data-v="interphone" data-i18n="f_interphone">Interphone</button>
+          <button type="button" class="feature-toggle" data-v="eau" data-i18n="f_eau">Eau courante</button>
+          <button type="button" class="feature-toggle" data-v="electricite" data-i18n="f_elec">Électricité</button>
+          <button type="button" class="feature-toggle" data-v="gaz" data-i18n="f_gaz">Gaz naturel</button>
+          <button type="button" class="feature-toggle" data-v="route" data-i18n="f_route">Accès route</button>
+          <button type="button" class="feature-toggle" data-v="fibre" data-i18n="f_fibre">Fibre optique</button>
         </div>
       </div>
 
       <div class="form-section">
-        <div class="form-section-title">📷 Photos</div>
+        <div class="form-section-title" data-i18n="pub_photos">📷 Photos</div>
         <div class="upload-zone" onclick="document.getElementById('pub-photos-input').click()">
           <div style="font-size:2rem">📸</div>
-          <p>Cliquez pour ajouter des photos (max 10, JPEG/PNG/WebP)</p>
+          <p data-i18n="pub_photos_hint">Cliquez pour ajouter des photos (max 10, JPEG/PNG/WebP)</p>
           <input id="pub-photos-input" type="file" accept="image/*" multiple style="display:none" onchange="previewPhotos(this)">
         </div>
         <div class="photo-previews" id="photo-previews"></div>
@@ -669,8 +698,8 @@
       </div>
 
       <div style="margin-top:1.5rem;display:flex;gap:.75rem">
-        <button class="btn btn-primary" onclick="submitProperty()" style="flex:1;padding:.75rem">Publier l'annonce</button>
-        <button class="btn btn-outline" onclick="showPage('home')">Annuler</button>
+        <button class="btn btn-primary" onclick="submitProperty()" style="flex:1;padding:.75rem" data-i18n="pub_submit">Publier l'annonce</button>
+        <button class="btn btn-outline" onclick="showPage('home')" data-i18n="pub_cancel">Annuler</button>
       </div>
     </div>
   </div>
@@ -680,7 +709,7 @@
 <div id="page-agences" class="hidden">
   <div id="main">
     <div class="section-header">
-      <div class="section-title">🏢 Agences immobilières</div>
+      <div class="section-title" data-i18n="agencies_title">🏢 Agences immobilières</div>
     </div>
     <div class="grid" id="agences-grid"><div class="loading"><div class="spinner"></div></div></div>
   </div>
@@ -689,13 +718,13 @@
 <!-- ═══════════════════ PAGE DASHBOARD ═══════════════════ -->
 <div id="page-dashboard" class="hidden">
   <div id="main">
-    <h2 style="margin-bottom:1.5rem;font-size:1.3rem;font-weight:800">Mon espace</h2>
+    <h2 style="margin-bottom:1.5rem;font-size:1.3rem;font-weight:800" data-i18n="dash_title">Mon espace</h2>
     <div class="dashboard-stats" id="dash-stats"></div>
     <div class="tabs">
-      <button class="tab-btn active" onclick="dashTab('mes-annonces')">Mes annonces</button>
-      <button class="tab-btn" onclick="dashTab('mes-contacts')">Demandes reçues</button>
-      <button class="tab-btn" onclick="dashTab('favoris')">Favoris</button>
-      <button class="tab-btn" onclick="dashTab('profil')">Profil</button>
+      <button class="tab-btn active" onclick="dashTab('mes-annonces')" data-i18n="dash_tab_annonces">Mes annonces</button>
+      <button class="tab-btn" onclick="dashTab('mes-contacts')" data-i18n="dash_tab_contacts">Demandes reçues</button>
+      <button class="tab-btn" onclick="dashTab('favoris')" data-i18n="dash_tab_favoris">Favoris</button>
+      <button class="tab-btn" onclick="dashTab('profil')" data-i18n="dash_tab_profil">Profil</button>
     </div>
     <div id="dash-tab-content"><div class="loading"><div class="spinner"></div></div></div>
   </div>
@@ -720,8 +749,8 @@
 <!-- ═══════════════════ PAGE CGU ═══════════════════ -->
 <div id="page-cgu" class="hidden">
   <div id="main" style="max-width:860px;margin:0 auto;padding:2rem 1rem 3rem">
-    <button class="btn btn-outline btn-sm" style="margin-bottom:1.5rem" onclick="showPage('home')">← Retour</button>
-    <h1 style="font-size:1.6rem;font-weight:900;margin-bottom:.5rem">Conditions Générales d'Utilisation</h1>
+    <button class="btn btn-outline btn-sm" style="margin-bottom:1.5rem" onclick="showPage('home')" data-i18n="btn_back">← Retour</button>
+    <h1 style="font-size:1.6rem;font-weight:900;margin-bottom:.5rem" data-i18n="cgu_title">Conditions Générales d'Utilisation</h1>
     <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:2rem">Dernière mise à jour : 1er janvier 2026</p>
 
     <h2 style="font-size:1.1rem;font-weight:800;margin:1.5rem 0 .5rem">1. Objet</h2>
@@ -750,8 +779,8 @@
 <!-- ═══════════════════ PAGE CONFIDENTIALITÉ ═══════════════════ -->
 <div id="page-confidentialite" class="hidden">
   <div id="main" style="max-width:860px;margin:0 auto;padding:2rem 1rem 3rem">
-    <button class="btn btn-outline btn-sm" style="margin-bottom:1.5rem" onclick="showPage('home')">← Retour</button>
-    <h1 style="font-size:1.6rem;font-weight:900;margin-bottom:.5rem">Politique de Confidentialité</h1>
+    <button class="btn btn-outline btn-sm" style="margin-bottom:1.5rem" onclick="showPage('home')" data-i18n="btn_back">← Retour</button>
+    <h1 style="font-size:1.6rem;font-weight:900;margin-bottom:.5rem" data-i18n="privacy_title">Politique de Confidentialité</h1>
     <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:2rem">Dernière mise à jour : 1er janvier 2026</p>
 
     <h2 style="font-size:1.1rem;font-weight:800;margin:1.5rem 0 .5rem">1. Données collectées</h2>
@@ -780,8 +809,8 @@
 <!-- ═══════════════════ PAGE MENTIONS LÉGALES ═══════════════════ -->
 <div id="page-mentions" class="hidden">
   <div id="main" style="max-width:860px;margin:0 auto;padding:2rem 1rem 3rem">
-    <button class="btn btn-outline btn-sm" style="margin-bottom:1.5rem" onclick="showPage('home')">← Retour</button>
-    <h1 style="font-size:1.6rem;font-weight:900;margin-bottom:.5rem">Mentions Légales</h1>
+    <button class="btn btn-outline btn-sm" style="margin-bottom:1.5rem" onclick="showPage('home')" data-i18n="btn_back">← Retour</button>
+    <h1 style="font-size:1.6rem;font-weight:900;margin-bottom:.5rem" data-i18n="mentions_title">Mentions Légales</h1>
     <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:2rem">Conformément aux dispositions légales algériennes en vigueur</p>
 
     <h2 style="font-size:1.1rem;font-weight:800;margin:1.5rem 0 .5rem">Éditeur</h2>
@@ -816,9 +845,9 @@
 <!-- ═══════════════════ PAGE CONTACT ═══════════════════ -->
 <div id="page-contact" class="hidden">
   <div id="main" style="max-width:700px;margin:0 auto;padding:2rem 1rem 3rem">
-    <button class="btn btn-outline btn-sm" style="margin-bottom:1.5rem" onclick="showPage('home')">← Retour</button>
-    <h1 style="font-size:1.6rem;font-weight:900;margin-bottom:.5rem">Contactez-nous</h1>
-    <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:2rem">Notre équipe vous répond dans les 24 h ouvrées.</p>
+    <button class="btn btn-outline btn-sm" style="margin-bottom:1.5rem" onclick="showPage('home')" data-i18n="btn_back">← Retour</button>
+    <h1 style="font-size:1.6rem;font-weight:900;margin-bottom:.5rem" data-i18n="contact_title">Contactez-nous</h1>
+    <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:2rem" data-i18n="contact_sub">Notre équipe vous répond dans les 24 h ouvrées.</p>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:2rem">
       <div class="card" style="padding:1.25rem;text-align:center">
@@ -869,27 +898,27 @@
       <p style="font-size:.85rem;line-height:1.6;color:rgba(255,255,255,.6)">La plateforme de référence pour l'immobilier en Algérie. Achat, vente, location.</p>
     </div>
     <div class="footer-col">
-      <h4>Navigation</h4>
-      <a href="#" onclick="showPage('annonces')">Toutes les annonces</a>
-      <a href="#" onclick="showPage('agences')">Les agences</a>
-      <a href="#" onclick="tryPublier()">Publier une annonce</a>
+      <h4 data-i18n="ft_nav">Navigation</h4>
+      <a href="#" onclick="showPage('annonces')" data-i18n="ft_all">Toutes les annonces</a>
+      <a href="#" onclick="showPage('agences')" data-i18n="ft_agencies">Les agences</a>
+      <a href="#" onclick="tryPublier()" data-i18n="ft_publish">Publier une annonce</a>
     </div>
     <div class="footer-col">
-      <h4>Types de biens</h4>
-      <a href="#" onclick="filterType('appartement')">Appartements</a>
-      <a href="#" onclick="filterType('villa')">Villas</a>
-      <a href="#" onclick="filterType('terrain')">Terrains</a>
-      <a href="#" onclick="filterType('local_commercial')">Locaux commerciaux</a>
+      <h4 data-i18n="ft_types">Types de biens</h4>
+      <a href="#" onclick="filterType('appartement')" data-i18n="ft_apparts">Appartements</a>
+      <a href="#" onclick="filterType('villa')" data-i18n="ft_villas">Villas</a>
+      <a href="#" onclick="filterType('terrain')" data-i18n="ft_terrains">Terrains</a>
+      <a href="#" onclick="filterType('local_commercial')" data-i18n="ft_locals">Locaux commerciaux</a>
     </div>
     <div class="footer-col">
-      <h4>Légal</h4>
-      <a href="#" onclick="showPage('cgu')">CGU</a>
-      <a href="#" onclick="showPage('confidentialite')">Politique de confidentialité</a>
-      <a href="#" onclick="showPage('mentions')">Mentions légales</a>
-      <a href="#" onclick="showPage('contact')">Contact</a>
+      <h4 data-i18n="ft_legal">Légal</h4>
+      <a href="#" onclick="showPage('cgu')" data-i18n="ft_cgu">CGU</a>
+      <a href="#" onclick="showPage('confidentialite')" data-i18n="ft_privacy">Politique de confidentialité</a>
+      <a href="#" onclick="showPage('mentions')" data-i18n="ft_mentions">Mentions légales</a>
+      <a href="#" onclick="showPage('contact')" data-i18n="ft_contact">Contact</a>
     </div>
   </div>
-  <div class="footer-bottom">© 2026 DzImmo · Algérie · Tous droits réservés</div>
+  <div class="footer-bottom" data-i18n="ft_copy">© 2026 DzImmo · Algérie · Tous droits réservés</div>
 </footer>
 
 <!-- ═══════════════════ MODALS ═══════════════════ -->
@@ -897,15 +926,15 @@
 <div class="modal-overlay hidden" id="modal-login">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('login')">×</button>
-    <h2>Connexion</h2>
+    <h2 data-i18n="m_login">Connexion</h2>
     <div id="login-error" class="error-msg hidden"></div>
-    <div class="form-row"><label>Email</label><input id="login-email" type="email" placeholder="vous@exemple.dz"></div>
-    <div class="form-row"><label>Mot de passe</label><input id="login-pass" type="password" placeholder="••••••••"></div>
-    <button class="btn btn-primary" style="width:100%;padding:.75rem;margin-top:.5rem" onclick="doLogin()">Se connecter</button>
-    <div class="form-divider">ou</div>
-    <button class="btn btn-outline" style="width:100%;padding:.65rem" onclick="switchModal('login','register')">Créer un compte</button>
+    <div class="form-row"><label data-i18n="m_email">Email</label><input id="login-email" type="email" placeholder="vous@exemple.dz"></div>
+    <div class="form-row"><label data-i18n="m_pass">Mot de passe</label><input id="login-pass" type="password" placeholder="••••••••"></div>
+    <button class="btn btn-primary" style="width:100%;padding:.75rem;margin-top:.5rem" onclick="doLogin()" data-i18n="m_connect">Se connecter</button>
+    <div class="form-divider" data-i18n="m_or">ou</div>
+    <button class="btn btn-outline" style="width:100%;padding:.65rem" onclick="switchModal('login','register')" data-i18n="m_create_account">Créer un compte</button>
     <div style="text-align:center;margin-top:.75rem">
-      <a href="#" style="font-size:.85rem;color:var(--primary)" onclick="switchModal('login','forgot')">Mot de passe oublié ?</a>
+      <a href="#" style="font-size:.85rem;color:var(--primary)" onclick="switchModal('login','forgot')" data-i18n="m_forgot">Mot de passe oublié ?</a>
     </div>
   </div>
 </div>
@@ -914,15 +943,15 @@
 <div class="modal-overlay hidden" id="modal-register">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('register')">×</button>
-    <h2>Créer un compte</h2>
+    <h2 data-i18n="m_register">Créer un compte</h2>
     <div id="register-error" class="error-msg hidden"></div>
-    <div class="form-row"><label>Nom complet</label><input id="reg-name" type="text" placeholder="Prénom Nom"></div>
-    <div class="form-row"><label>Email</label><input id="reg-email" type="email" placeholder="vous@exemple.dz"></div>
-    <div class="form-row"><label>Téléphone</label><input id="reg-phone" type="tel" placeholder="+213 6XX XX XX XX"></div>
-    <div class="form-row"><label>Mot de passe</label><input id="reg-pass" type="password" placeholder="6 caractères minimum"></div>
-    <button class="btn btn-primary" style="width:100%;padding:.75rem;margin-top:.5rem" onclick="doRegister()">S'inscrire</button>
-    <div class="form-divider">ou</div>
-    <button class="btn btn-outline" style="width:100%;padding:.65rem" onclick="switchModal('register','login')">J'ai déjà un compte</button>
+    <div class="form-row"><label data-i18n="m_name">Nom complet</label><input id="reg-name" type="text" placeholder="Prénom Nom"></div>
+    <div class="form-row"><label data-i18n="m_email">Email</label><input id="reg-email" type="email" placeholder="vous@exemple.dz"></div>
+    <div class="form-row"><label data-i18n="m_phone">Téléphone</label><input id="reg-phone" type="tel" placeholder="+213 6XX XX XX XX"></div>
+    <div class="form-row"><label data-i18n="m_pass">Mot de passe</label><input id="reg-pass" type="password" placeholder="6 caractères minimum"></div>
+    <button class="btn btn-primary" style="width:100%;padding:.75rem;margin-top:.5rem" onclick="doRegister()" data-i18n="m_register">S'inscrire</button>
+    <div class="form-divider" data-i18n="m_or">ou</div>
+    <button class="btn btn-outline" style="width:100%;padding:.65rem" onclick="switchModal('register','login')" data-i18n="m_already">J'ai déjà un compte</button>
   </div>
 </div>
 
@@ -930,10 +959,10 @@
 <div class="modal-overlay hidden" id="modal-forgot">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('forgot')">×</button>
-    <h2>Mot de passe oublié</h2>
+    <h2 data-i18n="m_forgot_title">Mot de passe oublié</h2>
     <div id="forgot-msg" class="hidden"></div>
-    <div class="form-row"><label>Email</label><input id="forgot-email" type="email" placeholder="vous@exemple.dz"></div>
-    <button class="btn btn-primary" style="width:100%;padding:.75rem;margin-top:.5rem" onclick="doForgot()">Envoyer le lien</button>
+    <div class="form-row"><label data-i18n="m_email">Email</label><input id="forgot-email" type="email" placeholder="vous@exemple.dz"></div>
+    <button class="btn btn-primary" style="width:100%;padding:.75rem;margin-top:.5rem" onclick="doForgot()" data-i18n="m_send_link">Envoyer le lien</button>
   </div>
 </div>
 
@@ -948,6 +977,172 @@ let currentUser = null;
 let currentPage = 'home';
 let uploadedPhotos = [];
 let wsConn = null;
+
+// ── i18n FR / AR ──────────────────────────────────────────────────────────────
+let currentLang = localStorage.getItem('dz_lang') || 'fr';
+
+const TRANSLATIONS = {
+  fr: {
+    nav_home:'Accueil', nav_annonces:'Annonces', nav_agences:'Agences',
+    btn_publier:'+ Publier', btn_login:'Connexion', btn_register:"S'inscrire",
+    hero_title:'Trouvez votre bien immobilier en Algérie',
+    hero_sub:'Plus de 50 000 annonces · Appartements, villas, terrains, locaux',
+    s_all_wilayas:'Toutes les wilayas', s_all_modes:'Vente & Location',
+    s_vente:'Vente', s_loc_longue:'Location longue durée', s_loc_courte:'Location courte durée',
+    s_all_types:'Tous les types', s_appart:'Appartement', s_villa:'Villa',
+    s_maison:'Maison', s_bureau:'Bureau', s_local:'Local commercial',
+    s_terrain:'Terrain', s_ferme:'Ferme', s_entrepot:'Entrepôt',
+    btn_search:'🔍 Rechercher',
+    tab_tout:'Tout', tab_vente:'Vente', tab_loc_long:'Location longue', tab_loc_court:'Location courte',
+    recent_listings:'Annonces récentes', loading:'Chargement…', see_all:'Voir toutes les annonces →',
+    ft_nav:'Navigation', ft_all:'Toutes les annonces', ft_agencies:'Les agences', ft_publish:'Publier une annonce',
+    ft_types:'Types de biens', ft_apparts:'Appartements', ft_villas:'Villas',
+    ft_terrains:'Terrains', ft_locals:'Locaux commerciaux',
+    ft_legal:'Légal', ft_cgu:'CGU', ft_privacy:'Politique de confidentialité',
+    ft_mentions:'Mentions légales', ft_contact:'Contact',
+    ft_copy:'© 2026 DzImmo · Algérie · Tous droits réservés',
+    m_login:'Connexion', m_email:'Email', m_pass:'Mot de passe',
+    m_connect:'Se connecter', m_or:'ou', m_create_account:'Créer un compte',
+    m_forgot:'Mot de passe oublié ?', m_register:"Créer un compte",
+    m_name:'Nom complet', m_phone:'Téléphone', m_already:"J'ai déjà un compte",
+    m_forgot_title:'Mot de passe oublié', m_send_link:'Envoyer le lien',
+    pub_heading:'📋 Publier une annonce', pub_title_label:"Titre de l'annonce *",
+    pub_title_ph:'ex: Appartement F3 lumineux à Hydra',
+    pub_mode:'Mode *', pub_type:'Type de bien *', pub_price:'Prix (DZD) *',
+    pub_surface:'Surface (m²)', pub_rooms:'Pièces', pub_baths:'Salles de bain',
+    pub_floor:'Étage', pub_wilaya:'Wilaya *', pub_commune:'Commune',
+    pub_commune_ph:'ex: Hydra', pub_address:'Adresse',
+    pub_address_ph:'Adresse précise (optionnel)', pub_desc:'Description',
+    pub_desc_ph:'Décrivez votre bien : état, équipements, environnement…',
+    pub_features:'🏷️ Caractéristiques', pub_photos:'📷 Photos',
+    pub_photos_hint:'Cliquez pour ajouter des photos (max 10, JPEG/PNG/WebP)',
+    pub_submit:"Publier l'annonce", pub_cancel:'Annuler',
+    f_meuble:'Meublé', f_parking:'Parking', f_balcon:'Balcon', f_terrasse:'Terrasse',
+    f_ascenseur:'Ascenseur', f_gardien:'Gardien', f_piscine:'Piscine',
+    f_clim:'Climatisation', f_chauff:'Chauffage central', f_wifi:'Wi-Fi',
+    f_cave:'Cave', f_jardin:'Jardin', f_alarme:'Alarme', f_interphone:'Interphone',
+    f_eau:'Eau courante', f_elec:'Électricité', f_gaz:'Gaz naturel',
+    f_route:'Accès route', f_fibre:'Fibre optique',
+    dash_title:'Mon espace', dash_annonces:'Annonces', dash_actives:'Actives',
+    dash_demandes:'Demandes reçues', dash_attente:'En attente', dash_vues:'Vues totales',
+    dash_tab_annonces:'Mes annonces', dash_tab_contacts:'Demandes reçues',
+    dash_tab_favoris:'Favoris', dash_tab_profil:'Profil',
+    agencies_title:'🏢 Agences immobilières',
+    btn_back:'← Retour',
+    cgu_title:"Conditions Générales d'Utilisation",
+    privacy_title:'Politique de Confidentialité', mentions_title:'Mentions Légales',
+    contact_title:'Contactez-nous', contact_sub:'Notre équipe vous répond dans les 24 h ouvrées.',
+    filter_wilaya:'Wilaya', filter_mode:'Mode', filter_type:'Type',
+    filter_price_min:'Prix min (DZD)', filter_price_max:'Prix max (DZD)', filter_rooms:'Pièces min',
+  },
+  ar: {
+    nav_home:'الرئيسية', nav_annonces:'الإعلانات', nav_agences:'الوكالات',
+    btn_publier:'+ نشر', btn_login:'تسجيل الدخول', btn_register:'إنشاء حساب',
+    hero_title:'ابحث عن عقارك في الجزائر',
+    hero_sub:'أكثر من 50,000 إعلان · شقق، فلل، أراضي، محلات',
+    s_all_wilayas:'جميع الولايات', s_all_modes:'بيع وإيجار',
+    s_vente:'بيع', s_loc_longue:'إيجار طويل الأمد', s_loc_courte:'إيجار قصير الأمد',
+    s_all_types:'جميع الأنواع', s_appart:'شقة', s_villa:'فيلا',
+    s_maison:'منزل', s_bureau:'مكتب', s_local:'محل تجاري',
+    s_terrain:'أرض', s_ferme:'مزرعة', s_entrepot:'مستودع',
+    btn_search:'🔍 بحث',
+    tab_tout:'الكل', tab_vente:'بيع', tab_loc_long:'إيجار طويل', tab_loc_court:'إيجار قصير',
+    recent_listings:'إعلانات حديثة', loading:'جارٍ التحميل…', see_all:'عرض جميع الإعلانات ←',
+    ft_nav:'التنقل', ft_all:'جميع الإعلانات', ft_agencies:'الوكالات', ft_publish:'نشر إعلان',
+    ft_types:'أنواع العقارات', ft_apparts:'شقق', ft_villas:'فلل',
+    ft_terrains:'أراضي', ft_locals:'محلات تجارية',
+    ft_legal:'قانوني', ft_cgu:'شروط الاستخدام', ft_privacy:'سياسة الخصوصية',
+    ft_mentions:'الإشعارات القانونية', ft_contact:'اتصل بنا',
+    ft_copy:'© 2026 DzImmo · الجزائر · جميع الحقوق محفوظة',
+    m_login:'تسجيل الدخول', m_email:'البريد الإلكتروني', m_pass:'كلمة المرور',
+    m_connect:'تسجيل الدخول', m_or:'أو', m_create_account:'إنشاء حساب',
+    m_forgot:'نسيت كلمة المرور؟', m_register:'إنشاء حساب',
+    m_name:'الاسم الكامل', m_phone:'الهاتف', m_already:'لدي حساب بالفعل',
+    m_forgot_title:'نسيت كلمة المرور', m_send_link:'إرسال الرابط',
+    pub_heading:'📋 نشر إعلان', pub_title_label:'عنوان الإعلان *',
+    pub_title_ph:'مثال: شقة F3 مضيئة في حيدرة',
+    pub_mode:'النوع *', pub_type:'نوع العقار *', pub_price:'السعر (د.ج) *',
+    pub_surface:'المساحة (م²)', pub_rooms:'الغرف', pub_baths:'دورات المياه',
+    pub_floor:'الطابق', pub_wilaya:'الولاية *', pub_commune:'البلدية',
+    pub_commune_ph:'مثال: حيدرة', pub_address:'العنوان',
+    pub_address_ph:'العنوان التفصيلي (اختياري)', pub_desc:'الوصف',
+    pub_desc_ph:'صف عقارك: الحالة، التجهيزات، المحيط…',
+    pub_features:'🏷️ المميزات', pub_photos:'📷 الصور',
+    pub_photos_hint:'انقر لإضافة صور (10 كحد أقصى، JPEG/PNG/WebP)',
+    pub_submit:'نشر الإعلان', pub_cancel:'إلغاء',
+    f_meuble:'مفروشة', f_parking:'موقف سيارات', f_balcon:'شرفة', f_terrasse:'تراس',
+    f_ascenseur:'مصعد', f_gardien:'حارس', f_piscine:'مسبح',
+    f_clim:'تكييف هواء', f_chauff:'تدفئة مركزية', f_wifi:'واي فاي',
+    f_cave:'قبو', f_jardin:'حديقة', f_alarme:'إنذار', f_interphone:'إنتيرفون',
+    f_eau:'ماء الصنبور', f_elec:'كهرباء', f_gaz:'غاز طبيعي',
+    f_route:'وصول طريق', f_fibre:'ألياف بصرية',
+    dash_title:'مساحتي', dash_annonces:'الإعلانات', dash_actives:'النشطة',
+    dash_demandes:'الطلبات المستلمة', dash_attente:'في الانتظار', dash_vues:'إجمالي المشاهدات',
+    dash_tab_annonces:'إعلاناتي', dash_tab_contacts:'الطلبات المستلمة',
+    dash_tab_favoris:'المفضلة', dash_tab_profil:'الملف الشخصي',
+    agencies_title:'🏢 الوكالات العقارية',
+    btn_back:'رجوع →',
+    cgu_title:'شروط الاستخدام',
+    privacy_title:'سياسة الخصوصية', mentions_title:'الإشعارات القانونية',
+    contact_title:'اتصل بنا', contact_sub:'فريقنا يرد خلال 24 ساعة عمل.',
+    filter_wilaya:'الولاية', filter_mode:'النوع', filter_type:'نوع العقار',
+    filter_price_min:'الحد الأدنى (د.ج)', filter_price_max:'الحد الأقصى (د.ج)', filter_rooms:'الغرف الدنيا',
+  }
+};
+
+function T(key) { return (TRANSLATIONS[currentLang] || TRANSLATIONS.fr)[key] || TRANSLATIONS.fr[key] || key; }
+
+function applyLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('dz_lang', lang);
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const attr = el.getAttribute('data-i18n-attr');
+    if (attr) el.setAttribute(attr, T(key));
+    else el.textContent = T(key);
+  });
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  rebuildSelects();
+  if (currentPage === 'home') loadHomeProperties();
+  else if (currentPage === 'annonces') loadAnnonces();
+}
+
+function rebuildSelects() {
+  const typeOpts = [
+    ['','s_all_types'],['appartement','s_appart'],['villa','s_villa'],['maison','s_maison'],
+    ['bureau','s_bureau'],['local_commercial','s_local'],['terrain','s_terrain'],
+    ['ferme','s_ferme'],['entrepot','s_entrepot']
+  ];
+  const modeOpts = [
+    ['','s_all_modes'],['vente','s_vente'],['location_longue','s_loc_longue'],['location_courte','s_loc_courte']
+  ];
+  ['s-type','pub-type','f-type'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value;
+    const opts = id === 's-type' || id === 'f-type' ? typeOpts : typeOpts;
+    el.innerHTML = opts.map(([v,k]) => `<option value="${v}">${T(k)}</option>`).join('');
+    el.value = cur;
+  });
+  ['s-mode','pub-mode','f-mode'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value;
+    el.innerHTML = modeOpts.map(([v,k]) => `<option value="${v}">${T(k)}</option>`).join('');
+    el.value = cur;
+  });
+  ['s-wilaya','pub-wilaya','f-wilaya'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value;
+    const first = id.startsWith('pub') ? '' : T('s_all_wilayas');
+    el.innerHTML = (first ? `<option value="">${first}</option>` : '') +
+      WILAYAS.map(w => `<option value="${w}">${w}</option>`).join('');
+    el.value = cur;
+  });
+}
 
 // ── Wilayas d'Algérie — 69 wilayas (loi n°26-06 du 4 avril 2026)
 const WILAYAS = [
@@ -1678,6 +1873,7 @@ function showError(id, msg) {
 }
 
 // ── Démarrage ──────────────────────────────────────
+applyLang(currentLang);
 init();
 </script>
 </body>
