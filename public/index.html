@@ -917,6 +917,130 @@
   </div>
 </div>
 
+<!-- ═══════════════════ SIMULATEUR PRIX AU M² ═══════════════════ -->
+<div id="page-sim-prix" class="hidden">
+  <div style="max-width:680px;margin:0 auto;padding:2rem 1rem 3rem">
+    <button class="btn btn-outline btn-sm" style="margin-bottom:1.5rem" onclick="showPage('home')" data-i18n="btn_back">← Retour</button>
+    <h1 style="font-size:1.6rem;font-weight:900;margin-bottom:.4rem" data-i18n="sp_title">Prix au m²</h1>
+    <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:1.75rem" data-i18n="sp_sub">Calculez le prix au m² ou le prix total d'un bien.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem">
+      <div class="card" style="padding:1.5rem">
+        <h2 style="font-size:1rem;font-weight:700;margin-bottom:1rem" data-i18n="sp_h1">Prix total → Prix/m²</h2>
+        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="sp_lbl_total">Prix total (DZD)</label>
+        <input id="sp1-price" type="number" min="0" data-i18n="sp_ph_total" data-i18n-attr="placeholder" placeholder="ex : 15 000 000" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;margin-bottom:.75rem;background:var(--bg);color:var(--text)">
+        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="sp_lbl_surf">Surface (m²)</label>
+        <input id="sp1-surf" type="number" min="0" data-i18n="sp_ph_surf" data-i18n-attr="placeholder" placeholder="ex : 100" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;margin-bottom:.75rem;background:var(--bg);color:var(--text)">
+        <button class="btn btn-primary" style="width:100%" onclick="calcPrixM2()" data-i18n="sp_btn">Calculer</button>
+        <div id="sp1-res" style="display:none;background:linear-gradient(135deg,rgba(34,197,94,.09),rgba(34,197,94,.03));border:1.5px solid rgba(34,197,94,.35);border-radius:10px;padding:1rem;margin-top:.75rem;text-align:center"></div>
+      </div>
+      <div class="card" style="padding:1.5rem">
+        <h2 style="font-size:1rem;font-weight:700;margin-bottom:1rem" data-i18n="sp_h2">Prix/m² → Total</h2>
+        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="sp_lbl_pm2">Prix au m² (DZD)</label>
+        <input id="sp2-pm2" type="number" min="0" data-i18n="sp_ph_pm2" data-i18n-attr="placeholder" placeholder="ex : 150 000" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;margin-bottom:.75rem;background:var(--bg);color:var(--text)">
+        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="sp_lbl_surf">Surface (m²)</label>
+        <input id="sp2-surf" type="number" min="0" data-i18n="sp_ph_surf" data-i18n-attr="placeholder" placeholder="ex : 100" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;margin-bottom:.75rem;background:var(--bg);color:var(--text)">
+        <button class="btn btn-primary" style="width:100%" onclick="calcPrixTotal()" data-i18n="sp_btn">Calculer</button>
+        <div id="sp2-res" style="display:none;background:linear-gradient(135deg,rgba(34,197,94,.09),rgba(34,197,94,.03));border:1.5px solid rgba(34,197,94,.35);border-radius:10px;padding:1rem;margin-top:.75rem;text-align:center"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ SIMULATEUR ESTIMATION ═══════════════════ -->
+<div id="page-sim-estimation" class="hidden">
+  <div style="max-width:600px;margin:0 auto;padding:2rem 1rem 3rem">
+    <button class="btn btn-outline btn-sm" style="margin-bottom:1.5rem" onclick="showPage('home')" data-i18n="btn_back">← Retour</button>
+    <h1 style="font-size:1.6rem;font-weight:900;margin-bottom:.4rem" data-i18n="se_title">Estimation immobilière</h1>
+    <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:1.75rem" data-i18n="se_sub">Obtenez une fourchette de prix estimée pour votre bien.</p>
+    <div class="card" style="padding:1.5rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:.85rem">
+        <div>
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="se_lbl_type">Type de bien</label>
+          <select id="se-type" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
+            <option value="appartement" data-i18n="s_appart">Appartement</option>
+            <option value="villa" data-i18n="s_villa">Villa</option>
+            <option value="maison" data-i18n="s_maison">Maison</option>
+            <option value="bureau" data-i18n="s_bureau">Bureau</option>
+            <option value="local" data-i18n="s_local">Local commercial</option>
+            <option value="terrain" data-i18n="s_terrain">Terrain</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="se_lbl_zone">Zone géographique</label>
+          <select id="se-zone" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
+            <option value="A" data-i18n="se_zone_a">Grande ville (Alger, Oran)</option>
+            <option value="B" data-i18n="se_zone_b">Ville moyenne</option>
+            <option value="C" data-i18n="se_zone_c">Autre wilaya</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:1rem">
+        <div>
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="sp_lbl_surf">Surface (m²)</label>
+          <input id="se-surf" type="number" min="1" data-i18n="sp_ph_surf" data-i18n-attr="placeholder" placeholder="ex : 100" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="se_lbl_etat">État du bien</label>
+          <select id="se-etat" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
+            <option value="neuf" data-i18n="se_neuf">Neuf</option>
+            <option value="bon" data-i18n="se_bon" selected>Bon état</option>
+            <option value="renov" data-i18n="se_renov">À rénover</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="calcEstimation()" data-i18n="sp_btn">Calculer</button>
+      <div id="se-res" style="display:none;background:linear-gradient(135deg,rgba(34,197,94,.09),rgba(34,197,94,.03));border:1.5px solid rgba(34,197,94,.35);border-radius:10px;padding:1.25rem;margin-top:1rem"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ SIMULATEUR FRAIS DE NOTAIRE ═══════════════════ -->
+<div id="page-sim-notaire" class="hidden">
+  <div style="max-width:560px;margin:0 auto;padding:2rem 1rem 3rem">
+    <button class="btn btn-outline btn-sm" style="margin-bottom:1.5rem" onclick="showPage('home')" data-i18n="btn_back">← Retour</button>
+    <h1 style="font-size:1.6rem;font-weight:900;margin-bottom:.4rem" data-i18n="sn_title">Frais de notaire</h1>
+    <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:1.75rem" data-i18n="sn_sub">Estimez les frais lors de l'achat d'un bien immobilier en Algérie.</p>
+    <div class="card" style="padding:1.5rem">
+      <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="sn_lbl_price">Prix d'achat (DZD)</label>
+      <input id="sn-price" type="number" min="0" data-i18n="sn_ph_price" data-i18n-attr="placeholder" placeholder="ex : 12 000 000" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;margin-bottom:.85rem;background:var(--bg);color:var(--text)">
+      <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="sn_lbl_zone">Type de bien</label>
+      <select id="sn-zone" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;margin-bottom:1rem;background:var(--bg);color:var(--text)">
+        <option value="urbain" data-i18n="sn_urbain">Bien urbain (3% d'enregistrement)</option>
+        <option value="rural" data-i18n="sn_rural">Bien rural / agricole (2% d'enregistrement)</option>
+      </select>
+      <button class="btn btn-primary" style="width:100%" onclick="calcNotaire()" data-i18n="sp_btn">Calculer</button>
+      <div id="sn-res" style="display:none;background:linear-gradient(135deg,rgba(34,197,94,.09),rgba(34,197,94,.03));border:1.5px solid rgba(34,197,94,.35);border-radius:10px;padding:1.25rem;margin-top:1rem"></div>
+    </div>
+    <p style="font-size:.78rem;color:var(--text-muted);margin-top:1rem;text-align:center" data-i18n="sn_disclaimer">Estimation indicative. Consultez un notaire pour un calcul exact.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════ SIMULATEUR CRÉDIT ═══════════════════ -->
+<div id="page-sim-credit" class="hidden">
+  <div style="max-width:560px;margin:0 auto;padding:2rem 1rem 3rem">
+    <button class="btn btn-outline btn-sm" style="margin-bottom:1.5rem" onclick="showPage('home')" data-i18n="btn_back">← Retour</button>
+    <h1 style="font-size:1.6rem;font-weight:900;margin-bottom:.4rem" data-i18n="sc_title">Simulation de crédit</h1>
+    <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:1.75rem" data-i18n="sc_sub">Calculez vos mensualités et le coût total de votre emprunt.</p>
+    <div class="card" style="padding:1.5rem">
+      <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="sc_lbl_montant">Montant emprunté (DZD)</label>
+      <input id="sc-montant" type="number" min="0" data-i18n="sc_ph_montant" data-i18n-attr="placeholder" placeholder="ex : 8 000 000" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;margin-bottom:.85rem;background:var(--bg);color:var(--text)">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:1rem">
+        <div>
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="sc_lbl_duree">Durée (années)</label>
+          <input id="sc-duree" type="number" min="1" max="30" value="20" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="sc_lbl_taux">Taux annuel (%)</label>
+          <input id="sc-taux" type="number" min="0" max="30" step="0.1" value="6" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="calcCredit()" data-i18n="sp_btn">Calculer</button>
+      <div id="sc-res" style="display:none;background:linear-gradient(135deg,rgba(34,197,94,.09),rgba(34,197,94,.03));border:1.5px solid rgba(34,197,94,.35);border-radius:10px;padding:1.25rem;margin-top:1rem"></div>
+    </div>
+    <p style="font-size:.78rem;color:var(--text-muted);margin-top:1rem;text-align:center" data-i18n="sc_disclaimer">Simulation indicative. Contactez votre banque pour une offre personnalisée.</p>
+  </div>
+</div>
+
 <!-- ═══════════════════ FOOTER ═══════════════════ -->
 <footer>
   <div class="footer-inner">
@@ -943,6 +1067,13 @@
       <a href="#" onclick="showPage('confidentialite')" data-i18n="ft_privacy">Politique de confidentialité</a>
       <a href="#" onclick="showPage('mentions')" data-i18n="ft_mentions">Mentions légales</a>
       <a href="#" onclick="showPage('contact')" data-i18n="ft_contact">Contact</a>
+    </div>
+    <div class="footer-col">
+      <h4 data-i18n="ft_sim">Nos simulateurs</h4>
+      <a href="#" onclick="showPage('sim-prix')" data-i18n="ft_sim_prix">Prix au m²</a>
+      <a href="#" onclick="showPage('sim-estimation')" data-i18n="ft_sim_estim">Estimation immobilière</a>
+      <a href="#" onclick="showPage('sim-notaire')" data-i18n="ft_sim_notaire">Frais de notaire</a>
+      <a href="#" onclick="showPage('sim-credit')" data-i18n="ft_sim_credit">Simulation de crédit</a>
     </div>
   </div>
   <div class="footer-bottom" data-i18n="ft_copy">© 2026 DzImmo · Algérie · Tous droits réservés</div>
@@ -1098,6 +1229,34 @@ const TRANSLATIONS = {
     ct_opt_info:'Renseignement général', ct_opt_annonce:'Problème avec une annonce',
     ct_opt_compte:'Mon compte', ct_opt_partner:'Partenariat / Agence', ct_opt_autre:'Autre',
     ct_btn_send:'Envoyer le message',
+    ft_sim:'Nos simulateurs', ft_sim_prix:'Prix au m²', ft_sim_estim:'Estimation immobilière',
+    ft_sim_notaire:'Frais de notaire', ft_sim_credit:'Simulation de crédit',
+    sp_title:'Prix au m²', sp_sub:"Calculez le prix au m² ou le prix total d'un bien.",
+    sp_h1:'Prix total → Prix/m²', sp_h2:'Prix/m² → Total',
+    sp_lbl_total:'Prix total (DZD)', sp_lbl_pm2:'Prix au m² (DZD)', sp_lbl_surf:'Surface (m²)',
+    sp_ph_total:'ex : 15 000 000', sp_ph_pm2:'ex : 150 000', sp_ph_surf:'ex : 100',
+    sp_btn:'Calculer', sp_res_pm2:'par m²', sp_res_pour:'Pour',
+    se_title:'Estimation immobilière', se_sub:'Obtenez une fourchette de prix estimée pour votre bien.',
+    se_lbl_type:'Type de bien', se_lbl_zone:'Zone géographique', se_lbl_etat:'État du bien',
+    se_zone_a:'Grande ville (Alger, Oran)', se_zone_b:'Ville moyenne (Constantine, Annaba…)',
+    se_zone_c:'Autre wilaya',
+    se_neuf:'Neuf', se_bon:'Bon état', se_renov:'À rénover',
+    se_res_range:'Fourchette de prix estimée', se_res_min:'Minimum', se_res_mid:'Médiane', se_res_max:'Maximum',
+    se_disclaimer:'Estimation indicative basée sur les prix moyens du marché algérien.',
+    sn_title:'Frais de notaire', sn_sub:"Estimez les frais lors de l'achat d'un bien immobilier en Algérie.",
+    sn_lbl_price:"Prix d'achat (DZD)", sn_lbl_zone:'Type de bien',
+    sn_ph_price:'ex : 12 000 000',
+    sn_urbain:"Bien urbain (3% d'enregistrement)", sn_rural:'Bien rural / agricole (2% d\'enregistrement)',
+    sn_enreg:"Taxe d'enregistrement", sn_pub:'Taxe de publicité foncière',
+    sn_hon:'Honoraires notaire', sn_divers:'Frais divers (timbre, copies)',
+    sn_total:'Total estimé', sn_pct_label:'du prix de vente',
+    sn_disclaimer:'Estimation indicative. Consultez un notaire pour un calcul exact.',
+    sc_title:'Simulation de crédit', sc_sub:'Calculez vos mensualités et le coût total de votre emprunt.',
+    sc_lbl_montant:'Montant emprunté (DZD)', sc_lbl_duree:'Durée (années)', sc_lbl_taux:'Taux annuel (%)',
+    sc_ph_montant:'ex : 8 000 000',
+    sc_res_mensualite:'Mensualité', sc_res_par_mois:'par mois',
+    sc_montant_emprunte:'Montant emprunté', sc_interets:'Intérêts totaux', sc_total:'Coût total',
+    sc_disclaimer:'Simulation indicative. Contactez votre banque pour une offre personnalisée.',
   },
   ar: {
     nav_home:'الرئيسية', nav_annonces:'الإعلانات', nav_agences:'الوكالات',
@@ -1188,6 +1347,34 @@ const TRANSLATIONS = {
     ct_opt_info:'استفسار عام', ct_opt_annonce:'مشكلة مع إعلان',
     ct_opt_compte:'حسابي', ct_opt_partner:'شراكة / وكالة', ct_opt_autre:'أخرى',
     ct_btn_send:'إرسال الرسالة',
+    ft_sim:'محاكياتنا', ft_sim_prix:'سعر المتر المربع', ft_sim_estim:'تقدير العقار',
+    ft_sim_notaire:'رسوم التوثيق', ft_sim_credit:'محاكاة القرض',
+    sp_title:'سعر المتر المربع', sp_sub:'احسب سعر المتر المربع أو السعر الإجمالي لعقارك.',
+    sp_h1:'السعر الإجمالي → سعر/م²', sp_h2:'سعر/م² → السعر الإجمالي',
+    sp_lbl_total:'السعر الإجمالي (د.ج)', sp_lbl_pm2:'سعر المتر المربع (د.ج)', sp_lbl_surf:'المساحة (م²)',
+    sp_ph_total:'مثال: 15,000,000', sp_ph_pm2:'مثال: 150,000', sp_ph_surf:'مثال: 100',
+    sp_btn:'احسب', sp_res_pm2:'للمتر المربع', sp_res_pour:'لـ',
+    se_title:'تقدير العقار', se_sub:'احصل على نطاق سعري تقديري لعقارك.',
+    se_lbl_type:'نوع العقار', se_lbl_zone:'المنطقة الجغرافية', se_lbl_etat:'حالة العقار',
+    se_zone_a:'مدينة كبرى (الجزائر، وهران)', se_zone_b:'مدينة متوسطة (قسنطينة، عنابة…)',
+    se_zone_c:'ولاية أخرى',
+    se_neuf:'جديد', se_bon:'حالة جيدة', se_renov:'يحتاج تجديد',
+    se_res_range:'النطاق السعري التقديري', se_res_min:'الحد الأدنى', se_res_mid:'المتوسط', se_res_max:'الحد الأقصى',
+    se_disclaimer:'تقدير استرشادي بناءً على متوسطات السوق العقاري الجزائري.',
+    sn_title:'رسوم التوثيق', sn_sub:'قدّر رسوم شراء العقار في الجزائر.',
+    sn_lbl_price:'سعر الشراء (د.ج)', sn_lbl_zone:'نوع العقار',
+    sn_ph_price:'مثال: 12,000,000',
+    sn_urbain:'عقار حضري (رسم تسجيل 3%)', sn_rural:'عقار ريفي / زراعي (رسم تسجيل 2%)',
+    sn_enreg:'رسم التسجيل', sn_pub:'رسم الشهر العقاري',
+    sn_hon:'أتعاب الموثق', sn_divers:'رسوم متنوعة (طوابع، نسخ)',
+    sn_total:'المجموع التقديري', sn_pct_label:'من سعر البيع',
+    sn_disclaimer:'تقدير استرشادي. استشر موثقًا للحصول على حساب دقيق.',
+    sc_title:'محاكاة القرض', sc_sub:'احسب أقساطك الشهرية والتكلفة الإجمالية لقرضك.',
+    sc_lbl_montant:'مبلغ القرض (د.ج)', sc_lbl_duree:'المدة (سنوات)', sc_lbl_taux:'الفائدة السنوية (%)',
+    sc_ph_montant:'مثال: 8,000,000',
+    sc_res_mensualite:'القسط الشهري', sc_res_par_mois:'في الشهر',
+    sc_montant_emprunte:'مبلغ القرض', sc_interets:'إجمالي الفوائد', sc_total:'التكلفة الإجمالية',
+    sc_disclaimer:'محاكاة استرشادية. تواصل مع بنكك للحصول على عرض شخصي.',
   }
 };
 
@@ -1363,7 +1550,7 @@ async function api(path, method = 'GET', body = null) {
 }
 
 // ── Navigation ────────────────────────────────────
-const PAGES = ['home','annonces','detail','publier','agences','dashboard','messages','cgu','confidentialite','mentions','contact'];
+const PAGES = ['home','annonces','detail','publier','agences','dashboard','messages','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit'];
 
 function showPage(page, data = null) {
   PAGES.forEach(p => {
@@ -1604,6 +1791,123 @@ async function submitContact(event, propertyId, ownerId) {
     toast('✅ Demande envoyée au vendeur !');
   } catch (e) { toast('❌ ' + e.message); }
   return false;
+}
+
+// ── Simulateurs ───────────────────────────────────────────────────────────────
+function fmtDZD(n) {
+  return Math.round(n).toLocaleString('fr-DZ') + ' DZD';
+}
+
+const SIM_RESULT_STYLE = 'display:none;background:linear-gradient(135deg,rgba(34,197,94,.09),rgba(34,197,94,.03));border:1.5px solid rgba(34,197,94,.35);border-radius:10px;padding:1.25rem;margin-top:1rem';
+
+function calcPrixM2() {
+  const price = parseFloat(document.getElementById('sp1-price').value);
+  const surf  = parseFloat(document.getElementById('sp1-surf').value);
+  const res   = document.getElementById('sp1-res');
+  if (!price || !surf) { res.style.display = 'none'; return; }
+  const pm2 = price / surf;
+  res.innerHTML = `<div style="font-size:1.8rem;font-weight:900;color:var(--primary)">${fmtDZD(pm2)}<span style="font-size:1rem;font-weight:500"> /${T('sp_res_pm2') || 'm²'}</span></div>
+    <div style="color:var(--text-secondary);font-size:.88rem;margin-top:.4rem">${T('sp_res_pour')} ${surf} m² · ${fmtDZD(price)}</div>`;
+  res.style.display = 'block';
+}
+
+function calcPrixTotal() {
+  const pm2  = parseFloat(document.getElementById('sp2-pm2').value);
+  const surf = parseFloat(document.getElementById('sp2-surf').value);
+  const res  = document.getElementById('sp2-res');
+  if (!pm2 || !surf) { res.style.display = 'none'; return; }
+  const total = pm2 * surf;
+  res.innerHTML = `<div style="font-size:1.8rem;font-weight:900;color:var(--primary)">${fmtDZD(total)}</div>
+    <div style="color:var(--text-secondary);font-size:.88rem;margin-top:.4rem">${surf} m² × ${fmtDZD(pm2)}/m²</div>`;
+  res.style.display = 'block';
+}
+
+function calcEstimation() {
+  const type = document.getElementById('se-type').value;
+  const zone = document.getElementById('se-zone').value;
+  const surf = parseFloat(document.getElementById('se-surf').value);
+  const etat = document.getElementById('se-etat').value;
+  const res  = document.getElementById('se-res');
+  if (!surf || surf <= 0) { res.style.display = 'none'; return; }
+  const refs = {
+    appartement: { A:[110000,190000], B:[55000,110000], C:[22000,60000] },
+    villa:       { A:[80000,150000],  B:[45000,95000],  C:[20000,55000] },
+    maison:      { A:[70000,130000],  B:[40000,85000],  C:[18000,50000] },
+    bureau:      { A:[95000,175000],  B:[55000,115000], C:[25000,65000] },
+    local:       { A:[90000,165000],  B:[50000,105000], C:[22000,60000] },
+    terrain:     { A:[25000,75000],   B:[10000,38000],  C:[3000,18000]  },
+  };
+  const coef = { neuf:1.25, bon:1.0, renov:0.7 }[etat] || 1;
+  const [lo, hi] = refs[type]?.[zone] || refs.appartement.B;
+  const min = Math.round(lo * coef * surf);
+  const max = Math.round(hi * coef * surf);
+  const mid = Math.round((min + max) / 2);
+  res.innerHTML = `
+    <div style="font-size:.82rem;color:var(--text-muted);margin-bottom:.75rem;text-align:center">${T('se_res_range')}</div>
+    <div style="display:flex;gap:1rem;justify-content:space-around;flex-wrap:wrap;text-align:center;margin-bottom:.75rem">
+      <div><div style="font-size:.75rem;color:var(--text-muted)">${T('se_res_min')}</div><div style="font-size:1.15rem;font-weight:700">${fmtDZD(min)}</div></div>
+      <div><div style="font-size:.75rem;color:var(--text-muted)">${T('se_res_mid')}</div><div style="font-size:1.55rem;font-weight:900;color:var(--primary)">${fmtDZD(mid)}</div></div>
+      <div><div style="font-size:.75rem;color:var(--text-muted)">${T('se_res_max')}</div><div style="font-size:1.15rem;font-weight:700">${fmtDZD(max)}</div></div>
+    </div>
+    <div style="font-size:.75rem;color:var(--text-muted);text-align:center">${T('se_disclaimer')}</div>`;
+  res.style.display = 'block';
+}
+
+function calcNotaire() {
+  const price = parseFloat(document.getElementById('sn-price').value);
+  const zone  = document.getElementById('sn-zone').value;
+  const res   = document.getElementById('sn-res');
+  if (!price || price <= 0) { res.style.display = 'none'; return; }
+  const tEnreg = price * (zone === 'rural' ? 0.02 : 0.03);
+  const tPub   = price * 0.01;
+  let hon = 0;
+  const tranches = [[500000,0.03],[1500000,0.02],[8000000,0.01],[Infinity,0.005]];
+  let reste = price, prev = 0;
+  for (const [limit, rate] of tranches) {
+    const slice = Math.min(reste, limit - prev);
+    hon += slice * rate;
+    reste -= slice; prev = limit;
+    if (reste <= 0) break;
+  }
+  const divers = 15000;
+  const total  = tEnreg + tPub + hon + divers;
+  const pct    = (total / price * 100).toFixed(2);
+  const td = (a, b, bold) => `<tr><td style="padding:.4rem 0;color:var(--text-secondary)">${a}</td><td style="text-align:right;font-weight:${bold?'800':'600'};${bold?'font-size:1.05rem;color:var(--primary)':''}">${b}</td></tr>`;
+  res.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.9rem">
+    ${td(T('sn_enreg'), fmtDZD(tEnreg))}
+    ${td(T('sn_pub'),   fmtDZD(tPub))}
+    ${td(T('sn_hon'),   fmtDZD(hon))}
+    ${td(T('sn_divers'),fmtDZD(divers))}
+    <tr style="border-top:2px solid var(--border)">${td(T('sn_total'), fmtDZD(total), true)}</tr>
+  </table>
+  <div style="color:var(--text-muted);font-size:.78rem;margin-top:.5rem;text-align:center">${pct}% ${T('sn_pct_label')}</div>`;
+  res.style.display = 'block';
+}
+
+function calcCredit() {
+  const P     = parseFloat(document.getElementById('sc-montant').value);
+  const years = parseFloat(document.getElementById('sc-duree').value);
+  const rate  = parseFloat(document.getElementById('sc-taux').value);
+  const res   = document.getElementById('sc-res');
+  if (!P || !years || rate == null || isNaN(rate)) { res.style.display = 'none'; return; }
+  const n = years * 12;
+  const r = rate / 100 / 12;
+  const M = r === 0 ? P / n : P * r * Math.pow(1+r,n) / (Math.pow(1+r,n) - 1);
+  const total = M * n;
+  const interets = total - P;
+  const td = (a, b, bold) => `<tr><td style="padding:.35rem 0;color:var(--text-secondary)">${a}</td><td style="text-align:right;font-weight:${bold?'900':'600'};${bold?'color:var(--primary)':''}">${b}</td></tr>`;
+  res.innerHTML = `
+    <div style="text-align:center;margin-bottom:1rem">
+      <div style="font-size:.82rem;color:var(--text-muted)">${T('sc_res_mensualite')}</div>
+      <div style="font-size:2rem;font-weight:900;color:var(--primary)">${fmtDZD(M)}</div>
+      <div style="font-size:.78rem;color:var(--text-muted)">${T('sc_res_par_mois')}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:.9rem;border-top:1.5px solid var(--border)">
+      ${td(T('sc_montant_emprunte'), fmtDZD(P))}
+      ${td(T('sc_interets'), fmtDZD(interets))}
+      <tr style="border-top:2px solid var(--border)">${td(T('sc_total'), fmtDZD(total), true)}</tr>
+    </table>`;
+  res.style.display = 'block';
 }
 
 async function submitContactPage(event) {
