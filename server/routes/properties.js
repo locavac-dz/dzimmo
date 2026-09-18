@@ -52,6 +52,65 @@ router.get('/', async (req, res) => {
   res.json(await Promise.all(all.map(withOwner)));
 });
 
+// GET /api/properties/estimation — prix/m² moyen depuis la BDD (DOIT être avant /:id)
+router.get('/estimation', async (req, res) => {
+  const { pool } = require('../db');
+  const { type_bien, wilaya, mode } = req.query;
+
+  const buildQuery = (withWilaya) => {
+    const conds  = ["status = 'active'", 'surface_m2 > 5', 'price > 0'];
+    const params = [];
+    if (type_bien && TYPES_VALIDES.includes(type_bien)) {
+      params.push(type_bien); conds.push(`type_bien = $${params.length}`);
+    }
+    if (withWilaya && wilaya) {
+      params.push(wilaya); conds.push(`wilaya = $${params.length}`);
+    }
+    if (mode && MODES_VALIDES.includes(mode)) {
+      params.push(mode); conds.push(`mode = $${params.length}`);
+    }
+    return {
+      sql: `SELECT COUNT(*)::int AS count,
+        ROUND(AVG(price::numeric / surface_m2::numeric)) AS avg_pm2,
+        ROUND(PERCENTILE_CONT(0.25) WITHIN GROUP
+          (ORDER BY price::numeric / surface_m2::numeric)) AS p25_pm2,
+        ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP
+          (ORDER BY price::numeric / surface_m2::numeric)) AS p75_pm2
+      FROM properties WHERE ${conds.join(' AND ')}`,
+      params,
+    };
+  };
+
+  if (!mode) {
+    return res.status(400).json({ error: 'mode_required' });
+  }
+
+  try {
+    let scope = wilaya ? 'wilaya' : 'national';
+    let q = buildQuery(true);
+    let { rows } = await pool.query(q.sql, q.params);
+    let d = rows[0];
+
+    if (wilaya && (!d.count || d.count < 2)) {
+      scope = 'national';
+      q = buildQuery(false);
+      ({ rows } = await pool.query(q.sql, q.params));
+      d = rows[0];
+    }
+
+    res.json({
+      count:   d.count   || 0,
+      avg_pm2: d.avg_pm2 ? +d.avg_pm2 : null,
+      p25_pm2: d.p25_pm2 ? +d.p25_pm2 : null,
+      p75_pm2: d.p75_pm2 ? +d.p75_pm2 : null,
+      scope,
+    });
+  } catch (err) {
+    console.error('[estimation]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/properties/:id
 router.get('/:id', async (req, res) => {
   const property = await db.properties.findOne(p => p.id === Number(req.params.id));

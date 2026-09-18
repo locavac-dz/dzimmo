@@ -966,11 +966,9 @@
           </select>
         </div>
         <div>
-          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="se_lbl_zone">Zone géographique</label>
-          <select id="se-zone" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
-            <option value="A" data-i18n="se_zone_a">Grande ville (Alger, Oran)</option>
-            <option value="B" data-i18n="se_zone_b">Ville moyenne</option>
-            <option value="C" data-i18n="se_zone_c">Autre wilaya</option>
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="se_lbl_wilaya">Wilaya</label>
+          <select id="se-wilaya" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
+            <option value="" data-i18n="s_all_wilayas">Toutes les wilayas</option>
           </select>
         </div>
       </div>
@@ -980,11 +978,12 @@
           <input id="se-surf" type="number" min="1" data-i18n="sp_ph_surf" data-i18n-attr="placeholder" placeholder="ex : 100" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
         </div>
         <div>
-          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="se_lbl_etat">État du bien</label>
-          <select id="se-etat" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
-            <option value="neuf" data-i18n="se_neuf">Neuf</option>
-            <option value="bon" data-i18n="se_bon" selected>Bon état</option>
-            <option value="renov" data-i18n="se_renov">À rénover</option>
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="se_lbl_mode">Mode</label>
+          <select id="se-mode" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
+            <option value="" data-i18n="s_all_modes">Vente &amp; Location</option>
+            <option value="vente" data-i18n="s_vente">Vente</option>
+            <option value="location_longue" data-i18n="s_loc_longue">Location longue durée</option>
+            <option value="location_courte" data-i18n="s_loc_courte">Location courte durée</option>
           </select>
         </div>
       </div>
@@ -1236,13 +1235,15 @@ const TRANSLATIONS = {
     sp_lbl_total:'Prix total (DZD)', sp_lbl_pm2:'Prix au m² (DZD)', sp_lbl_surf:'Surface (m²)',
     sp_ph_total:'ex : 15 000 000', sp_ph_pm2:'ex : 150 000', sp_ph_surf:'ex : 100',
     sp_btn:'Calculer', sp_res_pm2:'par m²', sp_res_pour:'Pour',
-    se_title:'Estimation immobilière', se_sub:'Obtenez une fourchette de prix estimée pour votre bien.',
-    se_lbl_type:'Type de bien', se_lbl_zone:'Zone géographique', se_lbl_etat:'État du bien',
-    se_zone_a:'Grande ville (Alger, Oran)', se_zone_b:'Ville moyenne (Constantine, Annaba…)',
-    se_zone_c:'Autre wilaya',
-    se_neuf:'Neuf', se_bon:'Bon état', se_renov:'À rénover',
-    se_res_range:'Fourchette de prix estimée', se_res_min:'Minimum', se_res_mid:'Médiane', se_res_max:'Maximum',
-    se_disclaimer:'Estimation indicative basée sur les prix moyens du marché algérien.',
+    se_title:'Estimation immobilière', se_sub:'Obtenez une fourchette de prix basée sur les annonces DzImmo.',
+    se_lbl_type:'Type de bien', se_lbl_wilaya:'Wilaya', se_lbl_mode:'Mode',
+    se_res_range:'Fourchette de prix/m²', se_res_min:'Bas (25%)', se_res_mid:'Moyen', se_res_max:'Haut (75%)',
+    se_est_total:'Estimation pour',
+    se_source_wilaya:'annonces DzImmo à',
+    se_source_national:'annonces DzImmo (toutes wilayas)',
+    se_no_data:'Aucune annonce comparable trouvée. Essayez de modifier les filtres.',
+    se_need_mode:'⚠️ Sélectionnez un mode (Vente ou Location) pour obtenir une estimation cohérente.',
+    se_disclaimer:'Basé sur les annonces actives de DzImmo.',
     sn_title:'Frais de notaire', sn_sub:"Estimez les frais lors de l'achat d'un bien immobilier en Algérie.",
     sn_lbl_price:"Prix d'achat (DZD)", sn_lbl_zone:'Type de bien',
     sn_ph_price:'ex : 12 000 000',
@@ -1354,13 +1355,15 @@ const TRANSLATIONS = {
     sp_lbl_total:'السعر الإجمالي (د.ج)', sp_lbl_pm2:'سعر المتر المربع (د.ج)', sp_lbl_surf:'المساحة (م²)',
     sp_ph_total:'مثال: 15,000,000', sp_ph_pm2:'مثال: 150,000', sp_ph_surf:'مثال: 100',
     sp_btn:'احسب', sp_res_pm2:'للمتر المربع', sp_res_pour:'لـ',
-    se_title:'تقدير العقار', se_sub:'احصل على نطاق سعري تقديري لعقارك.',
-    se_lbl_type:'نوع العقار', se_lbl_zone:'المنطقة الجغرافية', se_lbl_etat:'حالة العقار',
-    se_zone_a:'مدينة كبرى (الجزائر، وهران)', se_zone_b:'مدينة متوسطة (قسنطينة، عنابة…)',
-    se_zone_c:'ولاية أخرى',
-    se_neuf:'جديد', se_bon:'حالة جيدة', se_renov:'يحتاج تجديد',
-    se_res_range:'النطاق السعري التقديري', se_res_min:'الحد الأدنى', se_res_mid:'المتوسط', se_res_max:'الحد الأقصى',
-    se_disclaimer:'تقدير استرشادي بناءً على متوسطات السوق العقاري الجزائري.',
+    se_title:'تقدير العقار', se_sub:'احصل على نطاق سعري بناءً على إعلانات DzImmo الحقيقية.',
+    se_lbl_type:'نوع العقار', se_lbl_wilaya:'الولاية', se_lbl_mode:'نوع العملية',
+    se_res_range:'نطاق السعر/م²', se_res_min:'منخفض (25%)', se_res_mid:'متوسط', se_res_max:'مرتفع (75%)',
+    se_est_total:'تقدير لـ',
+    se_source_wilaya:'إعلان DzImmo في',
+    se_source_national:'إعلان DzImmo (جميع الولايات)',
+    se_no_data:'لا توجد إعلانات مماثلة. حاول تغيير الفلاتر.',
+    se_need_mode:'⚠️ اختر نوع العملية (بيع أو إيجار) للحصول على تقدير دقيق.',
+    se_disclaimer:'مبني على الإعلانات النشطة في DzImmo.',
     sn_title:'رسوم التوثيق', sn_sub:'قدّر رسوم شراء العقار في الجزائر.',
     sn_lbl_price:'سعر الشراء (د.ج)', sn_lbl_zone:'نوع العقار',
     sn_ph_price:'مثال: 12,000,000',
@@ -1565,12 +1568,13 @@ function showPage(page, data = null) {
   });
   window.scrollTo(0, 0);
 
-  if (page === 'home')       loadHomeProperties();
-  if (page === 'annonces')   loadAnnonces();
-  if (page === 'agences')    loadAgences();
-  if (page === 'dashboard')  loadDashboard();
-  if (page === 'messages')   loadMessages();
-  if (page === 'detail' && data) loadDetail(data);
+  if (page === 'home')            loadHomeProperties();
+  if (page === 'annonces')        loadAnnonces();
+  if (page === 'agences')         loadAgences();
+  if (page === 'dashboard')       loadDashboard();
+  if (page === 'messages')        loadMessages();
+  if (page === 'detail' && data)  loadDetail(data);
+  if (page === 'sim-estimation')  initSeWilayaSelect();
 }
 
 function goBack() { showPage(currentPage === 'detail' ? 'annonces' : 'home'); }
@@ -1822,35 +1826,75 @@ function calcPrixTotal() {
   res.style.display = 'block';
 }
 
-function calcEstimation() {
-  const type = document.getElementById('se-type').value;
-  const zone = document.getElementById('se-zone').value;
-  const surf = parseFloat(document.getElementById('se-surf').value);
-  const etat = document.getElementById('se-etat').value;
-  const res  = document.getElementById('se-res');
-  if (!surf || surf <= 0) { res.style.display = 'none'; return; }
-  const refs = {
-    appartement: { A:[110000,190000], B:[55000,110000], C:[22000,60000] },
-    villa:       { A:[80000,150000],  B:[45000,95000],  C:[20000,55000] },
-    maison:      { A:[70000,130000],  B:[40000,85000],  C:[18000,50000] },
-    bureau:      { A:[95000,175000],  B:[55000,115000], C:[25000,65000] },
-    local:       { A:[90000,165000],  B:[50000,105000], C:[22000,60000] },
-    terrain:     { A:[25000,75000],   B:[10000,38000],  C:[3000,18000]  },
-  };
-  const coef = { neuf:1.25, bon:1.0, renov:0.7 }[etat] || 1;
-  const [lo, hi] = refs[type]?.[zone] || refs.appartement.B;
-  const min = Math.round(lo * coef * surf);
-  const max = Math.round(hi * coef * surf);
-  const mid = Math.round((min + max) / 2);
-  res.innerHTML = `
-    <div style="font-size:.82rem;color:var(--text-muted);margin-bottom:.75rem;text-align:center">${T('se_res_range')}</div>
-    <div style="display:flex;gap:1rem;justify-content:space-around;flex-wrap:wrap;text-align:center;margin-bottom:.75rem">
-      <div><div style="font-size:.75rem;color:var(--text-muted)">${T('se_res_min')}</div><div style="font-size:1.15rem;font-weight:700">${fmtDZD(min)}</div></div>
-      <div><div style="font-size:.75rem;color:var(--text-muted)">${T('se_res_mid')}</div><div style="font-size:1.55rem;font-weight:900;color:var(--primary)">${fmtDZD(mid)}</div></div>
-      <div><div style="font-size:.75rem;color:var(--text-muted)">${T('se_res_max')}</div><div style="font-size:1.15rem;font-weight:700">${fmtDZD(max)}</div></div>
-    </div>
-    <div style="font-size:.75rem;color:var(--text-muted);text-align:center">${T('se_disclaimer')}</div>`;
+function initSeWilayaSelect() {
+  const sel = document.getElementById('se-wilaya');
+  if (!sel || sel.options.length > 1) return;
+  WILAYAS.forEach(w => {
+    const opt = document.createElement('option');
+    opt.value = w; opt.textContent = w;
+    sel.appendChild(opt);
+  });
+}
+
+async function calcEstimation() {
+  const type   = document.getElementById('se-type').value;
+  const wilaya = document.getElementById('se-wilaya').value;
+  const surf   = parseFloat(document.getElementById('se-surf').value);
+  const mode   = document.getElementById('se-mode').value;
+  const res    = document.getElementById('se-res');
+
+  if (!mode) {
+    res.innerHTML = `<div style="text-align:center;font-size:.9rem;padding:.5rem">${T('se_need_mode')}</div>`;
+    res.style.display = 'block';
+    return;
+  }
+
+  res.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:.5rem">${T('loading')}</div>`;
   res.style.display = 'block';
+
+  try {
+    const params = new URLSearchParams({ type_bien: type, mode });
+    if (wilaya) params.set('wilaya', wilaya);
+
+    const data = await api(`/properties/estimation?${params}`);
+
+    if (!data.count || data.avg_pm2 == null) {
+      res.innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:.9rem">${T('se_no_data')}</div>`;
+      return;
+    }
+
+    const sourceLabel = data.scope === 'wilaya'
+      ? `📊 ${data.count} ${T('se_source_wilaya')} <strong>${wilaya}</strong>`
+      : `📊 ${data.count} ${T('se_source_national')}`;
+
+    const p25 = data.p25_pm2 || data.avg_pm2;
+    const p75 = data.p75_pm2 || data.avg_pm2;
+
+    let totalHtml = '';
+    if (surf > 0) {
+      totalHtml = `
+        <div style="border-top:1.5px solid rgba(34,197,94,.3);margin-top:.85rem;padding-top:.85rem">
+          <div style="font-size:.78rem;color:var(--text-muted);text-align:center;margin-bottom:.5rem">${T('se_est_total')} ${surf} m²</div>
+          <div style="display:flex;gap:.5rem;justify-content:space-around;flex-wrap:wrap;text-align:center">
+            <div><div style="font-size:.72rem;color:var(--text-muted)">${T('se_res_min')}</div><div style="font-weight:700">${fmtDZD(p25 * surf)}</div></div>
+            <div><div style="font-size:.72rem;color:var(--text-muted)">${T('se_res_mid')}</div><div style="font-size:1.2rem;font-weight:900;color:var(--primary)">${fmtDZD(data.avg_pm2 * surf)}</div></div>
+            <div><div style="font-size:.72rem;color:var(--text-muted)">${T('se_res_max')}</div><div style="font-weight:700">${fmtDZD(p75 * surf)}</div></div>
+          </div>
+        </div>`;
+    }
+
+    res.innerHTML = `
+      <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.85rem;text-align:center">${sourceLabel}</div>
+      <div style="font-size:.78rem;color:var(--text-muted);text-align:center;margin-bottom:.5rem">${T('se_res_range')} (DZD/m²)</div>
+      <div style="display:flex;gap:.5rem;justify-content:space-around;flex-wrap:wrap;text-align:center">
+        <div><div style="font-size:.72rem;color:var(--text-muted)">${T('se_res_min')}</div><div style="font-weight:700">${fmtDZD(p25)}/m²</div></div>
+        <div><div style="font-size:.72rem;color:var(--text-muted)">${T('se_res_mid')}</div><div style="font-size:1.25rem;font-weight:900;color:var(--primary)">${fmtDZD(data.avg_pm2)}/m²</div></div>
+        <div><div style="font-size:.72rem;color:var(--text-muted)">${T('se_res_max')}</div><div style="font-weight:700">${fmtDZD(p75)}/m²</div></div>
+      </div>
+      ${totalHtml}`;
+  } catch (e) {
+    res.innerHTML = `<div style="text-align:center;color:var(--text-muted)">${T('se_no_data')}</div>`;
+  }
 }
 
 function calcNotaire() {
