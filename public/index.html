@@ -972,10 +972,22 @@
           </select>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:1rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.85rem;margin-bottom:1rem">
         <div>
           <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="sp_lbl_surf">Surface (m²)</label>
           <input id="se-surf" type="number" min="1" data-i18n="sp_ph_surf" data-i18n-attr="placeholder" placeholder="ex : 100" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="se_lbl_rooms">Pièces</label>
+          <select id="se-rooms" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
+            <option value="" data-i18n="se_rooms_all">Toutes</option>
+            <option value="1" data-i18n="se_rooms_1">Studio (F1)</option>
+            <option value="2" data-i18n="se_rooms_2">F2</option>
+            <option value="3" data-i18n="se_rooms_3">F3</option>
+            <option value="4" data-i18n="se_rooms_4">F4</option>
+            <option value="5" data-i18n="se_rooms_5">F5</option>
+            <option value="6" data-i18n="se_rooms_6">F6+</option>
+          </select>
         </div>
         <div>
           <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="se_lbl_mode">Mode</label>
@@ -1268,6 +1280,8 @@ const TRANSLATIONS = {
     se_need_mode:'⚠️ Sélectionnez un mode (Vente ou Location) pour obtenir une estimation cohérente.',
     se_disclaimer:'Basé sur les annonces actives de DzImmo.',
     sn_title:'Frais de notaire', sn_sub:"Estimez les frais lors de l'achat d'un bien immobilier en Algérie.",
+    se_lbl_rooms:'Pièces', se_rooms_all:'Toutes',
+    se_rooms_1:'Studio (F1)', se_rooms_2:'F2', se_rooms_3:'F3', se_rooms_4:'F4', se_rooms_5:'F5', se_rooms_6:'F6+',
     sn_lbl_price:"Prix d'achat (DZD)", sn_lbl_zone:'Type de bien',
     sn_ph_price:'ex : 12 000 000',
     sn_urbain:"Bien urbain (3% d'enregistrement)", sn_rural:'Bien rural / agricole (2% d\'enregistrement)',
@@ -1397,6 +1411,8 @@ const TRANSLATIONS = {
     se_need_mode:'⚠️ اختر نوع العملية (بيع أو إيجار) للحصول على تقدير دقيق.',
     se_disclaimer:'مبني على الإعلانات النشطة في DzImmo.',
     sn_title:'رسوم التوثيق', sn_sub:'قدّر رسوم شراء العقار في الجزائر.',
+    se_lbl_rooms:'الغرف', se_rooms_all:'الكل',
+    se_rooms_1:'ستوديو (F1)', se_rooms_2:'F2', se_rooms_3:'F3', se_rooms_4:'F4', se_rooms_5:'F5', se_rooms_6:'F6+',
     sn_lbl_price:'سعر الشراء (د.ج)', sn_lbl_zone:'نوع العقار',
     sn_ph_price:'مثال: 12,000,000',
     sn_urbain:'عقار حضري (رسم تسجيل 3%)', sn_rural:'عقار ريفي / زراعي (رسم تسجيل 2%)',
@@ -1881,6 +1897,7 @@ async function calcEstimation() {
   const type   = document.getElementById('se-type').value;
   const wilaya = document.getElementById('se-wilaya').value;
   const surf   = parseFloat(document.getElementById('se-surf').value);
+  const rooms  = document.getElementById('se-rooms').value;
   const mode   = document.getElementById('se-mode').value;
   const res    = document.getElementById('se-res');
 
@@ -1896,6 +1913,7 @@ async function calcEstimation() {
   try {
     const params = new URLSearchParams({ type_bien: type, mode });
     if (wilaya) params.set('wilaya', wilaya);
+    if (rooms)  params.set('rooms', rooms);
 
     const data = await api(`/properties/estimation?${params}`);
 

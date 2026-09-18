@@ -55,7 +55,8 @@ router.get('/', async (req, res) => {
 // GET /api/properties/estimation — prix/m² moyen depuis la BDD (DOIT être avant /:id)
 router.get('/estimation', async (req, res) => {
   const { pool } = require('../db');
-  const { type_bien, wilaya, mode } = req.query;
+  const { type_bien, wilaya, mode, rooms } = req.query;
+  const roomsInt = rooms ? parseInt(rooms, 10) : NaN;
 
   const buildQuery = (withWilaya) => {
     const conds  = ["status = 'active'", 'surface_m2 > 5', 'price > 0'];
@@ -68,6 +69,13 @@ router.get('/estimation', async (req, res) => {
     }
     if (mode && MODES_VALIDES.includes(mode)) {
       params.push(mode); conds.push(`mode = $${params.length}`);
+    }
+    if (!isNaN(roomsInt)) {
+      if (roomsInt >= 6) {
+        conds.push('rooms >= 6');
+      } else {
+        params.push(roomsInt); conds.push(`rooms = $${params.length}`);
+      }
     }
     return {
       sql: `SELECT COUNT(*)::int AS count,
