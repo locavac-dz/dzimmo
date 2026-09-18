@@ -1,0 +1,45 @@
+# DzImmo — Plateforme d'annonces immobilières (Algérie)
+
+Fork de LocaVac. Package npm `dzimmo`. Domaine cible : dzimmo.dz.
+
+## Stack
+
+- Node.js 20 + Express 4 — point d'entrée `server/index.js`
+- PostgreSQL 17 (port **5433** en local)
+- Auth JWT (`jsonwebtoken` + `bcryptjs`)
+- Frontend HTML/CSS/JS vanilla en SPA, servi depuis `public/`
+- Upload `multer`, email `nodemailer`, tâches planifiées `node-cron`, temps réel `ws`
+- Production : pm2 cluster (`ecosystem.config.js`) + Nginx + Let's Encrypt
+
+## Commandes
+
+```bash
+npm run dev      # nodemon
+npm start        # node server/index.js
+```
+
+Windows : `demarrer.bat`
+
+## Structure
+
+- `server/` — API Express
+- `public/` — front SPA ; `public/uploads/` est ignoré par Git
+- `backups/` — sauvegardes locales, hors Git
+- `dzimmo.json` — configuration locale, hors Git
+
+## Règles métier
+
+- Modes d'annonce : **Vente**, **Location longue durée**, **Location courte durée**
+- Types de biens : Appartement, Villa, Maison, Bureau, Local commercial, Terrain, Ferme, Entrepôt
+- Un bien peut être publié par un **particulier** ou une **agence**
+- Les demandes de contact (visite, renseignement, offre) remplacent les réservations
+- Avis sur les biens uniquement par des utilisateurs ayant soumis une demande de contact confirmée
+- Interface bilingue FR / AR — toute nouvelle chaîne dans les deux langues
+- Montants en **DZD**
+- Conformité RGPD + loi algérienne 18-07
+
+## Consignes
+
+- Ne jamais committer `.env`, `.env.production` ni `dzimmo.json`.
+- Toute variable de configuration nouvelle doit être ajoutée à `.env.example`.
+- Répondre et commenter le code en français.

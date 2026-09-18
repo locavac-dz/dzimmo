@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DzImmo — Immobilier en Algérie</title>
+  <meta name="description" content="Trouvez ou publiez des annonces immobilières en Algérie : appartements, villas, locaux, terrains à vendre ou à louer.">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0C6E4F">
+  <style>
+    :root {
+      --primary: #0C6E4F;
+      --primary-dark: #0a5c42;
+      --primary-light: #e8f5f0;
+      --accent: #f59e0b;
+      --red: #dc2626;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --bg: #f8fafc;
+      --white: #ffffff;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(0,0,0,.08);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
+    }
+    *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: var(--text); background: var(--bg); min-height: 100vh; }
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+    button { cursor: pointer; border: none; font-family: inherit; }
+    input, select, textarea { font-family: inherit; }
+    .hidden { display: none !important; }
+
+    /* ── Header ── */
+    #header {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--white); border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    }
+    .header-inner {
+      max-width: 1280px; margin: 0 auto; padding: 0 1rem;
+      display: flex; align-items: center; gap: 1rem; height: 62px;
+    }
+    .logo {
+      font-size: 1.5rem; font-weight: 900; font-family: Georgia, serif;
+      color: var(--primary); white-space: nowrap;
+    }
+    .logo span { font-weight: 300; }
+    .nav { display: flex; align-items: center; gap: 0.25rem; flex: 1; }
+    .nav-link {
+      padding: 0.4rem 0.75rem; border-radius: 8px;
+      font-size: 0.9rem; color: var(--text-muted); font-weight: 500;
+      transition: background 0.15s, color 0.15s;
+    }
+    .nav-link:hover, .nav-link.active { background: var(--primary-light); color: var(--primary); }
+    .header-actions { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-outline { background: transparent; border: 1.5px solid var(--primary); color: var(--primary); }
+    .btn-outline:hover { background: var(--primary-light); }
+    .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.82rem; }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-danger:hover { background: #b91c1c; }
+    #btn-publier { background: var(--accent); color: #fff; }
+    #btn-publier:hover { background: #d97706; }
+    .avatar-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--primary); color: #fff; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; cursor: pointer; border: none; flex-shrink: 0;
+    }
+    .badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 18px; height: 18px; padding: 0 4px;
+      background: var(--red); color: #fff; border-radius: 9px;
+      font-size: 0.7rem; font-weight: 700;
+    }
+
+    /* ── Héros ── */
+    #hero {
+      background: linear-gradient(135deg, #0a3d2b 0%, #0C6E4F 60%, #1a9b6e 100%);
+      padding: 4rem 1rem 3rem; color: #fff; text-align: center;
+    }
+    #hero h1 { font-size: clamp(1.6rem, 4vw, 2.6rem); font-weight: 800; margin-bottom: 0.75rem; }
+    #hero p  { font-size: 1.05rem; opacity: 0.88; margin-bottom: 2rem; }
+    #search-box {
+      max-width: 720px; margin: 0 auto;
+      background: var(--white); border-radius: 14px;
+      padding: 1rem; display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem;
+      box-shadow: var(--shadow-lg);
+    }
+    #search-box select, #search-box input {
+      border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 0.6rem 0.8rem; font-size: 0.9rem; color: var(--text);
+      background: var(--white); width: 100%;
+    }
+    #search-box select:focus, #search-box input:focus { outline: none; border-color: var(--primary); }
+    #btn-search {
+      background: var(--primary); color: #fff;
+      border-radius: 8px; padding: 0.6rem 1.2rem;
+      font-size: 0.9rem; font-weight: 700; white-space: nowrap;
+    }
+    #btn-search:hover { background: var(--primary-dark); }
+
+    /* ── Filtres rapides ── */
+    .mode-tabs {
+      display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem;
+    }
+    .mode-tab {
+      padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.85rem;
+      background: rgba(255,255,255,.15); color: #fff; cursor: pointer;
+      border: 1.5px solid rgba(255,255,255,.35); transition: background 0.15s;
+    }
+    .mode-tab.active, .mode-tab:hover { background: rgba(255,255,255,.3); border-color: #fff; }
+
+    /* ── Contenu principal ── */
+    #main { max-width: 1280px; margin: 0 auto; padding: 2rem 1rem; }
+
+    /* ── Grille d'annonces ── */
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.25rem; gap: 0.5rem; flex-wrap: wrap;
+    }
+    .section-title { font-size: 1.25rem; font-weight: 700; }
+    .count-badge {
+      font-size: 0.82rem; color: var(--text-muted);
+      background: var(--bg); border: 1px solid var(--border);
+      padding: 0.2rem 0.6rem; border-radius: 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+
+    /* ── Carte d'annonce ── */
+    .card {
+      background: var(--white); border-radius: var(--radius);
+      box-shadow: var(--shadow); overflow: hidden;
+      transition: transform 0.18s, box-shadow 0.18s;
+      cursor: pointer;
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+    .card-img {
+      width: 100%; height: 200px; object-fit: cover; background: #e2e8f0;
+    }
+    .card-body { padding: 1rem; }
+    .card-mode {
+      display: inline-block; padding: 0.2rem 0.6rem;
+      border-radius: 4px; font-size: 0.75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;
+    }
+    .mode-vente         { background: #fef3c7; color: #92400e; }
+    .mode-location_longue { background: #dbeafe; color: #1e40af; }
+    .mode-location_courte { background: #ede9fe; color: #5b21b6; }
+    .card-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.35rem; line-height: 1.3; }
+    .card-loc   { font-size: 0.83rem; color: var(--text-muted); margin-bottom: 0.6rem; }
+    .card-price { font-size: 1.15rem; font-weight: 800; color: var(--primary); margin-bottom: 0.5rem; }
+    .card-meta  { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .card-meta span { font-size: 0.8rem; color: var(--text-muted); }
+    .card-fav {
+      position: absolute; top: 10px; right: 10px;
+      background: rgba(255,255,255,.9); border: none;
+      border-radius: 50%; width: 34px; height: 34px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; transition: transform 0.15s;
+    }
+    .card-fav:hover { transform: scale(1.15); }
+    .card-wrapper { position: relative; }
+    .verified-badge {
+      position: absolute; top: 10px; left: 10px;
+      background: var(--primary); color: #fff;
+      padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;
+    }
+
+    /* ── Détail annonce ── */
+    .detail-gallery {
+      display: grid; grid-template-columns: 2fr 1fr; gap: 0.5rem;
+      border-radius: var(--radius); overflow: hidden; margin-bottom: 1.5rem; max-height: 420px;
+    }
+    .detail-gallery img { width: 100%; height: 100%; object-fit: cover; }
+    .detail-gallery-side { display: grid; grid-template-rows: 1fr 1fr; gap: 0.5rem; }
+    .detail-body { display: grid; grid-template-columns: 1fr 360px; gap: 1.5rem; align-items: start; }
+    .detail-info h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .detail-loc { color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem; }
+    .detail-price { font-size: 1.6rem; font-weight: 900; color: var(--primary); margin-bottom: 1.25rem; }
+    .detail-features {
+      display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem;
+    }
+    .feature-chip {
+      padding: 0.3rem 0.75rem; background: var(--primary-light);
+      border-radius: 20px; font-size: 0.82rem; color: var(--primary); font-weight: 600;
+    }
+    .detail-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem; margin-bottom: 1.5rem;
+    }
+    .stat-box {
+      background: var(--bg); border-radius: 10px; padding: 0.75rem;
+      text-align: center;
+    }
+    .stat-box .val { font-size: 1.3rem; font-weight: 800; color: var(--primary); }
+    .stat-box .lbl { font-size: 0.75rem; color: var(--text-muted); }
+    .detail-desc { line-height: 1.7; color: #475569; font-size: 0.95rem; }
+    .contact-card {
+      background: var(--white); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 1.25rem; position: sticky; top: 80px;
+    }
+    .contact-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+    .contact-form label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem; margin-top: 0.75rem; }
+    .contact-form select,
+    .contact-form input,
+    .contact-form textarea {
+      width: 100%; padding: 0.6rem 0.8rem;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 0.9rem; background: var(--white);
+    }
+    .contact-form select:focus,
+    .contact-form input:focus,
+    .contact-form textarea:focus { outline: none; border-color: var(--primary); }
+    .contact-form textarea { resize: vertical; min-height: 80px; }
+    .owner-card { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+    .owner-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 1rem; flex-shrink: 0;
+    }
+    .owner-name { font-weight: 700; font-size: 0.9rem; }
+    .owner-agency { font-size: 0.8rem; color: var(--text-muted); }
+    .stars { color: var(--accent); font-size: 0.9rem; }
+
+    /* ── Formulaire publication ── */
+    .form-card {
+      background: var(--white); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 1.75rem; max-width: 760px; margin: 0 auto;
+    }
+    .form-card h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: 1.5rem; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-group { display: flex; flex-direction: column; gap: 0.3rem; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 0.65rem 0.85rem;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 0.9rem; background: var(--white); color: var(--text);
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus { outline: none; border-color: var(--primary); }
+    .form-group textarea { resize: vertical; min-height: 100px; }
+    .form-section { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+    .form-section-title { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+    .features-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .feature-toggle {
+      padding: 0.35rem 0.75rem; border-radius: 20px;
+      font-size: 0.83rem; border: 1.5px solid var(--border);
+      background: var(--white); color: var(--text-muted); cursor: pointer; transition: all 0.15s;
+    }
+    .feature-toggle.selected { background: var(--primary-light); border-color: var(--primary); color: var(--primary); font-weight: 600; }
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: 10px;
+      padding: 1.5rem; text-align: center; cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .upload-zone:hover { border-color: var(--primary); }
+    .upload-zone p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem; }
+    .photo-previews { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+    .photo-preview { position: relative; }
+    .photo-preview img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; }
+    .photo-remove {
+      position: absolute; top: -6px; right: -6px;
+      background: var(--red); color: #fff; border: none;
+      border-radius: 50%; width: 20px; height: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; cursor: pointer;
+    }
+
+    /* ── Dashboard ── */
+    .dashboard-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--white); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow); text-align: center; }
+    .stat-card .val { font-size: 2rem; font-weight: 900; color: var(--primary); }
+    .stat-card .lbl { font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem; }
+    .tabs { display: flex; gap: 0.25rem; margin-bottom: 1.25rem; border-bottom: 2px solid var(--border); }
+    .tab-btn {
+      padding: 0.6rem 1rem; font-size: 0.9rem; font-weight: 600;
+      background: none; border: none; color: var(--text-muted);
+      border-bottom: 2px solid transparent; margin-bottom: -2px; cursor: pointer; transition: color 0.15s;
+    }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    /* ── Messages ── */
+    .msg-layout { display: grid; grid-template-columns: 300px 1fr; gap: 1rem; height: calc(100vh - 140px); }
+    .conv-list { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); overflow-y: auto; }
+    .conv-item {
+      padding: 0.85rem 1rem; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background 0.12s;
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    .conv-item:hover, .conv-item.active { background: var(--primary-light); }
+    .conv-thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--border); }
+    .conv-info { flex: 1; min-width: 0; }
+    .conv-name { font-weight: 700; font-size: 0.88rem; }
+    .conv-title { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .conv-last  { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-panel { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); display: flex; flex-direction: column; }
+    .chat-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); font-weight: 700; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .msg-bubble { max-width: 70%; padding: 0.6rem 0.85rem; border-radius: 12px; font-size: 0.9rem; line-height: 1.45; }
+    .msg-bubble.mine { background: var(--primary); color: #fff; align-self: flex-end; border-radius: 12px 12px 2px 12px; }
+    .msg-bubble.other { background: var(--bg); color: var(--text); align-self: flex-start; border-radius: 12px 12px 12px 2px; }
+    .msg-time { font-size: 0.7rem; opacity: 0.65; margin-top: 0.2rem; }
+    .chat-input { padding: 0.75rem 1rem; border-top: 1px solid var(--border); display: flex; gap: 0.5rem; }
+    .chat-input textarea {
+      flex: 1; padding: 0.6rem 0.85rem;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 0.9rem; resize: none; min-height: 44px; max-height: 120px;
+    }
+    .chat-input textarea:focus { outline: none; border-color: var(--primary); }
+
+    /* ── Modals ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      z-index: 200; display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    .modal {
+      background: var(--white); border-radius: 16px;
+      padding: 2rem; width: 100%; max-width: 440px;
+      box-shadow: var(--shadow-lg); position: relative; max-height: 90vh; overflow-y: auto;
+    }
+    .modal h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: 1.25rem; }
+    .modal-close {
+      position: absolute; top: 1rem; right: 1rem;
+      background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-muted);
+    }
+    .form-row { margin-bottom: 1rem; }
+    .form-row label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem; }
+    .form-row input, .form-row select, .form-row textarea {
+      width: 100%; padding: 0.65rem 0.85rem;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 0.9rem; background: var(--white);
+    }
+    .form-row input:focus, .form-row select:focus { outline: none; border-color: var(--primary); }
+    .form-divider { text-align: center; margin: 0.75rem 0; color: var(--text-muted); font-size: 0.85rem; }
+    .error-msg { background: #fef2f2; border: 1px solid #fca5a5; color: var(--red); padding: 0.6rem 0.85rem; border-radius: 8px; font-size: 0.85rem; margin-bottom: 0.75rem; }
+    .success-msg { background: #f0fdf4; border: 1px solid #86efac; color: #166534; padding: 0.6rem 0.85rem; border-radius: 8px; font-size: 0.85rem; margin-bottom: 0.75rem; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999;
+      background: #1e293b; color: #fff; padding: 0.75rem 1.25rem;
+      border-radius: 10px; font-size: 0.9rem; max-width: 340px;
+      box-shadow: var(--shadow-lg); transform: translateY(20px); opacity: 0;
+      transition: all 0.25s; pointer-events: none;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ── Breadcrumb ── */
+    .breadcrumb { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; }
+    .breadcrumb a { color: var(--primary); }
+    .breadcrumb a:hover { text-decoration: underline; }
+
+    /* ── Empty state ── */
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+    .empty-state h3 { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 0.5rem; }
+
+    /* ── Spinner ── */
+    .spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid rgba(12,110,79,.3); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading { display: flex; align-items: center; justify-content: center; padding: 3rem; }
+
+    /* ── Wilayas selector ── */
+    .wilaya-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); gap: 0.4rem; max-height: 240px; overflow-y: auto; padding: 0.25rem; }
+    .wilaya-btn { padding: 0.35rem 0.6rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.8rem; background: var(--white); cursor: pointer; text-align: left; transition: all 0.12s; }
+    .wilaya-btn:hover, .wilaya-btn.active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+
+    /* ── Footer ── */
+    footer {
+      background: #0a2e20; color: rgba(255,255,255,.7);
+      padding: 2.5rem 1rem; margin-top: 4rem; font-size: 0.88rem;
+    }
+    .footer-inner { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 2rem; }
+    .footer-col h4 { color: #fff; font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; }
+    .footer-col a { display: block; color: rgba(255,255,255,.65); margin-bottom: 0.4rem; transition: color 0.12s; }
+    .footer-col a:hover { color: #fff; }
+    .footer-bottom { text-align: center; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,.1); font-size: 0.82rem; opacity: 0.6; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      #search-box { grid-template-columns: 1fr 1fr; }
+      #search-box .full-mobile { grid-column: 1/-1; }
+      .detail-body { grid-template-columns: 1fr; }
+      .detail-gallery { grid-template-columns: 1fr; }
+      .detail-gallery-side { display: none; }
+      .msg-layout { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .nav-link { display: none; }
+      .dashboard-stats { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════ HEADER ═══════════════════ -->
+<header id="header">
+  <div class="header-inner">
+    <div class="logo" onclick="showPage('home')" style="cursor:pointer">Dz<span>Immo</span> <span style="font-size:.6rem;font-weight:400;color:var(--text-muted);font-family:Arial">🇩🇿</span></div>
+    <nav class="nav">
+      <a class="nav-link active" data-page="home" onclick="showPage('home')">Accueil</a>
+      <a class="nav-link" data-page="annonces" onclick="showPage('annonces')">Annonces</a>
+      <a class="nav-link" data-page="agences" onclick="showPage('agences')">Agences</a>
+    </nav>
+    <div class="header-actions">
+      <button class="btn btn-primary btn-sm" id="btn-publier" onclick="tryPublier()">+ Publier</button>
+      <div id="auth-btns" style="display:flex;gap:.4rem">
+        <button class="btn btn-outline btn-sm" onclick="openModal('login')">Connexion</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('register')">S'inscrire</button>
+      </div>
+      <div id="user-btns" class="hidden" style="display:flex;align-items:center;gap:.4rem">
+        <button class="btn btn-outline btn-sm" onclick="showPage('messages')" style="position:relative">
+          💬 <span id="msg-count" class="badge hidden">0</span>
+        </button>
+        <button class="avatar-btn" id="avatar-btn" onclick="showPage('dashboard')"></button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════ PAGE ACCUEIL ═══════════════════ -->
+<div id="page-home">
+  <!-- Héros -->
+  <section id="hero">
+    <h1>Trouvez votre bien immobilier en Algérie</h1>
+    <p>Plus de 50 000 annonces · Appartements, villas, terrains, locaux</p>
+    <div id="search-box">
+      <select id="s-wilaya" class="full-mobile">
+        <option value="">Toutes les wilayas</option>
+      </select>
+      <select id="s-mode">
+        <option value="">Vente & Location</option>
+        <option value="vente">Vente</option>
+        <option value="location_longue">Location longue durée</option>
+        <option value="location_courte">Location courte durée</option>
+      </select>
+      <select id="s-type">
+        <option value="">Tous les types</option>
+        <option value="appartement">Appartement</option>
+        <option value="villa">Villa</option>
+        <option value="maison">Maison</option>
+        <option value="bureau">Bureau</option>
+        <option value="local_commercial">Local commercial</option>
+        <option value="terrain">Terrain</option>
+        <option value="ferme">Ferme</option>
+        <option value="entrepot">Entrepôt</option>
+      </select>
+      <button id="btn-search" onclick="doSearch()">🔍 Rechercher</button>
+    </div>
+    <div class="mode-tabs">
+      <div class="mode-tab active" onclick="filterMode('')">Tout</div>
+      <div class="mode-tab" onclick="filterMode('vente')">Vente</div>
+      <div class="mode-tab" onclick="filterMode('location_longue')">Location longue</div>
+      <div class="mode-tab" onclick="filterMode('location_courte')">Location courte</div>
+    </div>
+  </section>
+
+  <!-- Annonces récentes -->
+  <div id="main">
+    <div class="section-header">
+      <div>
+        <div class="section-title">Annonces récentes</div>
+      </div>
+      <span class="count-badge" id="props-count">Chargement…</span>
+    </div>
+    <div class="grid" id="home-grid"><div class="loading"><div class="spinner"></div></div></div>
+    <div style="text-align:center;margin-top:2rem">
+      <button class="btn btn-outline" onclick="showPage('annonces')">Voir toutes les annonces →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PAGE ANNONCES ═══════════════════ -->
+<div id="page-annonces" class="hidden">
+  <div id="main" style="padding-top:1.5rem">
+    <!-- Filtres avancés -->
+    <div style="background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:1.25rem;margin-bottom:1.5rem">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.75rem;align-items:end">
+        <div>
+          <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem">Wilaya</label>
+          <select id="f-wilaya" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></select>
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem">Mode</label>
+          <select id="f-mode" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
+            <option value="">Tous</option>
+            <option value="vente">Vente</option>
+            <option value="location_longue">Location longue</option>
+            <option value="location_courte">Location courte</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem">Type</label>
+          <select id="f-type" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
+            <option value="">Tous</option>
+            <option value="appartement">Appartement</option>
+            <option value="villa">Villa</option>
+            <option value="maison">Maison</option>
+            <option value="bureau">Bureau</option>
+            <option value="local_commercial">Local commercial</option>
+            <option value="terrain">Terrain</option>
+            <option value="ferme">Ferme</option>
+            <option value="entrepot">Entrepôt</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem">Prix min (DZD)</label>
+          <input id="f-min-price" type="number" placeholder="0" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem">Prix max (DZD)</label>
+          <input id="f-max-price" type="number" placeholder="Sans limite" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem">Pièces min</label>
+          <input id="f-rooms" type="number" placeholder="0" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem">Recherche</label>
+          <input id="f-q" type="text" placeholder="Mot-clé…" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
+        </div>
+        <button class="btn btn-primary" onclick="loadAnnonces()" style="align-self:end">🔍 Filtrer</button>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">Annonces immobilières</div>
+      <span class="count-badge" id="annonces-count">—</span>
+    </div>
+    <div class="grid" id="annonces-grid"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PAGE DÉTAIL ═══════════════════ -->
+<div id="page-detail" class="hidden">
+  <div id="main">
+    <div class="breadcrumb">
+      <a href="#" onclick="goBack()">← Retour</a>
+    </div>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PAGE PUBLIER ═══════════════════ -->
+<div id="page-publier" class="hidden">
+  <div id="main">
+    <div class="form-card">
+      <h2>📋 Publier une annonce</h2>
+      <div id="pub-error" class="error-msg hidden"></div>
+      <div id="pub-success" class="success-msg hidden"></div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Titre de l'annonce *</label>
+          <input id="pub-title" type="text" placeholder="ex: Appartement F3 lumineux à Hydra">
+        </div>
+        <div class="form-group">
+          <label>Mode *</label>
+          <select id="pub-mode">
+            <option value="vente">Vente</option>
+            <option value="location_longue">Location longue durée</option>
+            <option value="location_courte">Location courte durée</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Type de bien *</label>
+          <select id="pub-type">
+            <option value="appartement">Appartement</option>
+            <option value="villa">Villa</option>
+            <option value="maison">Maison</option>
+            <option value="bureau">Bureau</option>
+            <option value="local_commercial">Local commercial</option>
+            <option value="terrain">Terrain</option>
+            <option value="ferme">Ferme</option>
+            <option value="entrepot">Entrepôt</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Prix (DZD) *</label>
+          <input id="pub-price" type="number" placeholder="5000000">
+        </div>
+        <div class="form-group">
+          <label>Surface (m²)</label>
+          <input id="pub-surface" type="number" placeholder="80">
+        </div>
+        <div class="form-group">
+          <label>Pièces</label>
+          <input id="pub-rooms" type="number" placeholder="3">
+        </div>
+        <div class="form-group">
+          <label>Salles de bain</label>
+          <input id="pub-baths" type="number" placeholder="1">
+        </div>
+        <div class="form-group">
+          <label>Étage</label>
+          <input id="pub-floor" type="number" placeholder="2">
+        </div>
+        <div class="form-group">
+          <label>Wilaya *</label>
+          <select id="pub-wilaya"></select>
+        </div>
+        <div class="form-group">
+          <label>Commune</label>
+          <input id="pub-commune" type="text" placeholder="ex: Hydra">
+        </div>
+        <div class="form-group full">
+          <label>Adresse</label>
+          <input id="pub-address" type="text" placeholder="Adresse précise (optionnel)">
+        </div>
+        <div class="form-group full">
+          <label>Description</label>
+          <textarea id="pub-desc" placeholder="Décrivez votre bien : état, équipements, environnement…" rows="4"></textarea>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">🏷️ Caractéristiques</div>
+        <div class="features-grid" id="features-grid">
+          <button type="button" class="feature-toggle" data-v="meuble">Meublé</button>
+          <button type="button" class="feature-toggle" data-v="parking">Parking</button>
+          <button type="button" class="feature-toggle" data-v="balcon">Balcon</button>
+          <button type="button" class="feature-toggle" data-v="terrasse">Terrasse</button>
+          <button type="button" class="feature-toggle" data-v="ascenseur">Ascenseur</button>
+          <button type="button" class="feature-toggle" data-v="gardien">Gardien</button>
+          <button type="button" class="feature-toggle" data-v="piscine">Piscine</button>
+          <button type="button" class="feature-toggle" data-v="climatisation">Climatisation</button>
+          <button type="button" class="feature-toggle" data-v="chauffage">Chauffage central</button>
+          <button type="button" class="feature-toggle" data-v="wifi">Wi-Fi</button>
+          <button type="button" class="feature-toggle" data-v="cave">Cave</button>
+          <button type="button" class="feature-toggle" data-v="jardin">Jardin</button>
+          <button type="button" class="feature-toggle" data-v="alarme">Alarme</button>
+          <button type="button" class="feature-toggle" data-v="interphone">Interphone</button>
+          <button type="button" class="feature-toggle" data-v="eau">Eau courante</button>
+          <button type="button" class="feature-toggle" data-v="electricite">Électricité</button>
+          <button type="button" class="feature-toggle" data-v="gaz">Gaz naturel</button>
+          <button type="button" class="feature-toggle" data-v="route">Accès route</button>
+          <button type="button" class="feature-toggle" data-v="fibre">Fibre optique</button>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">📷 Photos</div>
+        <div class="upload-zone" onclick="document.getElementById('pub-photos-input').click()">
+          <div style="font-size:2rem">📸</div>
+          <p>Cliquez pour ajouter des photos (max 10, JPEG/PNG/WebP)</p>
+          <input id="pub-photos-input" type="file" accept="image/*" multiple style="display:none" onchange="previewPhotos(this)">
+        </div>
+        <div class="photo-previews" id="photo-previews"></div>
+        <p style="font-size:.8rem;color:var(--text-muted);margin-top:.5rem">La première photo sera la photo principale.</p>
+      </div>
+
+      <div style="margin-top:1.5rem;display:flex;gap:.75rem">
+        <button class="btn btn-primary" onclick="submitProperty()" style="flex:1;padding:.75rem">Publier l'annonce</button>
+        <button class="btn btn-outline" onclick="showPage('home')">Annuler</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PAGE AGENCES ═══════════════════ -->
+<div id="page-agences" class="hidden">
+  <div id="main">
+    <div class="section-header">
+      <div class="section-title">🏢 Agences immobilières</div>
+    </div>
+    <div class="grid" id="agences-grid"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PAGE DASHBOARD ═══════════════════ -->
+<div id="page-dashboard" class="hidden">
+  <div id="main">
+    <h2 style="margin-bottom:1.5rem;font-size:1.3rem;font-weight:800">Mon espace</h2>
+    <div class="dashboard-stats" id="dash-stats"></div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="dashTab('mes-annonces')">Mes annonces</button>
+      <button class="tab-btn" onclick="dashTab('mes-contacts')">Demandes reçues</button>
+      <button class="tab-btn" onclick="dashTab('favoris')">Favoris</button>
+      <button class="tab-btn" onclick="dashTab('profil')">Profil</button>
+    </div>
+    <div id="dash-tab-content"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PAGE MESSAGES ═══════════════════ -->
+<div id="page-messages" class="hidden">
+  <div id="main" style="padding-top:1rem">
+    <h2 style="margin-bottom:1rem;font-size:1.2rem;font-weight:800">💬 Messagerie</h2>
+    <div class="msg-layout">
+      <div class="conv-list" id="conv-list"></div>
+      <div class="chat-panel" id="chat-panel">
+        <div class="empty-state" style="margin:auto">
+          <div class="icon">💬</div>
+          <h3>Sélectionnez une conversation</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ FOOTER ═══════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-col">
+      <h4>DzImmo</h4>
+      <p style="font-size:.85rem;line-height:1.6;color:rgba(255,255,255,.6)">La plateforme de référence pour l'immobilier en Algérie. Achat, vente, location.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Navigation</h4>
+      <a href="#" onclick="showPage('annonces')">Toutes les annonces</a>
+      <a href="#" onclick="showPage('agences')">Les agences</a>
+      <a href="#" onclick="tryPublier()">Publier une annonce</a>
+    </div>
+    <div class="footer-col">
+      <h4>Types de biens</h4>
+      <a href="#" onclick="filterType('appartement')">Appartements</a>
+      <a href="#" onclick="filterType('villa')">Villas</a>
+      <a href="#" onclick="filterType('terrain')">Terrains</a>
+      <a href="#" onclick="filterType('local_commercial')">Locaux commerciaux</a>
+    </div>
+    <div class="footer-col">
+      <h4>Légal</h4>
+      <a href="#">CGU</a>
+      <a href="#">Politique de confidentialité</a>
+      <a href="#">Mentions légales</a>
+      <a href="#">Contact</a>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 DzImmo · Algérie · Tous droits réservés</div>
+</footer>
+
+<!-- ═══════════════════ MODALS ═══════════════════ -->
+<!-- Connexion -->
+<div class="modal-overlay hidden" id="modal-login">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('login')">×</button>
+    <h2>Connexion</h2>
+    <div id="login-error" class="error-msg hidden"></div>
+    <div class="form-row"><label>Email</label><input id="login-email" type="email" placeholder="vous@exemple.dz"></div>
+    <div class="form-row"><label>Mot de passe</label><input id="login-pass" type="password" placeholder="••••••••"></div>
+    <button class="btn btn-primary" style="width:100%;padding:.75rem;margin-top:.5rem" onclick="doLogin()">Se connecter</button>
+    <div class="form-divider">ou</div>
+    <button class="btn btn-outline" style="width:100%;padding:.65rem" onclick="switchModal('login','register')">Créer un compte</button>
+    <div style="text-align:center;margin-top:.75rem">
+      <a href="#" style="font-size:.85rem;color:var(--primary)" onclick="switchModal('login','forgot')">Mot de passe oublié ?</a>
+    </div>
+  </div>
+</div>
+
+<!-- Inscription -->
+<div class="modal-overlay hidden" id="modal-register">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('register')">×</button>
+    <h2>Créer un compte</h2>
+    <div id="register-error" class="error-msg hidden"></div>
+    <div class="form-row"><label>Nom complet</label><input id="reg-name" type="text" placeholder="Prénom Nom"></div>
+    <div class="form-row"><label>Email</label><input id="reg-email" type="email" placeholder="vous@exemple.dz"></div>
+    <div class="form-row"><label>Téléphone</label><input id="reg-phone" type="tel" placeholder="+213 6XX XX XX XX"></div>
+    <div class="form-row"><label>Mot de passe</label><input id="reg-pass" type="password" placeholder="6 caractères minimum"></div>
+    <button class="btn btn-primary" style="width:100%;padding:.75rem;margin-top:.5rem" onclick="doRegister()">S'inscrire</button>
+    <div class="form-divider">ou</div>
+    <button class="btn btn-outline" style="width:100%;padding:.65rem" onclick="switchModal('register','login')">J'ai déjà un compte</button>
+  </div>
+</div>
+
+<!-- Mot de passe oublié -->
+<div class="modal-overlay hidden" id="modal-forgot">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('forgot')">×</button>
+    <h2>Mot de passe oublié</h2>
+    <div id="forgot-msg" class="hidden"></div>
+    <div class="form-row"><label>Email</label><input id="forgot-email" type="email" placeholder="vous@exemple.dz"></div>
+    <button class="btn btn-primary" style="width:100%;padding:.75rem;margin-top:.5rem" onclick="doForgot()">Envoyer le lien</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ═══════════════════ JAVASCRIPT ═══════════════════ -->
+<script>
+const API = '/api';
+let token = localStorage.getItem('dzimmo_token') || null;
+let currentUser = null;
+let currentPage = 'home';
+let uploadedPhotos = [];
+let wsConn = null;
+
+// ── Wilayas d'Algérie — 69 wilayas (loi n°26-06 du 4 avril 2026)
+const WILAYAS = [
+  'Adrar','Chlef','Laghouat','Oum El Bouaghi','Batna','Béjaïa','Biskra','Béchar',
+  'Blida','Bouira','Tamanrasset','Tébessa','Tlemcen','Tiaret','Tizi Ouzou','Alger',
+  'Djelfa','Jijel','Sétif','Saïda','Skikda','Sidi Bel Abbès','Annaba','Guelma',
+  'Constantine','Médéa','Mostaganem','M\'Sila','Mascara','Ouargla','Oran','El Bayadh',
+  'Illizi','Bordj Bou Arreridj','Boumerdès','El Tarf','Tindouf','Tissemsilt',
+  'El Oued','Khenchela','Souk Ahras','Tipaza','Mila','Aïn Defla','Naâma',
+  'Aïn Témouchent','Ghardaïa','Relizane','Timimoun','Bordj Badji Mokhtar',
+  'Ouled Djellal','Béni Abbès','In Salah','In Guezzam','Touggourt','Djanet',
+  'El M\'Ghair','El Menia',
+  // Nouvelles wilayas — codes 59-69 (loi n°26-06 du 4 avril 2026)
+  'Aflou','Barika','El Kantara','Bir El Ater','El Aricha','Ksar Chellala',
+  'Aïn Ouessara','Messaad','Ksar El Boukhari','Bou Saâda','El Abiodh Sidi Cheikh'
+];
+
+const MODES = { vente:'Vente', location_longue:'Location longue durée', location_courte:'Location courte durée' };
+const TYPES = { appartement:'Appartement', villa:'Villa', maison:'Maison', bureau:'Bureau', local_commercial:'Local commercial', terrain:'Terrain', ferme:'Ferme', entrepot:'Entrepôt' };
+const FEATURES = { meuble:'Meublé', parking:'Parking', balcon:'Balcon', terrasse:'Terrasse', ascenseur:'Ascenseur', gardien:'Gardien', piscine:'Piscine', climatisation:'Climatisation', chauffage:'Chauffage', wifi:'Wi-Fi', cave:'Cave', jardin:'Jardin', alarme:'Alarme', interphone:'Interphone', eau:'Eau', electricite:'Électricité', gaz:'Gaz', route:'Accès route', fibre:'Fibre' };
+
+// ── Initialisation ─────────────────────────────────
+async function init() {
+  populateWilayas();
+  if (token) await loadCurrentUser();
+  loadHomeProperties();
+
+  const params = new URLSearchParams(location.search);
+  if (params.get('verify') === 'ok') toast('✅ Email vérifié. Bienvenue !');
+  if (params.get('reset_token')) openModal('login');
+  if (navigator.serviceWorker) navigator.serviceWorker.register('/sw.js');
+}
+
+function populateWilayas() {
+  ['s-wilaya','f-wilaya','pub-wilaya'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Toutes les wilayas</option>';
+    if (id === 'pub-wilaya') sel.innerHTML = '<option value="">Choisir…</option>';
+    WILAYAS.forEach(w => { const o = document.createElement('option'); o.value = w; o.textContent = w; sel.appendChild(o); });
+  });
+}
+
+// ── Auth ─────────────────────────────────────────
+async function loadCurrentUser() {
+  try {
+    const r = await api('/auth/me');
+    currentUser = r;
+    document.getElementById('auth-btns').classList.add('hidden');
+    document.getElementById('user-btns').classList.remove('hidden');
+    const btn = document.getElementById('avatar-btn');
+    btn.textContent = (r.name || '?')[0].toUpperCase();
+    setupWs();
+    loadUnreadCount();
+  } catch { token = null; localStorage.removeItem('dzimmo_token'); }
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value;
+  const pass  = document.getElementById('login-pass').value;
+  try {
+    const r = await api('/auth/login', 'POST', { email, password: pass });
+    token = r.token; localStorage.setItem('dzimmo_token', token);
+    currentUser = r.user;
+    closeModal('login');
+    await loadCurrentUser();
+    toast('✅ Connecté en tant que ' + r.user.name);
+  } catch (e) { showError('login-error', e.message); }
+}
+
+async function doRegister() {
+  const name  = document.getElementById('reg-name').value;
+  const email = document.getElementById('reg-email').value;
+  const phone = document.getElementById('reg-phone').value;
+  const pass  = document.getElementById('reg-pass').value;
+  try {
+    const r = await api('/auth/register', 'POST', { name, email, phone, password: pass });
+    token = r.token; localStorage.setItem('dzimmo_token', token);
+    currentUser = r.user;
+    closeModal('register');
+    await loadCurrentUser();
+    toast('🎉 Compte créé ! Vérifiez votre email.');
+  } catch (e) { showError('register-error', e.message); }
+}
+
+async function doForgot() {
+  const email = document.getElementById('forgot-email').value;
+  try {
+    await api('/auth/forgot-password', 'POST', { email });
+    const el = document.getElementById('forgot-msg');
+    el.className = 'success-msg'; el.textContent = 'Lien envoyé ! Vérifiez votre boite email.';
+  } catch (e) { const el = document.getElementById('forgot-msg'); el.className = 'error-msg'; el.textContent = e.message; }
+}
+
+function logout() {
+  token = null; currentUser = null;
+  localStorage.removeItem('dzimmo_token');
+  if (wsConn) { wsConn.close(); wsConn = null; }
+  document.getElementById('auth-btns').classList.remove('hidden');
+  document.getElementById('user-btns').classList.add('hidden');
+  showPage('home');
+  toast('Déconnexion effectuée.');
+}
+
+// ── API helper ────────────────────────────────────
+async function api(path, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+  if (body)  opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'Erreur serveur.');
+  return d;
+}
+
+// ── Navigation ────────────────────────────────────
+const PAGES = ['home','annonces','detail','publier','agences','dashboard','messages'];
+
+function showPage(page, data = null) {
+  PAGES.forEach(p => {
+    const el = document.getElementById('page-' + p);
+    if (el) el.classList.add('hidden');
+  });
+  const el = document.getElementById('page-' + page);
+  if (el) el.classList.remove('hidden');
+  currentPage = page;
+  document.querySelectorAll('.nav-link').forEach(l => {
+    l.classList.toggle('active', l.dataset.page === page);
+  });
+  window.scrollTo(0, 0);
+
+  if (page === 'home')       loadHomeProperties();
+  if (page === 'annonces')   loadAnnonces();
+  if (page === 'agences')    loadAgences();
+  if (page === 'dashboard')  loadDashboard();
+  if (page === 'messages')   loadMessages();
+  if (page === 'detail' && data) loadDetail(data);
+}
+
+function goBack() { showPage(currentPage === 'detail' ? 'annonces' : 'home'); }
+
+function tryPublier() {
+  if (!token) { openModal('login'); return; }
+  showPage('publier');
+}
+
+function filterMode(mode) {
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  loadHomeProperties(mode);
+}
+
+function filterType(type) {
+  showPage('annonces');
+  document.getElementById('f-type').value = type;
+  loadAnnonces();
+}
+
+function doSearch() {
+  const wilaya = document.getElementById('s-wilaya').value;
+  const mode   = document.getElementById('s-mode').value;
+  const type   = document.getElementById('s-type').value;
+  showPage('annonces');
+  if (wilaya) document.getElementById('f-wilaya').value = wilaya;
+  if (mode)   document.getElementById('f-mode').value = mode;
+  if (type)   document.getElementById('f-type').value = type;
+  loadAnnonces();
+}
+
+// ── Chargement des annonces ───────────────────────
+async function loadHomeProperties(mode = '') {
+  const grid = document.getElementById('home-grid');
+  const countEl = document.getElementById('props-count');
+  grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const params = new URLSearchParams({ status: 'active' });
+    if (mode) params.set('mode', mode);
+    const data = await api('/properties?' + params);
+    countEl.textContent = data.length + ' annonce' + (data.length > 1 ? 's' : '');
+    renderGrid(grid, data.slice(0, 12));
+  } catch (e) { grid.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
+}
+
+async function loadAnnonces() {
+  const grid = document.getElementById('annonces-grid');
+  const countEl = document.getElementById('annonces-count');
+  grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const params = new URLSearchParams({ status: 'active' });
+  const get = id => document.getElementById(id)?.value;
+  if (get('f-wilaya'))    params.set('wilaya',    get('f-wilaya'));
+  if (get('f-mode'))      params.set('mode',      get('f-mode'));
+  if (get('f-type'))      params.set('type_bien', get('f-type'));
+  if (get('f-min-price')) params.set('min_price', get('f-min-price'));
+  if (get('f-max-price')) params.set('max_price', get('f-max-price'));
+  if (get('f-rooms'))     params.set('rooms',     get('f-rooms'));
+  if (get('f-q'))         params.set('q',         get('f-q'));
+  try {
+    const data = await api('/properties?' + params);
+    countEl.textContent = data.length + ' résultat' + (data.length > 1 ? 's' : '');
+    if (!data.length) {
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🔍</div><h3>Aucune annonce trouvée</h3><p>Essayez d\'élargir vos critères.</p></div>';
+      return;
+    }
+    renderGrid(grid, data);
+  } catch (e) { grid.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
+}
+
+function renderGrid(container, props) {
+  if (!props.length) {
+    container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🏠</div><h3>Aucune annonce disponible</h3></div>';
+    return;
+  }
+  container.innerHTML = props.map(p => cardHTML(p)).join('');
+}
+
+function cardHTML(p) {
+  const price = p.mode === 'vente'
+    ? formatPrice(p.price) + ' DZD'
+    : formatPrice(p.price) + ' DZD/mois';
+  const meta = [
+    p.rooms     ? p.rooms + ' pièce' + (p.rooms > 1 ? 's' : '') : null,
+    p.surface_m2 ? p.surface_m2 + ' m²' : null,
+    p.baths     ? p.baths + ' SDB' : null,
+  ].filter(Boolean).join(' · ');
+  return `
+  <div class="card-wrapper" onclick="showPage('detail', ${p.id})">
+    <div class="card">
+      <img class="card-img" src="${p.image || 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70'}" alt="${esc(p.title)}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70'">
+      ${p.verified ? '<span class="verified-badge">✓ Vérifié</span>' : ''}
+      ${token ? `<button class="card-fav" onclick="event.stopPropagation();toggleFav(${p.id},this)" title="Favori">🤍</button>` : ''}
+      <div class="card-body">
+        <span class="card-mode mode-${p.mode}">${MODES[p.mode] || p.mode}</span>
+        <div class="card-title">${esc(p.title)}</div>
+        <div class="card-loc">📍 ${esc(p.commune || p.wilaya)}, ${esc(p.wilaya)}</div>
+        <div class="card-price">${price}</div>
+        <div class="card-meta">
+          <span>${TYPES[p.type_bien] || p.type_bien}</span>
+          ${meta ? `<span>${meta}</span>` : ''}
+          <span>${p.views || 0} vues</span>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Détail annonce ────────────────────────────────
+async function loadDetail(id) {
+  const container = document.getElementById('detail-content');
+  container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const p = await api('/properties/' + id);
+    const photos = Array.isArray(p.photos) ? p.photos : [p.image].filter(Boolean);
+    const price  = p.mode === 'vente' ? formatPrice(p.price) + ' DZD' : formatPrice(p.price) + ' DZD/mois';
+    const feats  = Array.isArray(p.features) ? p.features : [];
+
+    let featuresHTML = feats.map(f => `<span class="feature-chip">${FEATURES[f] || f}</span>`).join('');
+
+    container.innerHTML = `
+      <div class="detail-gallery">
+        <img src="${photos[0] || ''}" alt="${esc(p.title)}" onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=800&q=70'">
+        <div class="detail-gallery-side">
+          ${(photos[1] ? `<img src="${photos[1]}" alt="" onerror="this.remove()">` : '<div style="background:#e2e8f0"></div>')}
+          ${(photos[2] ? `<img src="${photos[2]}" alt="" onerror="this.remove()">` : '<div style="background:#e2e8f0"></div>')}
+        </div>
+      </div>
+      <div class="detail-body">
+        <div class="detail-info">
+          <span class="card-mode mode-${p.mode}" style="margin-bottom:.75rem">${MODES[p.mode] || p.mode}</span>
+          <h1 style="margin-top:.4rem">${esc(p.title)}</h1>
+          <div class="detail-loc">📍 ${esc([p.address, p.commune, p.wilaya].filter(Boolean).join(', '))}</div>
+          <div class="detail-price">${price}</div>
+          <div class="detail-stats">
+            ${p.surface_m2 ? `<div class="stat-box"><div class="val">${p.surface_m2}</div><div class="lbl">m²</div></div>` : ''}
+            ${p.rooms      ? `<div class="stat-box"><div class="val">${p.rooms}</div><div class="lbl">Pièce${p.rooms > 1 ? 's' : ''}</div></div>` : ''}
+            ${p.baths      ? `<div class="stat-box"><div class="val">${p.baths}</div><div class="lbl">SDB</div></div>` : ''}
+          </div>
+          ${featuresHTML ? `<div class="detail-features">${featuresHTML}</div>` : ''}
+          <h3 style="font-size:1rem;font-weight:700;margin-bottom:.75rem">Description</h3>
+          <div class="detail-desc">${esc(p.description || 'Aucune description fournie.')}</div>
+          ${p.reviews > 0 ? `
+          <div style="margin-top:2rem">
+            <h3 style="font-size:1rem;font-weight:700;margin-bottom:.75rem">Avis (${p.reviews})</h3>
+            <div>${(p.reviews_list || p.reviews_data || []).map(r => `
+              <div style="padding:.75rem 0;border-bottom:1px solid var(--border)">
+                <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">
+                  <strong style="font-size:.88rem">${esc(r.author_name || 'Anonyme')}</strong>
+                  <span class="stars">${'⭐'.repeat(Math.round(r.rating))}</span>
+                </div>
+                <p style="font-size:.88rem;color:var(--text-muted)">${esc(r.comment || '')}</p>
+              </div>`).join('')}
+            </div>
+          </div>` : ''}
+        </div>
+        <div>
+          <div class="contact-card">
+            <div class="owner-card">
+              <div class="owner-avatar">${(p.agency_name || p.owner_name || '?')[0].toUpperCase()}</div>
+              <div>
+                <div class="owner-name">${esc(p.agency_name || p.owner_name)}</div>
+                <div class="owner-agency">${p.agency_name ? 'Agence immobilière' : 'Particulier'}</div>
+              </div>
+            </div>
+            ${token ? `
+            <form class="contact-form" onsubmit="return submitContact(event, ${p.id}, ${p.owner_id})">
+              <h3>Contacter le vendeur</h3>
+              <label>Type de demande</label>
+              <select id="ctype-${p.id}">
+                <option value="info">Demande d'information</option>
+                <option value="visite">Demander une visite</option>
+                <option value="offre">Faire une offre de prix</option>
+              </select>
+              <div id="visit-field-${p.id}" class="hidden">
+                <label>Date de visite souhaitée</label>
+                <input type="date" id="cdate-${p.id}" min="${new Date().toISOString().slice(0,10)}">
+              </div>
+              <div id="offer-field-${p.id}" class="hidden">
+                <label>Montant de l'offre (DZD)</label>
+                <input type="number" id="coffer-${p.id}" placeholder="ex: 25000000">
+              </div>
+              <label>Message</label>
+              <textarea id="cmsg-${p.id}" placeholder="Votre message…"></textarea>
+              <button type="submit" class="btn btn-primary" style="width:100%;margin-top:.75rem;padding:.7rem">Envoyer la demande</button>
+            </form>
+            <button class="btn btn-outline" style="width:100%;margin-top:.5rem;padding:.7rem" onclick="openChat(${p.id}, ${p.owner_id})">💬 Envoyer un message</button>
+            ` : `
+            <p style="font-size:.88rem;color:var(--text-muted);text-align:center;margin-bottom:1rem">Connectez-vous pour contacter le vendeur</p>
+            <button class="btn btn-primary" style="width:100%;padding:.7rem" onclick="openModal('login')">Se connecter</button>
+            `}
+            <div style="margin-top:1rem;font-size:.8rem;color:var(--text-muted);text-align:center">
+              👁 ${p.views || 0} vue${(p.views || 0) > 1 ? 's' : ''} ·
+              Publié le ${new Date(p.created_at).toLocaleDateString('fr-DZ')}
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    // Gestion des champs conditionnels
+    const ctype = document.getElementById('ctype-' + p.id);
+    if (ctype) ctype.addEventListener('change', () => {
+      document.getElementById('visit-field-' + p.id).classList.toggle('hidden', ctype.value !== 'visite');
+      document.getElementById('offer-field-' + p.id).classList.toggle('hidden', ctype.value !== 'offre');
+    });
+  } catch (e) { container.innerHTML = `<p style="color:red;padding:2rem">${e.message}</p>`; }
+}
+
+async function submitContact(event, propertyId, ownerId) {
+  event.preventDefault();
+  if (!token) { openModal('login'); return false; }
+  const type    = document.getElementById('ctype-' + propertyId)?.value;
+  const message = document.getElementById('cmsg-' + propertyId)?.value;
+  const visitDate   = document.getElementById('cdate-' + propertyId)?.value;
+  const offerAmount = document.getElementById('coffer-' + propertyId)?.value;
+  try {
+    await api('/contacts', 'POST', { property_id: propertyId, type, message, visit_date: visitDate || null, offer_amount: offerAmount || null });
+    toast('✅ Demande envoyée au vendeur !');
+  } catch (e) { toast('❌ ' + e.message); }
+  return false;
+}
+
+function openChat(propertyId, ownerId) {
+  if (!token) { openModal('login'); return; }
+  showPage('messages');
+  currentChatProperty = propertyId;
+  currentChatUser     = ownerId;
+  setTimeout(() => loadThread(propertyId, ownerId), 300);
+}
+
+// ── Agences ──────────────────────────────────────
+async function loadAgences() {
+  const grid = document.getElementById('agences-grid');
+  grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const data = await api('/agencies');
+    if (!data.length) {
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🏢</div><h3>Aucune agence enregistrée</h3></div>';
+      return;
+    }
+    grid.innerHTML = data.map(a => `
+      <div class="card" style="cursor:pointer" onclick="">
+        <div style="height:120px;background:linear-gradient(135deg,#0a3d2b,#0C6E4F);display:flex;align-items:center;justify-content:center">
+          ${a.logo ? `<img src="${a.logo}" style="height:80px;width:80px;object-fit:contain;border-radius:8px">` : `<div style="font-size:2.5rem;color:#fff">${a.name[0]}</div>`}
+        </div>
+        <div class="card-body">
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">
+            <div class="card-title" style="margin:0">${esc(a.name)}</div>
+            ${a.verified ? '<span style="background:var(--primary);color:#fff;font-size:.7rem;padding:.1rem .4rem;border-radius:4px;font-weight:700">✓</span>' : ''}
+          </div>
+          <div class="card-loc">📍 ${esc(a.wilaya || '')}</div>
+          <div class="card-meta" style="margin-top:.5rem">
+            ${a.phone ? `<span>📞 ${esc(a.phone)}</span>` : ''}
+            ${a.rating > 0 ? `<span>⭐ ${a.rating}</span>` : ''}
+          </div>
+        </div>
+      </div>`).join('');
+  } catch (e) { grid.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
+}
+
+// ── Favoris ───────────────────────────────────────
+async function toggleFav(propertyId, btn) {
+  if (!token) { openModal('login'); return; }
+  try {
+    const { is_favorite } = await api('/favorites/check/' + propertyId);
+    if (is_favorite) {
+      await api('/favorites/' + propertyId, 'DELETE');
+      btn.textContent = '🤍';
+      toast('Retiré des favoris.');
+    } else {
+      await api('/favorites', 'POST', { property_id: propertyId });
+      btn.textContent = '❤️';
+      toast('❤️ Ajouté aux favoris !');
+    }
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+// ── Dashboard ─────────────────────────────────────
+let currentDashTab = 'mes-annonces';
+
+async function loadDashboard() {
+  if (!currentUser) { showPage('home'); openModal('login'); return; }
+  try {
+    const stats = await api('/stats/me');
+    document.getElementById('dash-stats').innerHTML = `
+      <div class="stat-card"><div class="val">${stats.properties}</div><div class="lbl">Annonces</div></div>
+      <div class="stat-card"><div class="val">${stats.active}</div><div class="lbl">Actives</div></div>
+      <div class="stat-card"><div class="val">${stats.contacts}</div><div class="lbl">Demandes reçues</div></div>
+      <div class="stat-card"><div class="val">${stats.pending}</div><div class="lbl">En attente</div></div>
+      <div class="stat-card"><div class="val">${stats.total_views}</div><div class="lbl">Vues totales</div></div>`;
+  } catch {}
+  dashTab(currentDashTab);
+}
+
+async function dashTab(tab) {
+  currentDashTab = tab;
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['mes-annonces','mes-contacts','favoris','profil'][i] === tab);
+  });
+  const c = document.getElementById('dash-tab-content');
+  c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  if (tab === 'mes-annonces') {
+    const data = await api('/properties/user/' + currentUser.id);
+    if (!data.length) { c.innerHTML = '<div class="empty-state"><div class="icon">🏠</div><h3>Aucune annonce</h3><p>Publiez votre première annonce !</p><button class="btn btn-primary" style="margin-top:1rem" onclick="showPage(\'publier\')">+ Publier</button></div>'; return; }
+    c.innerHTML = `<div class="grid">${data.map(p => cardHTML(p)).join('')}</div>`;
+  }
+
+  if (tab === 'mes-contacts') {
+    const data = await api('/contacts/received');
+    if (!data.length) { c.innerHTML = '<div class="empty-state"><div class="icon">📩</div><h3>Aucune demande reçue</h3></div>'; return; }
+    c.innerHTML = data.map(d => `
+      <div style="background:var(--white);border-radius:10px;padding:1rem;margin-bottom:.75rem;box-shadow:var(--shadow);display:flex;align-items:center;gap:1rem">
+        <img src="${d.property_image}" style="width:64px;height:64px;border-radius:8px;object-fit:cover;background:var(--border)" onerror="this.style.background='#e2e8f0'">
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:.9rem">${esc(d.property_title)}</div>
+          <div style="font-size:.83rem;color:var(--text-muted)">
+            <strong>${esc(d.requester_name)}</strong> · ${d.type === 'visite' ? '🗓 Visite' : d.type === 'offre' ? '💰 Offre' : 'ℹ️ Info'} ·
+            <span class="status-${d.status}">${{pending:'En attente',confirmed:'Confirmée',rejected:'Refusée',done:'Terminée'}[d.status] || d.status}</span>
+          </div>
+          ${d.message ? `<div style="font-size:.83rem;color:var(--text-muted);margin-top:.25rem">"${esc(d.message.slice(0,80))}..."</div>` : ''}
+        </div>
+        ${d.status === 'pending' ? `
+        <div style="display:flex;gap:.4rem">
+          <button class="btn btn-primary btn-sm" onclick="updateContact(${d.id},'confirmed')">✓</button>
+          <button class="btn btn-danger btn-sm" onclick="updateContact(${d.id},'rejected')">✕</button>
+        </div>` : ''}
+      </div>`).join('');
+  }
+
+  if (tab === 'favoris') {
+    const data = await api('/favorites');
+    if (!data.length) { c.innerHTML = '<div class="empty-state"><div class="icon">❤️</div><h3>Aucun favori</h3><p>Cœurez des annonces pour les retrouver ici.</p></div>'; return; }
+    c.innerHTML = `<div class="grid">${data.map(p => cardHTML(p)).join('')}</div>`;
+  }
+
+  if (tab === 'profil') {
+    c.innerHTML = `
+      <div style="max-width:480px">
+        <div style="background:var(--white);border-radius:var(--radius);padding:1.5rem;box-shadow:var(--shadow)">
+          <h3 style="font-size:1rem;font-weight:700;margin-bottom:1.25rem">Informations personnelles</h3>
+          <div class="form-row"><label>Nom</label><input id="p-name" value="${esc(currentUser.name)}"></div>
+          <div class="form-row"><label>Email</label><input value="${esc(currentUser.email)}" disabled style="background:#f1f5f9"></div>
+          <div class="form-row"><label>Téléphone</label><input id="p-phone" value="${esc(currentUser.phone || '')}"></div>
+          <div class="form-row"><label>Bio</label><textarea id="p-bio" rows="3">${esc(currentUser.bio || '')}</textarea></div>
+          <div style="display:flex;gap:.75rem;margin-top:1rem">
+            <button class="btn btn-primary" style="flex:1" onclick="updateProfile()">Enregistrer</button>
+            <button class="btn btn-danger btn-sm" onclick="if(confirm('Déconnexion ?')) logout()">Déconnexion</button>
+          </div>
+        </div>
+      </div>`;
+  }
+}
+
+async function updateContact(id, status) {
+  try { await api('/contacts/' + id + '/status', 'PUT', { status }); dashTab('mes-contacts'); toast('Statut mis à jour.'); }
+  catch (e) { toast('❌ ' + e.message); }
+}
+
+async function updateProfile() {
+  const name  = document.getElementById('p-name')?.value;
+  const phone = document.getElementById('p-phone')?.value;
+  const bio   = document.getElementById('p-bio')?.value;
+  try {
+    const updated = await api('/auth/profile', 'PUT', { name, phone, bio });
+    currentUser = { ...currentUser, ...updated };
+    document.getElementById('avatar-btn').textContent = (currentUser.name || '?')[0].toUpperCase();
+    toast('✅ Profil mis à jour !');
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+// ── Publication ───────────────────────────────────
+function previewPhotos(input) {
+  const previews = document.getElementById('photo-previews');
+  Array.from(input.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      uploadedPhotos.push({ file, preview: e.target.result });
+      renderPhotoPreviews();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function renderPhotoPreviews() {
+  const c = document.getElementById('photo-previews');
+  c.innerHTML = uploadedPhotos.map((p, i) => `
+    <div class="photo-preview">
+      <img src="${p.preview}" alt="">
+      <button class="photo-remove" onclick="removePhoto(${i})">×</button>
+    </div>`).join('');
+}
+
+function removePhoto(i) {
+  uploadedPhotos.splice(i, 1);
+  renderPhotoPreviews();
+}
+
+document.querySelectorAll('.feature-toggle').forEach(btn => {
+  btn.addEventListener('click', () => btn.classList.toggle('selected'));
+});
+
+async function submitProperty() {
+  const title   = document.getElementById('pub-title').value;
+  const mode    = document.getElementById('pub-mode').value;
+  const type    = document.getElementById('pub-type').value;
+  const price   = document.getElementById('pub-price').value;
+  const wilaya  = document.getElementById('pub-wilaya').value;
+
+  const errEl = document.getElementById('pub-error');
+  const sucEl = document.getElementById('pub-success');
+  errEl.classList.add('hidden');
+  sucEl.classList.add('hidden');
+
+  if (!title || !price || !wilaya) {
+    errEl.textContent = 'Veuillez remplir tous les champs obligatoires.';
+    errEl.classList.remove('hidden'); return;
+  }
+
+  const features = Array.from(document.querySelectorAll('.feature-toggle.selected')).map(b => b.dataset.v);
+
+  // Upload des photos
+  let photoUrls = [];
+  for (const p of uploadedPhotos) {
+    try {
+      const fd = new FormData();
+      fd.append('file', p.file);
+      const r  = await fetch(API + '/upload', { method: 'POST', headers: { Authorization: 'Bearer ' + token }, body: fd });
+      const d  = await r.json();
+      if (d.url) photoUrls.push(d.url);
+    } catch {}
+  }
+
+  try {
+    const body = {
+      title, mode, type_bien: type, price: Number(price), wilaya,
+      commune:     document.getElementById('pub-commune').value || null,
+      address:     document.getElementById('pub-address').value || null,
+      description: document.getElementById('pub-desc').value || '',
+      surface_m2:  Number(document.getElementById('pub-surface').value) || null,
+      rooms:       Number(document.getElementById('pub-rooms').value) || null,
+      baths:       Number(document.getElementById('pub-baths').value) || null,
+      floor:       Number(document.getElementById('pub-floor').value) || null,
+      features, photos: photoUrls,
+      image: photoUrls[0] || '',
+    };
+    const r = await api('/properties', 'POST', body);
+    sucEl.textContent = '✅ Annonce publiée avec succès !';
+    sucEl.classList.remove('hidden');
+    uploadedPhotos = [];
+    renderPhotoPreviews();
+    setTimeout(() => showPage('detail', r.id), 1500);
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.classList.remove('hidden');
+  }
+}
+
+// ── Messagerie ────────────────────────────────────
+let currentChatProperty = null;
+let currentChatUser = null;
+
+async function loadMessages() {
+  if (!token) { showPage('home'); openModal('login'); return; }
+  const list = document.getElementById('conv-list');
+  try {
+    const data = await api('/messages');
+    if (!data.length) {
+      list.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:.88rem">Aucune conversation</div>';
+      return;
+    }
+    list.innerHTML = data.map(c => `
+      <div class="conv-item" onclick="loadThread(${c.property_id}, ${c.other_id})">
+        <img class="conv-thumb" src="${c.property_img || ''}" alt="" onerror="this.style.background='#e2e8f0';this.src=''">
+        <div class="conv-info">
+          <div class="conv-name">${esc(c.other_name)}${c.unread > 0 ? ` <span class="badge">${c.unread}</span>` : ''}</div>
+          <div class="conv-title">${esc(c.property_title)}</div>
+          <div class="conv-last">${esc(c.last_msg || '')}</div>
+        </div>
+      </div>`).join('');
+  } catch (e) { list.innerHTML = `<p style="padding:1rem;color:red;font-size:.85rem">${e.message}</p>`; }
+}
+
+async function loadThread(propertyId, otherId) {
+  currentChatProperty = propertyId;
+  currentChatUser = otherId;
+  const panel = document.getElementById('chat-panel');
+  panel.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const d = await api(`/messages/${propertyId}/${otherId}`);
+    panel.innerHTML = `
+      <div class="chat-header">${esc(d.other?.name || '')} · <span style="font-size:.85rem;color:var(--text-muted)">${esc(d.property?.title || '')}</span></div>
+      <div class="chat-messages" id="chat-msgs">
+        ${d.thread.map(m => `
+          <div>
+            <div class="msg-bubble ${m.from_id === currentUser.id ? 'mine' : 'other'}">${esc(m.body)}</div>
+            <div class="msg-time" style="text-align:${m.from_id === currentUser.id ? 'right' : 'left'}">${new Date(m.created_at).toLocaleTimeString('fr-DZ',{hour:'2-digit',minute:'2-digit'})}</div>
+          </div>`).join('')}
+      </div>
+      <div class="chat-input">
+        <textarea id="chat-input-text" placeholder="Votre message…" rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+        <button class="btn btn-primary" onclick="sendMessage()" style="padding:.6rem 1rem">Envoyer</button>
+      </div>`;
+    const msgs = document.getElementById('chat-msgs');
+    if (msgs) msgs.scrollTop = msgs.scrollHeight;
+  } catch (e) { panel.innerHTML = `<div style="padding:2rem;color:red">${e.message}</div>`; }
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input-text');
+  const body  = input?.value?.trim();
+  if (!body || !currentChatProperty || !currentChatUser) return;
+  try {
+    await api('/messages', 'POST', { to_id: currentChatUser, property_id: currentChatProperty, body });
+    input.value = '';
+    loadThread(currentChatProperty, currentChatUser);
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+// ── WebSocket ──────────────────────────────────────
+function setupWs() {
+  if (!token) return;
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  wsConn = new WebSocket(`${proto}://${location.host}/ws?token=${token}`);
+  wsConn.onmessage = e => {
+    const d = JSON.parse(e.data);
+    if (d.type === 'message') {
+      loadUnreadCount();
+      if (currentPage === 'messages') loadMessages();
+    }
+  };
+  wsConn.onclose = () => { setTimeout(() => token && setupWs(), 3000); };
+}
+
+async function loadUnreadCount() {
+  try {
+    const { count } = await api('/messages/unread-count');
+    const el = document.getElementById('msg-count');
+    if (count > 0) { el.textContent = count; el.classList.remove('hidden'); }
+    else el.classList.add('hidden');
+  } catch {}
+}
+
+// ── Modals ─────────────────────────────────────────
+function openModal(name) {
+  document.getElementById('modal-' + name)?.classList.remove('hidden');
+}
+function closeModal(name) {
+  document.getElementById('modal-' + name)?.classList.add('hidden');
+}
+function switchModal(from, to) {
+  closeModal(from); openModal(to);
+}
+
+// Fermer modal en cliquant sur l'overlay
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.add('hidden'); });
+});
+
+// ── Utilitaires ────────────────────────────────────
+function formatPrice(n) {
+  return Number(n).toLocaleString('fr-DZ');
+}
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function toast(msg, duration = 3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg; el.classList.remove('hidden');
+}
+
+// ── Démarrage ──────────────────────────────────────
+init();
+</script>
+</body>
+</html>
