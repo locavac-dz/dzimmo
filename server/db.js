@@ -75,6 +75,11 @@ class Collection {
     return 0;
   }
 
+  async findById(id) {
+    const r = await pool.query(`SELECT * FROM ${this._t} WHERE id = $1`, [id]);
+    return r.rows[0] || null;
+  }
+
   async count(pred) {
     if (!pred) {
       const r = await pool.query(`SELECT COUNT(*) FROM ${this._t}`);

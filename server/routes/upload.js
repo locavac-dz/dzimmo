@@ -7,8 +7,9 @@ const auth    = require('../middleware/auth');
 const UPLOAD_DIR = path.join(__dirname, '..', '..', 'public', 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-const MAX_SIZE_MB   = 5;
+const ALLOWED_TYPES      = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+const MAX_SIZE_MB         = 5;
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
@@ -23,7 +24,9 @@ const upload = multer({
   storage,
   limits: { fileSize: MAX_SIZE_MB * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (ALLOWED_TYPES.includes(file.mimetype)) cb(null, true);
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ALLOWED_TYPES.includes(file.mimetype) && ALLOWED_EXTENSIONS.includes(ext))
+      cb(null, true);
     else cb(new Error('Format non supporté. Utilisez JPEG, PNG ou WebP.'));
   },
 });

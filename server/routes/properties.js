@@ -54,7 +54,7 @@ router.get('/', async (req, res) => {
 
 // GET /api/properties/estimation — prix/m² moyen depuis la BDD (DOIT être avant /:id)
 router.get('/estimation', async (req, res) => {
-  const { pool } = require('../db');
+  const { pool } = db;
   const { type_bien, wilaya, mode, rooms } = req.query;
   const roomsInt = rooms ? parseInt(rooms, 10) : NaN;
 
@@ -115,7 +115,7 @@ router.get('/estimation', async (req, res) => {
     });
   } catch (err) {
     console.error('[estimation]', err.message);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Erreur lors du calcul de l\'estimation.' });
   }
 });
 
@@ -264,7 +264,7 @@ router.post('/:id/reviews', auth, async (req, res) => {
 });
 
 // POST /api/properties/:id/signaler
-router.post('/:id/signaler', async (req, res) => {
+router.post('/:id/signaler', auth, async (req, res) => {
   const { motif, message } = req.body;
   if (!motif) return res.status(400).json({ error: 'Motif requis.' });
   await db.pool.query(

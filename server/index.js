@@ -75,7 +75,9 @@ app.get('*', (_, res) => res.sendFile(path.join(__dirname, '..', 'public', 'inde
 
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   console.error('[Erreur]', err.message);
-  res.status(err.status || 500).json({ error: err.message || 'Erreur serveur.' });
+  const status = err.status || 500;
+  const msg = status < 500 ? err.message : 'Erreur interne du serveur.';
+  res.status(status).json({ error: msg });
 });
 
 const PORT = process.env.PORT || 3001;

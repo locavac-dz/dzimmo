@@ -4,7 +4,6 @@ const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
 const db     = require('../db');
 const mailer = require('../mailer');
-const { pool } = require('../db');
 
 function sign(user) {
   return jwt.sign(
@@ -91,12 +90,12 @@ router.post('/forgot-password', async (req, res) => {
   if (!user) return res.json({ ok: true }); // anti-énumération
   const token = crypto.randomBytes(32).toString('hex');
   const expires = new Date(Date.now() + 60 * 60 * 1000);
-  await pool.query(
+  await db.pool.query(
     'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
     [user.id, token, expires]
   );
   const baseUrl = process.env.APP_URL || 'http://localhost:3001';
-  mailer.mailPasswordReset({ name: user.name, email: user.email, resetUrl: `${baseUrl}/?reset_token=${token}` });
+  mailer.mailPasswordReset({ name: user.name, email: user.email, resetUrl: `${baseUrl}/#reset_token=${token}` });
   res.json({ ok: true });
 });
 
@@ -105,14 +104,14 @@ router.post('/reset-password', async (req, res) => {
   const { token, password } = req.body;
   if (!token || !password) return res.status(400).json({ error: 'Token et mot de passe requis.' });
   if (password.length < 6) return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caractères.' });
-  const r = await pool.query(
+  const r = await db.pool.query(
     `SELECT * FROM password_reset_tokens WHERE token = $1 AND used = false AND expires_at > NOW()`,
     [token]
   );
   if (!r.rows[0]) return res.status(400).json({ error: 'Lien invalide ou expiré.' });
   const { user_id, id: tokenId } = r.rows[0];
   await db.users.update(u => u.id === user_id, { password: await bcrypt.hash(password, 10) });
-  await pool.query('UPDATE password_reset_tokens SET used = true WHERE id = $1', [tokenId]);
+  await db.pool.query('UPDATE password_reset_tokens SET used = true WHERE id = $1', [tokenId]);
   res.json({ ok: true });
 });
 
@@ -129,11 +128,11 @@ router.get('/verify-email', async (req, res) => {
 // DELETE /api/auth/me — suppression de compte (RGPD)
 router.delete('/me', require('../middleware/auth'), async (req, res) => {
   const uid = req.user.id;
-  await pool.query('DELETE FROM messages WHERE from_id = $1 OR to_id = $1', [uid]);
-  await pool.query('DELETE FROM favorites WHERE user_id = $1', [uid]);
-  await pool.query('DELETE FROM contact_requests WHERE user_id = $1', [uid]);
-  await pool.query('DELETE FROM properties WHERE owner_id = $1', [uid]);
-  await pool.query('DELETE FROM users WHERE id = $1', [uid]);
+  await db.pool.query('DELETE FROM messages WHERE from_id = $1 OR to_id = $1', [uid]);
+  await db.pool.query('DELETE FROM favorites WHERE user_id = $1', [uid]);
+  await db.pool.query('DELETE FROM contact_requests WHERE user_id = $1', [uid]);
+  await db.pool.query('DELETE FROM properties WHERE owner_id = $1', [uid]);
+  await db.pool.query('DELETE FROM users WHERE id = $1', [uid]);
   res.json({ ok: true });
 });
 
