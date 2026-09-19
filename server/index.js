@@ -11,6 +11,16 @@ const db          = require('./db');
 const wsModule    = require('./ws');
 
 const app = express();
+
+// ── Reverse proxy (Nginx) ───────────────────────────────────────
+// TRUST_PROXY = nombre de proxys de confiance devant l'app (1 pour Nginx).
+// Absent ou 0 en local : on ne fait pas confiance à X-Forwarded-For (sinon
+// un client direct pourrait usurper son IP et contourner les rate limits).
+const TRUST_PROXY = process.env.TRUST_PROXY;
+if (TRUST_PROXY && TRUST_PROXY !== '0' && TRUST_PROXY !== 'false') {
+  app.set('trust proxy', /^\d+$/.test(TRUST_PROXY) ? Number(TRUST_PROXY) : TRUST_PROXY);
+}
+
 app.use(compression());
 
 // ── CORS ────────────────────────────────────────────────────────
