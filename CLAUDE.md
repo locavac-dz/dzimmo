@@ -29,6 +29,18 @@ Le compte et les annonces de démonstration (`seed()` dans `server/db.js`) ne so
 
 Windows : `demarrer.bat`
 
+## Accès aux données
+
+- Les collections de `server/db.js` (`db.users`, `db.properties`…) prennent une condition **objet** :
+  `db.users.findOne({ email })`, `db.properties.find({ status: ['active', 'sold'] }, { orderBy: 'id DESC', limit: 12 })`,
+  `db.messages.count({ to_id, read: false })`. Un tableau devient `= ANY(...)`, `null` devient `IS NULL`.
+  Les prédicats JavaScript (`p => p.id === 3`) sont refusés : ils chargeaient toute la table en mémoire.
+- `update` et `delete` exigent une condition (pas de modification globale par accident).
+- Identifiants issus d'une URL : `db.<table>.findById(req.params.id)` ou `db.toId(...)` (un id absurde donne « introuvable », pas une erreur SQL).
+- Listes avec données liées (demandes, messages, favoris, avis, stats) : **une requête SQL avec JOIN / agrégat**
+  (`db.pool.query`), jamais une boucle de requêtes par ligne.
+- Toute colonne filtrée ou jointe régulièrement reçoit un index dans une migration (`server/migrations/`).
+
 ## Structure
 
 - `server/` — API Express

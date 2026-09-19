@@ -12,11 +12,10 @@ const STATUTS_VALIDES  = ['active','sold','rented','archived'];
 const STATUTS_PUBLICS  = ['active','sold','rented'];
 
 async function withOwner(property) {
-  const owner = await db.users.findOne(u => u.id === property.owner_id);
-  let agency = null;
-  if (property.agency_id) {
-    agency = await db.agencies.findOne(a => a.id === property.agency_id);
-  }
+  const [owner, agency] = await Promise.all([
+    db.users.findById(property.owner_id),
+    property.agency_id ? db.agencies.findById(property.agency_id) : null,
+  ]);
   return {
     ...property,
     owner_name:   owner ? owner.name   : 'Inconnu',
@@ -173,7 +172,7 @@ router.get('/estimation', async (req, res) => {
 
 // GET /api/properties/:id
 router.get('/:id', optionalAuth, async (req, res) => {
-  const property = await db.properties.findOne(p => p.id === Number(req.params.id));
+  const property = await db.properties.findById(req.params.id);
   if (!property) return res.status(404).json({ error: 'Annonce introuvable.' });
 
   // En attente / refusée : visible uniquement de son propriétaire et des admins (404 pour les autres)
@@ -182,19 +181,20 @@ router.get('/:id', optionalAuth, async (req, res) => {
   if (hidden && !staff) return res.status(404).json({ error: 'Annonce introuvable.' });
 
   // Incrémenter les vues (pas pour une annonce non publiée)
-  if (!hidden) await db.properties.update(p => p.id === property.id, { views: (property.views || 0) + 1 });
+  // (incrément atomique en SQL : deux visites simultanées comptent bien deux vues)
+  if (!hidden) await db.pool.query('UPDATE properties SET views = COALESCE(views, 0) + 1 WHERE id = $1', [property.id]);
 
-  const revList = await db.reviews.find(r => r.property_id === property.id);
-  const reviews = await Promise.all(
-    revList
-      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
-      .slice(0, 10)
-      .map(async r => {
-        const u = await db.users.findOne(u => u.id === r.author_id);
-        return { ...r, author_name: u ? u.name : 'Anonyme', author_avatar: u ? u.avatar : null };
-      })
-  );
-  res.json({ ...await withOwner(property), reviews });
+  const [reviews, detail] = await Promise.all([
+    db.pool.query(
+      `SELECT r.*, COALESCE(u.name, 'Anonyme') AS author_name, u.avatar AS author_avatar
+         FROM reviews r
+         LEFT JOIN users u ON u.id = r.author_id
+        WHERE r.property_id = $1
+        ORDER BY r.created_at DESC, r.id DESC
+        LIMIT 10`, [property.id]),
+    withOwner(property),
+  ]);
+  res.json({ ...detail, reviews: reviews.rows });
 });
 
 // POST /api/properties
@@ -239,7 +239,7 @@ router.post('/', auth, async (req, res) => {
     [property.id, Number(price)]
   );
 
-  await db.users.update(u => u.id === req.user.id, { is_agent: true });
+  await db.users.update({ id: req.user.id }, { is_agent: true });
 
   if (!trusted) {
     const owner = await db.users.findById(req.user.id);
@@ -250,7 +250,7 @@ router.post('/', auth, async (req, res) => {
 
 // PUT /api/properties/:id
 router.put('/:id', auth, async (req, res) => {
-  const property = await db.properties.findOne(p => p.id === Number(req.params.id));
+  const property = await db.properties.findById(req.params.id);
   if (!property) return res.status(404).json({ error: 'Annonce introuvable.' });
   if (property.owner_id !== req.user.id && !req.user.is_admin)
     return res.status(403).json({ error: 'Accès refusé.' });
@@ -288,7 +288,7 @@ router.put('/:id', auth, async (req, res) => {
     }
   }
 
-  await db.properties.update(p => p.id === property.id, changes);
+  await db.properties.update({ id: property.id }, changes);
   if (resubmitted) {
     const owner = await db.users.findById(property.owner_id);
     moderation.notifyAdminsPending({ ...property, ...changes }, owner ? owner.name : 'Un utilisateur').catch(() => {});
@@ -323,17 +323,17 @@ router.get('/:id/price-history', optionalAuth, async (req, res) => {
 
 // DELETE /api/properties/:id
 router.delete('/:id', auth, async (req, res) => {
-  const property = await db.properties.findOne(p => p.id === Number(req.params.id));
+  const property = await db.properties.findById(req.params.id);
   if (!property) return res.status(404).json({ error: 'Annonce introuvable.' });
   if (property.owner_id !== req.user.id && !req.user.is_admin)
     return res.status(403).json({ error: 'Accès refusé.' });
-  await db.properties.delete(p => p.id === property.id);
+  await db.properties.delete({ id: property.id });
   res.json({ ok: true });
 });
 
 // POST /api/properties/:id/photos
 router.post('/:id/photos', auth, async (req, res) => {
-  const property = await db.properties.findOne(p => p.id === Number(req.params.id));
+  const property = await db.properties.findById(req.params.id);
   if (!property) return res.status(404).json({ error: 'Annonce introuvable.' });
   if (property.owner_id !== req.user.id) return res.status(403).json({ error: 'Accès refusé.' });
   const { url } = req.body;
@@ -343,7 +343,7 @@ router.post('/:id/photos', auth, async (req, res) => {
   // Nouvelle photo sur une annonce publiée : retour en modération (sauf admin / agence vérifiée)
   const review = property.status === 'active' && !(await moderation.isTrusted(req.user));
   if (review) patch.status = 'pending';
-  await db.properties.update(p => p.id === property.id, patch);
+  await db.properties.update({ id: property.id }, patch);
   if (review) {
     const owner = await db.users.findById(property.owner_id);
     moderation.notifyAdminsPending(property, owner ? owner.name : 'Un utilisateur').catch(() => {});
@@ -353,12 +353,12 @@ router.post('/:id/photos', auth, async (req, res) => {
 
 // DELETE /api/properties/:id/photos
 router.delete('/:id/photos', auth, async (req, res) => {
-  const property = await db.properties.findOne(p => p.id === Number(req.params.id));
+  const property = await db.properties.findById(req.params.id);
   if (!property) return res.status(404).json({ error: 'Annonce introuvable.' });
   if (property.owner_id !== req.user.id) return res.status(403).json({ error: 'Accès refusé.' });
   const { url } = req.body;
   const photos = (property.photos || []).filter(p => p !== url);
-  await db.properties.update(p => p.id === property.id, { photos: JSON.stringify(photos) });
+  await db.properties.update({ id: property.id }, { photos: JSON.stringify(photos) });
   res.json({ photos });
 });
 
@@ -367,18 +367,15 @@ router.post('/:id/reviews', auth, async (req, res) => {
   const { rating, comment, contact_request_id } = req.body;
   if (!rating || rating < 1 || rating > 5)
     return res.status(400).json({ error: 'Note entre 1 et 5 requise.' });
-  const pid = Number(req.params.id);
+  const pid = db.toId(req.params.id) ?? 0;
 
   // Vérifier qu'une demande de contact confirmée ou terminée existe
-  const validContact = await db.contact_requests.findOne(c =>
-    c.property_id === pid &&
-    c.user_id     === req.user.id &&
-    ['confirmed','done'].includes(c.status)
-  );
+  const validContact = await db.contact_requests.findOne(
+    { property_id: pid, user_id: req.user.id, status: ['confirmed', 'done'] });
   if (!validContact)
     return res.status(403).json({ error: 'Vous devez avoir une demande de contact confirmée pour laisser un avis.' });
 
-  const existing = await db.reviews.findOne(r => r.property_id === pid && r.author_id === req.user.id);
+  const existing = await db.reviews.findOne({ property_id: pid, author_id: req.user.id });
   if (existing) return res.status(409).json({ error: 'Vous avez déjà laissé un avis pour ce bien.' });
 
   await db.reviews.insert({
@@ -386,9 +383,9 @@ router.post('/:id/reviews', auth, async (req, res) => {
     contact_request_id: contact_request_id || null,
     rating: Number(rating), comment: comment || '',
   });
-  const allReviews = await db.reviews.find(r => r.property_id === pid);
-  const avg = allReviews.reduce((s, r) => s + Number(r.rating), 0) / allReviews.length;
-  await db.properties.update(p => p.id === pid, { rating: Math.round(avg * 100) / 100, reviews: allReviews.length });
+  const { rows: [agg] } = await db.pool.query(
+    'SELECT AVG(rating)::float AS avg, COUNT(*)::int AS n FROM reviews WHERE property_id = $1', [pid]);
+  await db.properties.update({ id: pid }, { rating: Math.round(agg.avg * 100) / 100, reviews: agg.n });
   res.status(201).json({ ok: true });
 });
 

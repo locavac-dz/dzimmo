@@ -2,33 +2,28 @@ const router = require('express').Router();
 const db     = require('../db');
 const admin  = require('../middleware/admin');
 const moderation = require('../moderation');
-const { pool } = require('../db');
+const { pool, toId } = require('../db');
 
 // GET /api/admin/users
 router.get('/users', admin, async (req, res) => {
-  const users = await db.users.find();
-  res.json(users.map(u => ({
-    id: u.id, name: u.name, email: u.email, phone: u.phone,
-    is_agent: u.is_agent, is_admin: u.is_admin,
-    email_verified: u.email_verified, banned: u.banned,
-    created_at: u.created_at,
-  })));
+  // Colonnes listées : le hash du mot de passe ne quitte jamais la base
+  const r = await pool.query(
+    `SELECT id, name, email, phone, is_agent, is_admin, email_verified, banned, created_at
+       FROM users ORDER BY id`);
+  res.json(r.rows);
 });
 
 // PUT /api/admin/users/:id/ban
 router.put('/users/:id/ban', admin, async (req, res) => {
   const { banned } = req.body;
-  await db.users.update(u => u.id === Number(req.params.id), { banned: !!banned });
+  await db.users.update({ id: toId(req.params.id) ?? 0 }, { banned: !!banned });
   res.json({ ok: true });
 });
 
 // GET /api/admin/properties
 router.get('/properties', admin, async (req, res) => {
   const { status } = req.query;
-  const props = status
-    ? await db.properties.find(p => p.status === status)
-    : await db.properties.find();
-  res.json(props);
+  res.json(await db.properties.find(status ? { status: String(status) } : {}));
 });
 
 // GET /api/admin/moderation?status=pending|rejected — file de modération (les plus anciennes d'abord)
@@ -63,8 +58,7 @@ router.put('/properties/:id/moderate', admin, async (req, res) => {
   if (!approve && motif.length < 5)
     return res.status(400).json({ error: 'Un motif de refus (5 caractères minimum) est obligatoire.' });
 
-  const found = await pool.query('SELECT * FROM properties WHERE id = $1', [Number(req.params.id)]);
-  const property = found.rows[0];
+  const property = await db.properties.findById(req.params.id);
   if (!property) return res.status(404).json({ error: 'Annonce introuvable.' });
 
   const status = approve ? 'active' : 'rejected';
@@ -90,34 +84,33 @@ router.put('/properties/:id/status', admin, async (req, res) => {
     // Publication manuelle : on date la publication (alertes email) et on lève un éventuel refus
     await pool.query(
       `UPDATE properties SET status = 'active', published_at = COALESCE(published_at, NOW()),
-              moderation_reason = NULL WHERE id = $1`, [Number(req.params.id)]);
+              moderation_reason = NULL WHERE id = $1`, [toId(req.params.id) ?? 0]);
   } else {
-    await db.properties.update(p => p.id === Number(req.params.id), { status });
+    await db.properties.update({ id: toId(req.params.id) ?? 0 }, { status });
   }
   res.json({ ok: true });
 });
 
 // PUT /api/admin/properties/:id/verify
 router.put('/properties/:id/verify', admin, async (req, res) => {
-  await db.properties.update(p => p.id === Number(req.params.id), { verified: true });
+  await db.properties.update({ id: toId(req.params.id) ?? 0 }, { verified: true });
   res.json({ ok: true });
 });
 
 // DELETE /api/admin/properties/:id
 router.delete('/properties/:id', admin, async (req, res) => {
-  await db.properties.delete(p => p.id === Number(req.params.id));
+  await db.properties.delete({ id: toId(req.params.id) ?? 0 });
   res.json({ ok: true });
 });
 
 // GET /api/admin/agencies
 router.get('/agencies', admin, async (req, res) => {
-  const agencies = await db.agencies.find();
-  res.json(agencies);
+  res.json(await db.agencies.find());
 });
 
 // PUT /api/admin/agencies/:id/verify
 router.put('/agencies/:id/verify', admin, async (req, res) => {
-  await db.agencies.update(a => a.id === Number(req.params.id), { verified: true });
+  await db.agencies.update({ id: toId(req.params.id) ?? 0 }, { verified: true });
   res.json({ ok: true });
 });
 
@@ -140,7 +133,7 @@ router.put('/signalements/:id/resolve', admin, async (req, res) => {
   if (!VALIDES.includes(status)) return res.status(400).json({ error: 'Statut invalide.' });
   const r = await pool.query(
     'UPDATE signalements SET status = $1 WHERE id = $2 RETURNING id',
-    [status, req.params.id]
+    [status, toId(req.params.id) ?? 0]
   );
   if (!r.rowCount) return res.status(404).json({ error: 'Signalement introuvable.' });
   res.json({ ok: true });

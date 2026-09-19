@@ -20,21 +20,61 @@ async function initSchema() {
 function rows(r) { return r.rows; }
 function row(r)  { return r.rows[0] || null; }
 
-// ── Collection — interface générique ────────────────────────
+// ── Collection — accès ciblé aux tables ─────────────────────
+// Toutes les méthodes prennent une condition « where » = objet { colonne: valeur } traduite en SQL :
+//   valeur           → colonne = $n
+//   null             → colonne IS NULL
+//   tableau          → colonne = ANY($n)    (ex. { status: ['confirmed', 'done'] })
+// Les prédicats JavaScript (p => p.id === 3) ne sont plus acceptés : ils obligeaient à charger toute la
+// table en mémoire avant de filtrer (17 s pour une liste de demandes avec 20 000 annonces).
+const COLONNE = /^[a-z_][a-z0-9_]*$/;
+const TRI     = /^[a-z_][a-z0-9_]*( (ASC|DESC))?$/i;
+
+function whereClause(where, offset = 0) {
+  if (typeof where === 'function')
+    throw new TypeError('Les prédicats ne sont plus acceptés : passer un objet { colonne: valeur }.');
+  const conds = [], params = [];
+  for (const [col, val] of Object.entries(where || {})) {
+    if (!COLONNE.test(col)) throw new Error(`Colonne invalide : ${col}`);
+    if (val === undefined) throw new TypeError(`Valeur indéfinie pour « ${col} » (bug d'appel ?)`);
+    if (val === null) conds.push(`${col} IS NULL`);
+    else if (Array.isArray(val)) { params.push(val); conds.push(`${col} = ANY($${offset + params.length})`); }
+    else { params.push(val); conds.push(`${col} = $${offset + params.length}`); }
+  }
+  return { sql: conds.length ? 'WHERE ' + conds.join(' AND ') : '', params, empty: conds.length === 0 };
+}
+
+// Identifiant entier valide (1 … 2 147 483 647) ou null : un id absurde (« abc », « 1.5 », trop grand)
+// donne « introuvable » au lieu d'une erreur SQL.
+const toId = v => {
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 1 && n <= 2147483647 ? n : null;
+};
+
 class Collection {
   constructor(table) { this._t = table; }
 
-  async findOne(pred) {
-    if (typeof pred === 'function') {
-      const all = await this.find();
-      return all.find(pred) || null;
-    }
-    return null;
+  async find(where = {}, { orderBy = 'id', limit } = {}) {
+    if (!TRI.test(orderBy)) throw new Error(`Tri invalide : ${orderBy}`);
+    const w = whereClause(where);
+    const lim = limit ? ` LIMIT ${Math.max(1, Math.floor(Number(limit)))}` : '';
+    return rows(await pool.query(`SELECT * FROM ${this._t} ${w.sql} ORDER BY ${orderBy}${lim}`, w.params));
   }
 
-  async find(pred) {
-    const r = rows(await pool.query(`SELECT * FROM ${this._t} ORDER BY id`));
-    return pred ? r.filter(pred) : r;
+  async findOne(where) {
+    const w = whereClause(where);
+    return row(await pool.query(`SELECT * FROM ${this._t} ${w.sql} ORDER BY id LIMIT 1`, w.params));
+  }
+
+  async findById(id) {
+    const n = toId(id);
+    if (n === null) return null;
+    return row(await pool.query(`SELECT * FROM ${this._t} WHERE id = $1`, [n]));
+  }
+
+  async count(where = {}) {
+    const w = whereClause(where);
+    return (await pool.query(`SELECT COUNT(*)::int AS n FROM ${this._t} ${w.sql}`, w.params)).rows[0].n;
   }
 
   async insert(doc) {
@@ -48,45 +88,22 @@ class Collection {
     return row(r);
   }
 
-  async update(pred, changes) {
-    if (typeof pred === 'function') {
-      const all     = await this.find();
-      const targets = all.filter(pred);
-      for (const t of targets) {
-        const keys = Object.keys(changes);
-        const vals = Object.values(changes);
-        const sets = keys.map((k,i) => `${k} = $${i+1}`).join(', ');
-        await pool.query(`UPDATE ${this._t} SET ${sets} WHERE id = $${keys.length+1}`, [...vals, t.id]);
-      }
-      return targets.length;
-    }
-    return 0;
+  // Modifie les lignes correspondant à « where » ; renvoie leur nombre. Sans condition : refusé (évite un UPDATE global).
+  async update(where, changes) {
+    const w = whereClause(where, Object.keys(changes).length);
+    if (w.empty) throw new Error(`${this._t}.update() exige une condition.`);
+    const keys = Object.keys(changes);
+    if (!keys.length) return 0;
+    keys.forEach(k => { if (!COLONNE.test(k)) throw new Error(`Colonne invalide : ${k}`); });
+    const sets = keys.map((k, i) => `${k} = $${i + 1}`).join(', ');
+    const r = await pool.query(`UPDATE ${this._t} SET ${sets} ${w.sql}`, [...Object.values(changes), ...w.params]);
+    return r.rowCount;
   }
 
-  async delete(pred) {
-    if (typeof pred === 'function') {
-      const all     = await this.find();
-      const targets = all.filter(pred);
-      for (const t of targets) {
-        await pool.query(`DELETE FROM ${this._t} WHERE id = $1`, [t.id]);
-      }
-      return targets.length;
-    }
-    return 0;
-  }
-
-  async findById(id) {
-    const r = await pool.query(`SELECT * FROM ${this._t} WHERE id = $1`, [id]);
-    return r.rows[0] || null;
-  }
-
-  async count(pred) {
-    if (!pred) {
-      const r = await pool.query(`SELECT COUNT(*) FROM ${this._t}`);
-      return parseInt(r.rows[0].count);
-    }
-    const all = await this.find();
-    return all.filter(pred).length;
+  async delete(where) {
+    const w = whereClause(where);
+    if (w.empty) throw new Error(`${this._t}.delete() exige une condition.`);
+    return (await pool.query(`DELETE FROM ${this._t} ${w.sql}`, w.params)).rowCount;
   }
 }
 
@@ -236,4 +253,4 @@ async function connect() {
   console.log('🐘 PostgreSQL connecté');
 }
 
-module.exports = { users, properties, agencies, contact_requests, reviews, messages, favorites, connect, pool };
+module.exports = { users, properties, agencies, contact_requests, reviews, messages, favorites, connect, pool, toId };

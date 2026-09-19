@@ -10,33 +10,25 @@ const STATUTS_VALIDES = ['pending', 'confirmed', 'rejected', 'done'];
 
 // GET /api/contacts/mine — demandes envoyées par l'utilisateur
 router.get('/mine', auth, async (req, res) => {
-  const requests = await db.contact_requests.find(c => c.user_id === req.user.id);
-  const result   = await Promise.all(requests.map(async c => {
-    const property = await db.properties.findOne(p => p.id === c.property_id);
-    return { ...c, property_title: property?.title || '', property_image: property?.image || '' };
-  }));
-  result.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
-  res.json(result);
+  const r = await db.pool.query(
+    `SELECT c.*, COALESCE(p.title, '') AS property_title, COALESCE(p.image, '') AS property_image
+       FROM contact_requests c
+       LEFT JOIN properties p ON p.id = c.property_id
+      WHERE c.user_id = $1
+      ORDER BY c.created_at DESC, c.id DESC`, [req.user.id]);
+  res.json(r.rows);
 });
 
 // GET /api/contacts/received — demandes reçues sur les annonces du propriétaire
 router.get('/received', auth, async (req, res) => {
-  const myProps = await db.properties.find(p => p.owner_id === req.user.id);
-  const propIds = new Set(myProps.map(p => p.id));
-  const requests = await db.contact_requests.find(c => propIds.has(c.property_id));
-  const result   = await Promise.all(requests.map(async c => {
-    const property  = await db.properties.findOne(p => p.id === c.property_id);
-    const requester = await db.users.findOne(u => u.id === c.user_id);
-    return {
-      ...c,
-      property_title: property?.title || '',
-      property_image: property?.image || '',
-      requester_name:  requester?.name  || 'Inconnu',
-      requester_phone: requester?.phone || null,
-    };
-  }));
-  result.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
-  res.json(result);
+  const r = await db.pool.query(
+    `SELECT c.*, COALESCE(p.title, '') AS property_title, COALESCE(p.image, '') AS property_image,
+            COALESCE(u.name, 'Inconnu') AS requester_name, u.phone AS requester_phone
+       FROM contact_requests c
+       JOIN properties p ON p.id = c.property_id AND p.owner_id = $1
+       LEFT JOIN users u ON u.id = c.user_id
+      ORDER BY c.created_at DESC, c.id DESC`, [req.user.id]);
+  res.json(r.rows);
 });
 
 // POST /api/contacts — envoyer une demande de contact
@@ -45,7 +37,7 @@ router.post('/', auth, async (req, res) => {
   if (!property_id || !type) return res.status(400).json({ error: 'Annonce et type requis.' });
   if (!TYPES_VALIDES.includes(type)) return res.status(400).json({ error: 'Type invalide.' });
 
-  const property = await db.properties.findOne(p => p.id === Number(property_id));
+  const property = await db.properties.findById(property_id);
   if (!property || ['pending', 'rejected'].includes(property.status))
     return res.status(404).json({ error: 'Annonce introuvable.' });
   if (property.owner_id === req.user.id)
@@ -64,8 +56,7 @@ router.post('/', auth, async (req, res) => {
     status: 'pending',
   });
 
-  const owner     = await db.users.findOne(u => u.id === property.owner_id);
-  const requester = await db.users.findOne(u => u.id === req.user.id);
+  const [owner, requester] = await Promise.all([db.users.findById(property.owner_id), db.users.findById(req.user.id)]);
   if (owner?.email) {
     mailer.mailContactRequest({
       ownerName:    owner.name, ownerEmail: owner.email, lang: owner.lang,
@@ -88,17 +79,17 @@ router.post('/', auth, async (req, res) => {
 
 // PUT /api/contacts/:id/status — propriétaire confirme ou rejette
 router.put('/:id/status', auth, async (req, res) => {
-  const request  = await db.contact_requests.findOne(c => c.id === Number(req.params.id));
+  const request  = await db.contact_requests.findById(req.params.id);
   if (!request) return res.status(404).json({ error: 'Demande introuvable.' });
 
-  const property = await db.properties.findOne(p => p.id === request.property_id);
+  const property = await db.properties.findById(request.property_id);
   if (!property || property.owner_id !== req.user.id)
     return res.status(403).json({ error: 'Accès refusé.' });
 
   const { status } = req.body;
   if (!STATUTS_VALIDES.includes(status)) return res.status(400).json({ error: 'Statut invalide.' });
 
-  await db.contact_requests.update(c => c.id === request.id, { status });
+  await db.contact_requests.update({ id: request.id }, { status });
 
   // Notifier le demandeur en temps réel pour les statuts confirmé/refusé
   if (status === 'confirmed' || status === 'rejected') {
@@ -117,11 +108,11 @@ router.put('/:id/status', auth, async (req, res) => {
 
 // DELETE /api/contacts/:id — annulation par le demandeur
 router.delete('/:id', auth, async (req, res) => {
-  const request = await db.contact_requests.findOne(c => c.id === Number(req.params.id));
+  const request = await db.contact_requests.findById(req.params.id);
   if (!request) return res.status(404).json({ error: 'Demande introuvable.' });
   if (request.user_id !== req.user.id)
     return res.status(403).json({ error: 'Accès refusé.' });
-  await db.contact_requests.delete(c => c.id === request.id);
+  await db.contact_requests.delete({ id: request.id });
   res.json({ ok: true });
 });
 

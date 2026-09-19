@@ -11,11 +11,13 @@ router.get('/', admin, async (req, res) => {
     db.agencies.count(),
   ]);
 
-  const active  = await db.properties.count(p => p.status === 'active');
-  const sold    = await db.properties.count(p => p.status === 'sold');
-  const rented  = await db.properties.count(p => p.status === 'rented');
-  const pending = await db.contact_requests.count(c => c.status === 'pending');
-  const pending_props = await db.properties.count(p => p.status === 'pending');
+  const [active, sold, rented, pending, pending_props] = await Promise.all([
+    db.properties.count({ status: 'active' }),
+    db.properties.count({ status: 'sold' }),
+    db.properties.count({ status: 'rented' }),
+    db.contact_requests.count({ status: 'pending' }),
+    db.properties.count({ status: 'pending' }),
+  ]);
 
   res.json({ users, properties, contacts, agencies, active, sold, rented, pending_contacts: pending, pending_props });
 });
@@ -76,18 +78,20 @@ router.get('/public', async (req, res) => {
 // GET /api/stats/me — statistiques du propriétaire connecté
 router.get('/me', require('../middleware/auth'), async (req, res) => {
   const uid = req.user.id;
-  const myProps   = await db.properties.find(p => p.owner_id === uid);
-  const propIds   = new Set(myProps.map(p => p.id));
-  const contacts  = await db.contact_requests.find(c => propIds.has(c.property_id));
-  const totalViews = myProps.reduce((s, p) => s + (p.views || 0), 0);
-
-  res.json({
-    properties:   myProps.length,
-    active:       myProps.filter(p => p.status === 'active').length,
-    contacts:     contacts.length,
-    pending:      contacts.filter(c => c.status === 'pending').length,
-    total_views:  totalViews,
-  });
+  const [props, contacts] = await Promise.all([
+    db.pool.query(
+      `SELECT COUNT(*)::int AS properties,
+              COUNT(*) FILTER (WHERE status = 'active')::int AS active,
+              COALESCE(SUM(views), 0)::int AS total_views
+         FROM properties WHERE owner_id = $1`, [uid]),
+    db.pool.query(
+      `SELECT COUNT(*)::int AS contacts,
+              COUNT(*) FILTER (WHERE c.status = 'pending')::int AS pending
+         FROM contact_requests c
+         JOIN properties p ON p.id = c.property_id
+        WHERE p.owner_id = $1`, [uid]),
+  ]);
+  res.json({ ...props.rows[0], ...contacts.rows[0] });
 });
 
 module.exports = router;
