@@ -129,6 +129,13 @@ CREATE TABLE IF NOT EXISTS signalements (
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS price_history (
+  id          SERIAL PRIMARY KEY,
+  property_id INTEGER REFERENCES properties(id) ON DELETE CASCADE,
+  price       NUMERIC NOT NULL,
+  changed_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS search_alerts (
   id          SERIAL PRIMARY KEY,
   user_id     INTEGER REFERENCES users(id) ON DELETE CASCADE,

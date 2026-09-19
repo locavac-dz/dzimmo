@@ -2408,9 +2408,72 @@ async function loadDetail(id) {
       document.getElementById('offer-field-' + p.id).classList.toggle('hidden', ctype.value !== 'offre');
     });
 
-    // Annonces similaires (même wilaya + même type, sans l'annonce courante)
+    // Historique des prix + annonces similaires
+    loadPriceHistory(p.id, p.price);
     loadSimilarProperties(p.id, p.wilaya, p.type_bien);
   } catch (e) { container.innerHTML = `<p style="color:red;padding:2rem">${e.message}</p>`; }
+}
+
+async function loadPriceHistory(id, currentPrice) {
+  try {
+    const history = await api('/properties/' + id + '/price-history');
+    if (!history.length || history.length < 2) return;
+    const container = document.getElementById('detail-content');
+    if (!container) return;
+
+    // Construire le graphique SVG ligne
+    const W = 480, H = 100, pad = { t:14, b:22, l:60, r:10 };
+    const prices = history.map(h => Number(h.price));
+    const minP = Math.min(...prices), maxP = Math.max(...prices);
+    const rangeP = maxP - minP || 1;
+    const n = history.length;
+
+    const px = (i) => pad.l + (i / (n - 1)) * (W - pad.l - pad.r);
+    const py = (v) => pad.t + (1 - (v - minP) / rangeP) * (H - pad.t - pad.b);
+
+    const pts = history.map((h, i) => `${px(i).toFixed(1)},${py(Number(h.price)).toFixed(1)}`).join(' ');
+    const area = `M${px(0).toFixed(1)},${H - pad.b} ` +
+      history.map((h, i) => `L${px(i).toFixed(1)},${py(Number(h.price)).toFixed(1)}`).join(' ') +
+      ` L${px(n-1).toFixed(1)},${H - pad.b} Z`;
+
+    const diff = prices[prices.length - 1] - prices[0];
+    const pct  = prices[0] ? ((diff / prices[0]) * 100).toFixed(1) : 0;
+    const trend = diff > 0 ? `<span style="color:#ef4444">▲ +${pct}%</span>`
+                : diff < 0 ? `<span style="color:#0C6E4F">▼ ${pct}%</span>`
+                : `<span style="color:var(--text-muted)">→ stable</span>`;
+
+    const labels = history.map((h, i) => {
+      const d = new Date(h.changed_at);
+      const lbl = d.toLocaleDateString('fr-DZ', { day:'2-digit', month:'short' });
+      return `<text x="${px(i).toFixed(1)}" y="${H - 6}" text-anchor="${i===0?'start':i===n-1?'end':'middle'}" font-size="9" fill="currentColor" opacity=".6">${lbl}</text>`;
+    });
+    const yLabels = [minP, maxP].map(v => {
+      const y = py(v);
+      return `<text x="${pad.l - 4}" y="${y + 4}" text-anchor="end" font-size="9" fill="currentColor" opacity=".65">${(v/1000000).toFixed(1)}M</text>
+              <line x1="${pad.l}" y1="${y}" x2="${W - pad.r}" y2="${y}" stroke="var(--border)" stroke-width=".5" stroke-dasharray="3,3"/>`;
+    });
+
+    const section = document.createElement('div');
+    section.style.cssText = 'margin-top:1.5rem';
+    section.innerHTML = `
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:.5rem">📈 Historique des prix <small style="font-weight:400;color:var(--text-muted)">${trend}</small></h3>
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:.75rem;box-shadow:var(--shadow)">
+        <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;color:var(--text);overflow:visible">
+          <defs>
+            <linearGradient id="pg${id}" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#0C6E4F" stop-opacity=".3"/>
+              <stop offset="100%" stop-color="#0C6E4F" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          ${yLabels.join('')}
+          <path d="${area}" fill="url(#pg${id})"/>
+          <polyline points="${pts}" fill="none" stroke="#0C6E4F" stroke-width="2" stroke-linejoin="round"/>
+          ${history.map((h, i) => `<circle cx="${px(i).toFixed(1)}" cy="${py(Number(h.price)).toFixed(1)}" r="3" fill="#0C6E4F"/>`).join('')}
+          ${labels.join('')}
+        </svg>
+      </div>`;
+    container.querySelector('.detail-body')?.parentElement?.insertBefore(section, container.querySelector('.detail-body'));
+  } catch {}
 }
 
 async function loadSimilarProperties(excludeId, wilaya, type_bien) {

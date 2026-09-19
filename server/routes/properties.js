@@ -215,6 +215,12 @@ router.post('/', auth, async (req, res) => {
     status: 'active',
   });
 
+  // Enregistrer le prix initial dans l'historique
+  await db.pool.query(
+    'INSERT INTO price_history (property_id, price) VALUES ($1, $2)',
+    [property.id, Number(price)]
+  );
+
   await db.users.update(u => u.id === req.user.id, { is_agent: true });
   res.status(201).json({ id: property.id });
 });
@@ -240,7 +246,26 @@ router.put('/:id', auth, async (req, res) => {
   if (Array.isArray(photos))     changes.photos      = JSON.stringify(photos);
 
   await db.properties.update(p => p.id === property.id, changes);
+
+  // Enregistrer le nouveau prix si modifié
+  if (changes.price !== undefined && Number(changes.price) !== Number(property.price)) {
+    await db.pool.query(
+      'INSERT INTO price_history (property_id, price) VALUES ($1, $2)',
+      [property.id, changes.price]
+    );
+  }
+
   res.json({ ok: true });
+});
+
+// GET /api/properties/:id/price-history
+router.get('/:id/price-history', async (req, res) => {
+  const { pool } = db;
+  const r = await pool.query(
+    'SELECT price, changed_at FROM price_history WHERE property_id = $1 ORDER BY changed_at ASC',
+    [Number(req.params.id)]
+  );
+  res.json(r.rows);
 });
 
 // DELETE /api/properties/:id
