@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 64" width="260" height="64" role="img">
+  <title>DzImmo</title>
+  <g>
+    <rect width="64" height="64" rx="14" fill="#0C6E4F"/>
+    <path d="M32 8 L46 20 V32 H18 V20 Z" fill="#ffffff"/>
+    <circle cx="32" cy="22" r="4" fill="#0C6E4F"/>
+    <rect x="29" y="32" width="6" height="24" rx="2" fill="#ffffff"/>
+    <rect x="35" y="42" width="8" height="4" rx="1" fill="#f59e0b"/>
+    <rect x="35" y="50" width="6" height="4" rx="1" fill="#f59e0b"/>
+  </g>
+  <text x="80" y="45" font-family="Georgia, 'Times New Roman', serif" font-size="38" font-weight="700" fill="#0C6E4F">Dz<tspan font-weight="400" fill="#1e293b">Immo</tspan></text>
+</svg>

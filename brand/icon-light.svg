@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img">
+  <title>DzImmo</title>
+  <rect width="64" height="64" rx="14" fill="#e8f5f0"/>
+  <path d="M32 8 L46 20 V32 H18 V20 Z" fill="#0C6E4F"/>
+  <circle cx="32" cy="22" r="4" fill="#e8f5f0"/>
+  <rect x="29" y="32" width="6" height="24" rx="2" fill="#0C6E4F"/>
+  <rect x="35" y="42" width="8" height="4" rx="1" fill="#f59e0b"/>
+  <rect x="35" y="50" width="6" height="4" rx="1" fill="#f59e0b"/>
+</svg>

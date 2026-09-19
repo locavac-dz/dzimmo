@@ -84,6 +84,9 @@ function template() {
 
 // Remplace title + description de index.html et insère les balises SEO
 function render({ title, description, canonical, image, robots, jsonLd, nav, landing }) {
+  // Sans photo propre à la page : visuel de marque (généré par `npm run build-brand`)
+  const isDefaultImage = !image;
+  image = image || new URL(canonical).origin + '/og-default.png';
   const tags = [
     `<title>${escHtml(title)}</title>`,
     `<meta name="description" content="${escHtml(description)}">`,
@@ -96,6 +99,8 @@ function render({ title, description, canonical, image, robots, jsonLd, nav, lan
     `<meta property="og:description" content="${escHtml(description)}">`,
     `<meta property="og:url" content="${escHtml(canonical)}">`,
     image ? `<meta property="og:image" content="${escHtml(image)}">` : '',
+    isDefaultImage ? '<meta property="og:image:width" content="1200">' : '',
+    isDefaultImage ? '<meta property="og:image:height" content="630">' : '',
     `<meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary'}">`,
     `<meta name="twitter:title" content="${escHtml(title)}">`,
     `<meta name="twitter:description" content="${escHtml(description)}">`,

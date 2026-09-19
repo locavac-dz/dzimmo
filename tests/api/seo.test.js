@@ -28,6 +28,20 @@ test('accueil : titre, canonical basé sur APP_URL, données structurées WebSit
   assert.equal((r.text.match(/<title>/g) || []).length, 1, 'un seul <title>');
 });
 
+test('accueil : image de partage de marque, servie par le site', async () => {
+  const home = await s.request('GET', '/');
+  assert.match(home.text, new RegExp(`<meta property="og:image" content="${BASE}/og-default.png">`));
+  assert.match(home.text, /og:image:width" content="1200"/);
+  assert.match(home.text, /name="twitter:card" content="summary_large_image"/);
+  const img = await fetch(s.base + '/og-default.png');
+  assert.equal(img.status, 200);
+  assert.equal(img.headers.get('content-type'), 'image/png');
+  // une annonce garde sa propre photo (pas l'image par défaut)
+  const go = await s.request('GET', `/annonce/${sample.id}`);
+  const page = await s.request('GET', go.headers.get('location'));
+  assert.doesNotMatch(page.text, /og-default\.png/);
+});
+
 test('robots.txt et sitemap.xml', async () => {
   const robots = await s.request('GET', '/robots.txt');
   assert.match(robots.text, /Disallow: \/api\//);

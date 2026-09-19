@@ -7,6 +7,9 @@
   <meta name="description" content="Trouvez ou publiez des annonces immobilières en Algérie : appartements, villas, locaux, terrains à vendre ou à louer.">
   <!--SEO_HEAD-->
   <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <meta name="theme-color" content="#0C6E4F">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
@@ -74,10 +77,13 @@
       display: flex; align-items: center; gap: 1rem; height: 62px;
     }
     .logo {
+      display: flex; align-items: center; gap: .55rem;
+      direction: ltr;  /* le logo garde le même ordre (icône puis nom) en français et en arabe */
       font-size: 1.5rem; font-weight: 900; font-family: Georgia, serif;
       color: var(--primary); white-space: nowrap;
     }
-    .logo span { font-weight: 300; }
+    .logo-mark { width: 36px; height: 36px; flex-shrink: 0; }
+    .logo-text span { font-weight: 300; }
     .nav { display: flex; align-items: center; gap: 0.25rem; flex: 1; }
     .nav-link {
       padding: 0.4rem 0.75rem; border-radius: 8px;
@@ -653,7 +659,7 @@
 <!-- ═══════════════════ HEADER ═══════════════════ -->
 <header id="header">
   <div class="header-inner">
-    <div class="logo" onclick="showPage('home')" style="cursor:pointer">Dz<span>Immo</span> <span style="font-size:.6rem;font-weight:400;color:var(--text-muted);font-family:Arial">🇩🇿</span></div>
+    <div class="logo" onclick="showPage('home')" style="cursor:pointer"><img class="logo-mark" src="/logo-icon.svg" alt="" width="36" height="36"><span class="logo-text">Dz<span>Immo</span></span> <span style="font-size:.6rem;font-weight:400;color:var(--text-muted);font-family:Arial">🇩🇿</span></div>
     <nav class="nav">
       <a class="nav-link active" data-page="home" onclick="showPage('home')" data-i18n="nav_home">Accueil</a>
       <a class="nav-link" data-page="annonces" onclick="showPage('annonces')" data-i18n="nav_annonces">Annonces</a>
@@ -1457,7 +1463,7 @@
 <footer>
   <div class="footer-inner">
     <div class="footer-col">
-      <h4>DzImmo</h4>
+      <h4 style="display:flex;align-items:center;gap:.6rem"><img src="/logo-icon-light.svg" alt="" width="30" height="30">DzImmo</h4>
       <p style="font-size:.85rem;line-height:1.6;color:rgba(255,255,255,.6)" data-i18n="ft_about">La plateforme de référence pour l'immobilier en Algérie. Achat, vente, location.</p>
     </div>
     <div class="footer-col">
