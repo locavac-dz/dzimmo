@@ -127,3 +127,16 @@ CREATE TABLE IF NOT EXISTS signalements (
   message     TEXT,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS search_alerts (
+  id          SERIAL PRIMARY KEY,
+  user_id     INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  wilaya      TEXT,
+  mode        TEXT,
+  type_bien   TEXT,
+  min_price   NUMERIC,
+  max_price   NUMERIC,
+  min_surface NUMERIC,
+  last_sent   TIMESTAMPTZ DEFAULT NOW(),
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);

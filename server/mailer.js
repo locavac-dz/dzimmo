@@ -131,8 +131,51 @@ function mailNewMessage({ to, senderName, propertyTitle, preview }) {
   });
 }
 
+function mailSearchAlert({ email, name, properties, alertCriteria }) {
+  const modeLabel = {
+    vente: 'Vente', location_longue: 'Location longue', location_courte: 'Location courte',
+  }[alertCriteria.mode] || 'Tous modes';
+  const typeLabel = alertCriteria.type_bien || 'Tous types';
+  const wilayaLabel = alertCriteria.wilaya || 'Toutes les wilayas';
+  const criteria = [wilayaLabel, modeLabel, typeLabel].join(' · ');
+
+  const rows = properties.map(p => `
+    <tr>
+      <td style="padding:.6rem .5rem;border-bottom:1px solid #f0f0f0">
+        <strong>${esc(p.title)}</strong><br>
+        <span style="font-size:.83rem;color:#666">${esc(p.wilaya)}</span>
+      </td>
+      <td style="padding:.6rem .5rem;border-bottom:1px solid #f0f0f0;text-align:right;white-space:nowrap;font-weight:700;color:#0C6E4F">
+        ${Number(p.price).toLocaleString('fr-DZ')} DZD
+      </td>
+    </tr>`).join('');
+
+  return sendMail({
+    to: email,
+    subject: `🔔 ${properties.length} nouvelle${properties.length > 1 ? 's' : ''} annonce${properties.length > 1 ? 's' : ''} — ${criteria}`,
+    html: wrap(`
+      <h2 style="color:#222;margin-top:0">🔔 Nouvelles annonces pour votre alerte</h2>
+      <p>Bonjour <strong>${esc(name)}</strong>,</p>
+      <p><strong>${properties.length}</strong> nouvelle${properties.length > 1 ? 's' : ''} annonce${properties.length > 1 ? 's' : ''} correspond${properties.length > 1 ? 'ent' : ''} à votre alerte :</p>
+      <div style="background:#f0fdf4;border-radius:8px;padding:8px 14px;margin:12px 0;font-size:.88rem;color:#0C6E4F;font-weight:600">
+        ${esc(criteria)}
+      </div>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0">${rows}</table>
+      <div style="text-align:center;margin:20px 0">
+        <a href="${process.env.APP_URL || 'https://dzimmo.dz'}" style="display:inline-block;background:#0C6E4F;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700">
+          Voir toutes les annonces →
+        </a>
+      </div>
+      <p style="font-size:.8rem;color:#aaa;margin-top:1.5rem">
+        Vous recevez cet email car vous avez activé une alerte sur DzImmo.
+        Gérez vos alertes depuis votre espace personnel.
+      </p>
+    `),
+  });
+}
+
 module.exports = {
   sendMail,
   mailWelcome, mailVerifyEmail, mailPasswordReset,
-  mailContactRequest, mailNewMessage,
+  mailContactRequest, mailNewMessage, mailSearchAlert,
 };

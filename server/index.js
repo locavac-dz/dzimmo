@@ -68,6 +68,7 @@ app.use('/api/favorites',  require('./routes/favorites'));
 app.use('/api/stats',      require('./routes/stats'));
 app.use('/api/admin',      require('./routes/admin'));
 app.use('/api/newsletter', require('./routes/newsletter'));
+app.use('/api/alerts',    require('./routes/alerts'));
 
 app.get('/api/health', (_, res) => res.json({ ok: true, message: 'DzImmo API opérationnelle 🇩🇿' }));
 app.get('/404', (_, res) => res.sendFile(path.join(__dirname, '..', 'public', '404.html')));

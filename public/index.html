@@ -605,6 +605,7 @@
           <input id="f-q" type="text" placeholder="Mot-clé…" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
         </div>
         <button class="btn btn-primary" onclick="loadAnnonces()" style="align-self:end">🔍 Filtrer</button>
+        <button class="btn btn-outline" onclick="createAlertFromFilters()" style="align-self:end" data-i18n="btn_create_alert">🔔 Créer une alerte</button>
       </div>
     </div>
 
@@ -760,6 +761,7 @@
       <button class="tab-btn active" onclick="dashTab('mes-annonces')" data-i18n="dash_tab_annonces">Mes annonces</button>
       <button class="tab-btn" onclick="dashTab('mes-contacts')" data-i18n="dash_tab_contacts">Demandes reçues</button>
       <button class="tab-btn" onclick="dashTab('favoris')" data-i18n="dash_tab_favoris">Favoris</button>
+      <button class="tab-btn" onclick="dashTab('alertes')" data-i18n="dash_tab_alertes">Alertes email</button>
       <button class="tab-btn" onclick="dashTab('profil')" data-i18n="dash_tab_profil">Profil</button>
     </div>
     <div id="dash-tab-content"><div class="loading"><div class="spinner"></div></div></div>
@@ -1257,7 +1259,15 @@ const TRANSLATIONS = {
     dash_title:'Mon espace', dash_annonces:'Annonces', dash_actives:'Actives',
     dash_demandes:'Demandes reçues', dash_attente:'En attente', dash_vues:'Vues totales',
     dash_tab_annonces:'Mes annonces', dash_tab_contacts:'Demandes reçues',
-    dash_tab_favoris:'Favoris', dash_tab_profil:'Profil',
+    dash_tab_favoris:'Favoris', dash_tab_alertes:'Alertes email', dash_tab_profil:'Profil',
+    btn_create_alert:'🔔 Créer une alerte',
+    alert_title:'Mes alertes email', alert_empty:'Aucune alerte. Créez-en une depuis la page Annonces.',
+    alert_new:'+ Nouvelle alerte', alert_del:'Supprimer',
+    alert_wilaya:'Wilaya', alert_mode:'Mode', alert_type:'Type de bien',
+    alert_min_price:'Prix min (DZD)', alert_max_price:'Prix max (DZD)', alert_min_surf:'Surface min (m²)',
+    alert_save:'Enregistrer l\'alerte', alert_cancel:'Annuler',
+    alert_saved:'✅ Alerte créée ! Vous serez notifié par email.', alert_max:'Maximum 5 alertes atteint.',
+    alert_criteria:'Critères :',
     agencies_title:'🏢 Agences immobilières',
     btn_back:'← Retour',
     cgu_title:"Conditions Générales d'Utilisation",
@@ -1388,7 +1398,15 @@ const TRANSLATIONS = {
     dash_title:'مساحتي', dash_annonces:'الإعلانات', dash_actives:'النشطة',
     dash_demandes:'الطلبات المستلمة', dash_attente:'في الانتظار', dash_vues:'إجمالي المشاهدات',
     dash_tab_annonces:'إعلاناتي', dash_tab_contacts:'الطلبات المستلمة',
-    dash_tab_favoris:'المفضلة', dash_tab_profil:'الملف الشخصي',
+    dash_tab_favoris:'المفضلة', dash_tab_alertes:'تنبيهات البريد', dash_tab_profil:'الملف الشخصي',
+    btn_create_alert:'🔔 إنشاء تنبيه',
+    alert_title:'تنبيهات البريد الإلكتروني', alert_empty:'لا توجد تنبيهات. أنشئ واحدة من صفحة الإعلانات.',
+    alert_new:'+ تنبيه جديد', alert_del:'حذف',
+    alert_wilaya:'الولاية', alert_mode:'النوع', alert_type:'نوع العقار',
+    alert_min_price:'الحد الأدنى للسعر (د.ج)', alert_max_price:'الحد الأقصى للسعر (د.ج)', alert_min_surf:'أدنى مساحة (م²)',
+    alert_save:'حفظ التنبيه', alert_cancel:'إلغاء',
+    alert_saved:'✅ تم إنشاء التنبيه! ستصلك إشعارات بالبريد الإلكتروني.', alert_max:'وصلت للحد الأقصى (5 تنبيهات).',
+    alert_criteria:'المعايير:',
     agencies_title:'🏢 الوكالات العقارية',
     btn_back:'رجوع →',
     cgu_title:'شروط الاستخدام',
@@ -2142,7 +2160,7 @@ async function loadDashboard() {
 async function dashTab(tab) {
   currentDashTab = tab;
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
-    b.classList.toggle('active', ['mes-annonces','mes-contacts','favoris','profil'][i] === tab);
+    b.classList.toggle('active', ['mes-annonces','mes-contacts','favoris','alertes','profil'][i] === tab);
   });
   const c = document.getElementById('dash-tab-content');
   c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
@@ -2181,6 +2199,74 @@ async function dashTab(tab) {
     c.innerHTML = `<div class="grid">${data.map(p => cardHTML(p)).join('')}</div>`;
   }
 
+  if (tab === 'alertes') {
+    const data = await api('/alerts').catch(() => []);
+    const modeMap = { vente:'Vente', location_longue:'Location longue', location_courte:'Location courte' };
+    const typeMap = { appartement:'Appartement', villa:'Villa', maison:'Maison', bureau:'Bureau',
+      local_commercial:'Local commercial', terrain:'Terrain', ferme:'Ferme', entrepot:'Entrepôt' };
+    const rows = data.map(a => {
+      const parts = [
+        a.wilaya || T('s_all_wilayas'),
+        modeMap[a.mode] || T('s_all_modes'),
+        typeMap[a.type_bien] || T('s_all_types'),
+        a.min_price ? `≥ ${Number(a.min_price).toLocaleString()} DZD` : null,
+        a.max_price ? `≤ ${Number(a.max_price).toLocaleString()} DZD` : null,
+        a.min_surface ? `≥ ${a.min_surface} m²` : null,
+      ].filter(Boolean).join(' · ');
+      return `
+        <div style="background:var(--white);border-radius:10px;padding:1rem 1.25rem;margin-bottom:.6rem;box-shadow:var(--shadow);display:flex;align-items:center;gap:1rem">
+          <div style="flex:1">
+            <div style="font-size:.85rem;font-weight:600;color:var(--primary)">🔔 Alerte active</div>
+            <div style="font-size:.83rem;color:var(--text-muted);margin-top:.2rem">${esc(parts)}</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="deleteAlert(${a.id})">${T('alert_del')}</button>
+        </div>`;
+    }).join('');
+    c.innerHTML = `
+      <div style="max-width:520px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+          <h3 style="font-size:1rem;font-weight:700;margin:0">${T('alert_title')}</h3>
+          <button class="btn btn-primary btn-sm" onclick="showAlertForm()">${T('alert_new')}</button>
+        </div>
+        ${rows || `<div class="empty-state"><div class="icon">🔔</div><p>${T('alert_empty')}</p></div>`}
+        <div id="alert-form" class="hidden" style="background:var(--white);border-radius:10px;padding:1.25rem;box-shadow:var(--shadow);margin-top:1rem">
+          <h4 style="margin:0 0 1rem;font-size:.95rem;font-weight:700">${T('alert_new')}</h4>
+          <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:.6rem">
+            <div class="form-group"><label>${T('alert_wilaya')}</label><select id="al-wilaya" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"><option value="">${T('s_all_wilayas')}</option></select></div>
+            <div class="form-group"><label>${T('alert_mode')}</label>
+              <select id="al-mode" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
+                <option value="">${T('s_all_modes')}</option>
+                <option value="vente">${T('s_vente')}</option>
+                <option value="location_longue">${T('s_loc_longue')}</option>
+                <option value="location_courte">${T('s_loc_courte')}</option>
+              </select></div>
+            <div class="form-group"><label>${T('alert_type')}</label>
+              <select id="al-type" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
+                <option value="">${T('s_all_types')}</option>
+                <option value="appartement">${T('s_appart')}</option>
+                <option value="villa">${T('s_villa')}</option>
+                <option value="maison">${T('s_maison')}</option>
+                <option value="bureau">${T('s_bureau')}</option>
+                <option value="local_commercial">${T('s_local')}</option>
+                <option value="terrain">${T('s_terrain')}</option>
+                <option value="ferme">${T('s_ferme')}</option>
+                <option value="entrepot">${T('s_entrepot')}</option>
+              </select></div>
+            <div class="form-group"><label>${T('alert_min_surf')}</label><input id="al-surf" type="number" min="0" placeholder="ex: 80" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
+            <div class="form-group"><label>${T('alert_min_price')}</label><input id="al-min-price" type="number" min="0" placeholder="ex: 5000000" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
+            <div class="form-group"><label>${T('alert_max_price')}</label><input id="al-max-price" type="number" min="0" placeholder="ex: 20000000" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
+          </div>
+          <div style="display:flex;gap:.6rem;margin-top:.75rem">
+            <button class="btn btn-primary btn-sm" onclick="saveAlert()">${T('alert_save')}</button>
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('alert-form').classList.add('hidden')">${T('alert_cancel')}</button>
+          </div>
+        </div>
+      </div>`;
+    // Remplir le select wilaya
+    const wilayaSelect = document.getElementById('al-wilaya');
+    if (wilayaSelect) populateWilayas(wilayaSelect);
+  }
+
   if (tab === 'profil') {
     c.innerHTML = `
       <div style="max-width:480px">
@@ -2197,6 +2283,58 @@ async function dashTab(tab) {
         </div>
       </div>`;
   }
+}
+
+function showAlertForm() {
+  const f = document.getElementById('alert-form');
+  if (f) f.classList.toggle('hidden');
+}
+
+async function createAlertFromFilters() {
+  if (!currentUser) { openModal('login'); return; }
+  const wilaya    = document.getElementById('f-wilaya')?.value || '';
+  const mode      = document.getElementById('f-mode')?.value   || '';
+  const type_bien = document.getElementById('f-type')?.value   || '';
+  const min_price = document.getElementById('f-min')?.value    || '';
+  const max_price = document.getElementById('f-max')?.value    || '';
+  try {
+    await api('/alerts', 'POST', { wilaya, mode, type_bien, min_price, max_price });
+    toast(T('alert_saved'));
+  } catch (e) {
+    toast('❌ ' + (e.message || T('alert_max')));
+  }
+}
+
+async function saveAlert() {
+  if (!currentUser) { openModal('login'); return; }
+  const wilaya     = document.getElementById('al-wilaya')?.value    || '';
+  const mode       = document.getElementById('al-mode')?.value      || '';
+  const type_bien  = document.getElementById('al-type')?.value      || '';
+  const min_price  = document.getElementById('al-min-price')?.value || '';
+  const max_price  = document.getElementById('al-max-price')?.value || '';
+  const min_surface= document.getElementById('al-surf')?.value      || '';
+  try {
+    await api('/alerts', 'POST', { wilaya, mode, type_bien, min_price, max_price, min_surface });
+    toast(T('alert_saved'));
+    dashTab('alertes');
+  } catch (e) {
+    toast('❌ ' + (e.message || T('alert_max')));
+  }
+}
+
+async function deleteAlert(id) {
+  try {
+    await api('/alerts/' + id, 'DELETE');
+    dashTab('alertes');
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+function populateWilayas(select) {
+  const src = document.getElementById('f-wilaya');
+  if (!src) return;
+  Array.from(src.options).forEach(o => {
+    if (o.value) select.add(new Option(o.text, o.value));
+  });
 }
 
 async function updateContact(id, status) {
