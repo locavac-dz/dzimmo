@@ -3572,7 +3572,7 @@ async function dashTab(tab) {
       </div>`;
     // Remplir le select wilaya
     const wilayaSelect = document.getElementById('al-wilaya');
-    if (wilayaSelect) populateWilayas(wilayaSelect);
+    if (wilayaSelect) fillWilayaSelect(wilayaSelect);
   }
 
   if (tab === 'profil') {
@@ -3637,7 +3637,9 @@ async function deleteAlert(id) {
   } catch (e) { toast('❌ ' + e.message); }
 }
 
-function populateWilayas(select) {
+// Copie les wilayas de #f-wilaya dans un select donné (formulaire d'alertes).
+// Nom distinct de populateWilayas() : le doublon écrasait la fonction d'init et faisait planter init().
+function fillWilayaSelect(select) {
   const src = document.getElementById('f-wilaya');
   if (!src) return;
   Array.from(src.options).forEach(o => {
