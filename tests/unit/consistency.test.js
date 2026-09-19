@@ -85,6 +85,17 @@ test('la liste des wilayas du serveur est identique à celle du front', () => {
   assert.deepEqual(server, front);
 });
 
+test('chaque wilaya a un nom arabe (écriture arabe, sans doublon)', () => {
+  const list = require(path.join(ROOT, 'server', 'wilayas'));
+  const literal = html.match(/const WILAYAS_AR = (\{[\s\S]*?\n\});/)[1];
+  const ar = vm.runInNewContext('(' + literal + ')');
+  assert.deepEqual(list.filter(w => !ar[w]), [], 'wilayas sans nom arabe');
+  assert.deepEqual(Object.keys(ar).filter(w => !list.includes(w)), [], 'noms arabes sans wilaya correspondante');
+  const names = list.map(w => ar[w]);
+  assert.equal(new Set(names).size, list.length, 'deux wilayas ont le même nom arabe');
+  assert.deepEqual(names.filter(n => !/^[؀-ۿ ]+$/.test(n)), [], 'nom arabe contenant autre chose que des lettres arabes');
+});
+
 test('les slugs de wilayas sont uniques et ne collisionnent pas avec les mots réservés', () => {
   const { slugify } = require(path.join(ROOT, 'server', 'seo'));
   const slugs = require(path.join(ROOT, 'server', 'wilayas')).map(slugify);

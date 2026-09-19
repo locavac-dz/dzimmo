@@ -1617,7 +1617,7 @@ const TRANSLATIONS = {
     alert_active:'🔔 Alerte active', ph_example:'ex : {v}',
     prof_title:'Informations personnelles', prof_name:'Nom', prof_email:'Email', prof_phone:'Téléphone', prof_bio:'Bio',
     prof_save:'Enregistrer', prof_logout:'Déconnexion', prof_logout_confirm:'Déconnexion ?', prof_updated:'✅ Profil mis à jour !',
-    logout_done:'Déconnexion effectuée.',
+    logout_done:'Déconnexion effectuée.', pub_choose:'Choisir…',
     mod_pending_ok:"Annonce envoyée ! Elle sera visible après validation par notre équipe (généralement sous 24 h). Vous serez notifié(e) de la décision.",
     mod_banner_pending:"Votre annonce est en attente de validation : elle n'est visible que par vous et notre équipe.",
     mod_banner_rejected:'Annonce refusée.', dash_reason:'Motif du refus :',
@@ -1839,7 +1839,7 @@ const TRANSLATIONS = {
     alert_active:'🔔 تنبيه نشط', ph_example:'مثال: {v}',
     prof_title:'المعلومات الشخصية', prof_name:'الاسم', prof_email:'البريد الإلكتروني', prof_phone:'الهاتف', prof_bio:'نبذة',
     prof_save:'حفظ', prof_logout:'تسجيل الخروج', prof_logout_confirm:'هل تريد تسجيل الخروج؟', prof_updated:'✅ تم تحديث الملف الشخصي!',
-    logout_done:'تم تسجيل الخروج.',
+    logout_done:'تم تسجيل الخروج.', pub_choose:'اختر…',
     mod_pending_ok:'تم إرسال الإعلان! سيظهر بعد مراجعة فريقنا له (عادةً خلال 24 ساعة). سيتم إشعارك بالقرار.',
     mod_banner_pending:'إعلانك في انتظار المراجعة: لا يراه سواك وفريقنا.',
     mod_banner_rejected:'إعلان مرفوض.', dash_reason:'سبب الرفض:',
@@ -2056,13 +2056,13 @@ function rebuildSelects() {
     el.innerHTML = modeOpts.map(([v,k]) => `<option value="${v}">${T(k)}</option>`).join('');
     el.value = cur;
   });
-  ['s-wilaya','pub-wilaya','f-wilaya'].forEach(id => {
+  ['s-wilaya','pub-wilaya','f-wilaya','se-wilaya','map-wilaya'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     const cur = el.value;
-    const first = id.startsWith('pub') ? '' : T('s_all_wilayas');
-    el.innerHTML = (first ? `<option value="">${first}</option>` : '') +
-      WILAYAS.map(w => `<option value="${w}">${w}</option>`).join('');
+    const first = id.startsWith('pub') ? T('pub_choose') : T('s_all_wilayas');
+    el.innerHTML = `<option value="">${first}</option>` +
+      WILAYAS.map(w => `<option value="${w}">${wilayaName(w)}</option>`).join('');
     el.value = cur;
   });
 }
@@ -2082,6 +2082,27 @@ const WILAYAS = [
   'Aflou','Barika','El Kantara','Bir El Ater','El Aricha','Ksar Chellala',
   'Aïn Ouessara','Messaad','Ksar El Boukhari','Bou Saâda','El Abiodh Sidi Cheikh'
 ];
+
+// Noms arabes des 69 wilayas (la valeur de référence reste le nom français ci-dessus)
+const WILAYAS_AR = {
+  'Adrar':'أدرار', 'Chlef':'الشلف', 'Laghouat':'الأغواط', 'Oum El Bouaghi':'أم البواقي', 'Batna':'باتنة',
+  'Béjaïa':'بجاية', 'Biskra':'بسكرة', 'Béchar':'بشار', 'Blida':'البليدة', 'Bouira':'البويرة',
+  'Tamanrasset':'تمنراست', 'Tébessa':'تبسة', 'Tlemcen':'تلمسان', 'Tiaret':'تيارت', 'Tizi Ouzou':'تيزي وزو',
+  'Alger':'الجزائر العاصمة', 'Djelfa':'الجلفة', 'Jijel':'جيجل', 'Sétif':'سطيف', 'Saïda':'سعيدة',
+  'Skikda':'سكيكدة', 'Sidi Bel Abbès':'سيدي بلعباس', 'Annaba':'عنابة', 'Guelma':'قالمة', 'Constantine':'قسنطينة',
+  'Médéa':'المدية', 'Mostaganem':'مستغانم', "M'Sila":'المسيلة', 'Mascara':'معسكر', 'Ouargla':'ورقلة',
+  'Oran':'وهران', 'El Bayadh':'البيض', 'Illizi':'إليزي', 'Bordj Bou Arreridj':'برج بوعريريج', 'Boumerdès':'بومرداس',
+  'El Tarf':'الطارف', 'Tindouf':'تندوف', 'Tissemsilt':'تيسمسيلت', 'El Oued':'الوادي', 'Khenchela':'خنشلة',
+  'Souk Ahras':'سوق أهراس', 'Tipaza':'تيبازة', 'Mila':'ميلة', 'Aïn Defla':'عين الدفلى', 'Naâma':'النعامة',
+  'Aïn Témouchent':'عين تموشنت', 'Ghardaïa':'غرداية', 'Relizane':'غليزان', 'Timimoun':'تيميمون',
+  'Bordj Badji Mokhtar':'برج باجي مختار', 'Ouled Djellal':'أولاد جلال', 'Béni Abbès':'بني عباس', 'In Salah':'عين صالح',
+  'In Guezzam':'عين قزام', 'Touggourt':'تقرت', 'Djanet':'جانت', "El M'Ghair":'المغير', 'El Menia':'المنيعة',
+  'Aflou':'أفلو', 'Barika':'بريكة', 'El Kantara':'القنطرة', 'Bir El Ater':'بئر العاتر', 'El Aricha':'العريشة',
+  'Ksar Chellala':'قصر الشلالة', 'Aïn Ouessara':'عين وسارة', 'Messaad':'مسعد', 'Ksar El Boukhari':'قصر البخاري',
+  'Bou Saâda':'بوسعادة', 'El Abiodh Sidi Cheikh':'الأبيض سيدي الشيخ',
+};
+// Nom de wilaya à afficher dans la langue courante (les valeurs de formulaire / d'URL restent en français)
+const wilayaName = w => (currentLang === 'ar' && WILAYAS_AR[w]) || w;
 
 // Libellés traduits (FR / AR) : la clé de traduction est lue à chaque accès, donc à jour après un changement de langue
 const i18nMap = keys => new Proxy(keys, { get: (m, k) => (Object.hasOwn(m, k) ? T(m[k]) : undefined) });
@@ -2158,14 +2179,9 @@ async function init() {
   }
 }
 
+// Les listes de wilayas sont construites (et retraduites) par rebuildSelects()
 function populateWilayas() {
-  ['s-wilaya','f-wilaya','pub-wilaya'].forEach(id => {
-    const sel = document.getElementById(id);
-    if (!sel) return;
-    sel.innerHTML = '<option value="">Toutes les wilayas</option>';
-    if (id === 'pub-wilaya') sel.innerHTML = '<option value="">Choisir…</option>';
-    WILAYAS.forEach(w => { const o = document.createElement('option'); o.value = w; o.textContent = w; sel.appendChild(o); });
-  });
+  rebuildSelects();
 }
 
 // ── Auth ─────────────────────────────────────────
@@ -2286,7 +2302,7 @@ function landingPath(mode, type, wilaya) {
 
 // Libellé traduit (FR / AR) : « Appartements à vendre à Oran » / « شقق للبيع في وهران »
 function seoLabel(mode, type, wilaya) {
-  return T(type ? 'seo_t_' + type : 'seo_t_all') + ' ' + T('seo_m_' + mode) + (wilaya ? ' ' + T('seo_in') + ' ' + wilaya : '');
+  return T(type ? 'seo_t_' + type : 'seo_t_all') + ' ' + T('seo_m_' + mode) + (wilaya ? ' ' + T('seo_in') + ' ' + wilayaName(wilaya) : '');
 }
 
 // Les liens et titres rendus par le serveur (data-seo-*) suivent la langue choisie
@@ -2383,7 +2399,7 @@ function nearMe() {
     });
     const wilaya = WILAYAS[bestIdx];
     document.getElementById('f-wilaya').value = wilaya;
-    document.getElementById('near-me-label').textContent = wilaya;
+    document.getElementById('near-me-label').textContent = wilayaName(wilaya);
     document.getElementById('near-me-badge').style.display = '';
     loadAnnonces();
   }, () => {
@@ -2535,7 +2551,7 @@ function cardHTML(p) {
       <div class="card-body">
         <span class="card-mode mode-${p.mode}">${MODES[p.mode] || p.mode}</span>
         <div class="card-title">${esc(p.title)}</div>
-        <div class="card-loc">📍 ${esc(p.commune || p.wilaya)}, ${esc(p.wilaya)}</div>
+        <div class="card-loc">📍 ${esc(p.commune || wilayaName(p.wilaya))}, ${esc(wilayaName(p.wilaya))}</div>
         <div class="card-price">${price}</div>
         <div class="card-meta">
           <span>${TYPES[p.type_bien] || p.type_bien}</span>
@@ -2596,7 +2612,7 @@ function renderDetail(p) {
         <div class="detail-info">
           <span class="card-mode mode-${p.mode}" style="margin-bottom:.75rem">${MODES[p.mode] || p.mode}</span>
           <h1 style="margin-top:.4rem">${esc(p.title)}</h1>
-          <div class="detail-loc">📍 ${esc([p.address, p.commune, p.wilaya].filter(Boolean).join(', '))}</div>
+          <div class="detail-loc">📍 ${esc([p.address, p.commune, wilayaName(p.wilaya)].filter(Boolean).join(', '))}</div>
           <div class="detail-price">${price}</div>
           <div class="detail-stats">
             ${p.surface_m2 ? `<div class="stat-box"><div class="val">${p.surface_m2}</div><div class="lbl">${T('u_m2')}</div></div>` : ''}
@@ -3039,7 +3055,7 @@ async function loadAgences() {
             <div class="card-title" style="margin:0">${esc(a.name)}</div>
             ${a.verified ? '<span style="background:var(--primary);color:#fff;font-size:.7rem;padding:.1rem .4rem;border-radius:4px;font-weight:700">✓</span>' : ''}
           </div>
-          <div class="card-loc">📍 ${esc(a.wilaya || '')}</div>
+          <div class="card-loc">📍 ${esc(wilayaName(a.wilaya) || '')}</div>
           <div class="card-meta" style="margin-top:.5rem">
             ${a.phone ? `<span>📞 ${esc(a.phone)}</span>` : ''}
             ${a.property_count ? `<span>🏠 ${a.property_count} ${unit(a.property_count, 'st_ad')}</span>` : ''}
@@ -3066,7 +3082,7 @@ async function loadAgencyDetail(id) {
               : `<div style="width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:2rem;color:#fff">${a.name[0]}</div>`}
             <div style="color:#fff">
               <div style="font-size:1.35rem;font-weight:800">${esc(a.name)}${a.verified ? ' <span style="background:#fff;color:#0C6E4F;font-size:.7rem;padding:.1rem .45rem;border-radius:4px;font-weight:700;vertical-align:middle">✓</span>' : ''}</div>
-              <div style="opacity:.8;font-size:.9rem;margin-top:.25rem">📍 ${esc(a.wilaya || '')}</div>
+              <div style="opacity:.8;font-size:.9rem;margin-top:.25rem">📍 ${esc(wilayaName(a.wilaya) || '')}</div>
               ${a.phone ? `<div style="opacity:.8;font-size:.9rem">📞 ${esc(a.phone)}</div>` : ''}
             </div>
           </div>
@@ -3188,7 +3204,7 @@ function openCompare() {
     [T('cmp_r_price'),               p => priceText(p)],
     [T('filter_type'),               p => TYPES[p.type_bien] || p.type_bien],
     [T('filter_mode'),               p => MODES[p.mode] || p.mode],
-    [T('filter_wilaya'),             p => p.wilaya || '—'],
+    [T('filter_wilaya'),             p => wilayaName(p.wilaya) || '—'],
     [T('cmp_r_commune'),             p => p.commune || '—'],
     [T('cmp_r_surface'),             p => p.surface_m2 ? p.surface_m2 + ' ' + T('u_m2') : '—'],
     [capFirst(T('u_room_many')),     p => p.rooms || '—'],
@@ -3637,7 +3653,7 @@ async function loadStatsPage() {
     const wilayaBars = s.top_wilayas.map(w => `
       <div style="margin-bottom:.45rem">
         <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:.15rem">
-          <span style="font-weight:600">${esc(w.wilaya)}</span>
+          <span style="font-weight:600">${esc(wilayaName(w.wilaya))}</span>
           <span style="color:var(--text-muted)">${w.count} ${unit(w.count, 'st_ad')}</span>
         </div>
         <div style="background:var(--border);border-radius:20px;height:7px">
@@ -3790,7 +3806,7 @@ async function dashTab(tab) {
               ${p.verified?'<span style="background:#0C6E4F20;color:#0C6E4F;padding:.1rem .42rem;border-radius:20px;font-size:.71rem;font-weight:700">✓</span>':''}
             </div>
             <div style="font-weight:700;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(p.title)}">${esc(p.title)}</div>
-            <div style="font-size:.79rem;color:var(--text-muted)">📍 ${esc(p.wilaya)} · <strong style="color:var(--primary)">${priceText(p)}</strong></div>
+            <div style="font-size:.79rem;color:var(--text-muted)">📍 ${esc(wilayaName(p.wilaya))} · <strong style="color:var(--primary)">${priceText(p)}</strong></div>
             ${p.status === 'rejected' && p.moderation_reason ? `<div style="font-size:.79rem;color:#dc2626;margin-top:.25rem">${T('dash_reason')} ${esc(p.moderation_reason)}</div>` : ''}
             <div style="display:flex;gap:1.1rem;margin-top:.4rem;flex-wrap:wrap">
               <span style="font-size:.79rem;color:var(--text-muted)">👁 <strong>${p.views||0}</strong> ${unit(p.views||0, 'u_view')}</span>
@@ -3839,7 +3855,7 @@ async function dashTab(tab) {
     const data = await api('/alerts').catch(() => []);
     const rows = data.map(a => {
       const parts = [
-        a.wilaya || T('s_all_wilayas'),
+        wilayaName(a.wilaya) || T('s_all_wilayas'),
         MODES[a.mode] || T('s_all_modes'),
         TYPES[a.type_bien] || T('s_all_types'),
         a.min_price ? `≥ ${Number(a.min_price).toLocaleString('fr-DZ')} ${T('u_dzd')}` : null,
@@ -4368,7 +4384,7 @@ async function loadMapMarkers() {
           <img src="${img}" onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=400&q=70'"
                style="width:100%;height:115px;object-fit:cover;border-radius:7px;display:block;margin-bottom:8px">
           <div style="font-weight:700;font-size:.88rem;margin-bottom:3px;line-height:1.3">${esc(p.title)}</div>
-          <div style="font-size:.78rem;color:#64748b;margin-bottom:5px">📍 ${esc(p.commune || p.wilaya)}, ${esc(p.wilaya)}</div>
+          <div style="font-size:.78rem;color:#64748b;margin-bottom:5px">📍 ${esc(p.commune || wilayaName(p.wilaya))}, ${esc(wilayaName(p.wilaya))}</div>
           <div style="font-size:.95rem;font-weight:700;color:${color};margin-bottom:8px">${price}</div>
           <button onclick="showPage('detail',${p.id})"
                   style="background:${color};color:#fff;border:none;border-radius:7px;padding:6px 0;font-size:.82rem;font-weight:600;cursor:pointer;width:100%;font-family:inherit">
