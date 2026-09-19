@@ -3,6 +3,7 @@ const db     = require('../db');
 const auth   = require('../middleware/auth');
 const optionalAuth = require('../middleware/optionalAuth');
 const moderation   = require('../moderation');
+const { likePattern } = require('../pagination');
 
 const MODES_VALIDES    = ['vente', 'location_longue', 'location_courte'];
 const TYPES_VALIDES    = ['appartement','villa','maison','bureau','local_commercial','terrain','ferme','entrepot'];
@@ -37,12 +38,14 @@ router.get('/', optionalAuth, async (req, res) => {
   if (status && !STATUTS_PUBLICS.includes(status) && !req.user?.is_admin)
     return res.status(403).json({ error: 'Statut non autorisé.' });
 
+  // Chaque tri se termine par l'id : les ex æquo ne changent plus d'ordre d'une requête à l'autre
+  // (sinon une annonce peut apparaître sur deux pages ou sur aucune) et les index (004) suivent le même ordre.
   const SORTS = {
-    date_desc:    'p.created_at DESC',
-    date_asc:     'p.created_at ASC',
-    price_asc:    'p.price::numeric ASC',
-    price_desc:   'p.price::numeric DESC',
-    surface_desc: 'p.surface_m2 DESC NULLS LAST',
+    date_desc:    'p.created_at DESC, p.id DESC',
+    date_asc:     'p.created_at ASC, p.id ASC',
+    price_asc:    'p.price ASC, p.id ASC',
+    price_desc:   'p.price DESC, p.id DESC',
+    surface_desc: 'p.surface_m2 DESC NULLS LAST, p.id DESC',
   };
   const orderBy = SORTS[sort] || SORTS.date_desc;
 
@@ -58,37 +61,41 @@ router.get('/', optionalAuth, async (req, res) => {
   if (commune)                                    add('p.commune = ?',      commune);
   if (mode      && MODES_VALIDES.includes(mode))  add('p.mode = ?',        mode);
   if (type_bien && TYPES_VALIDES.includes(type_bien)) add('p.type_bien = ?', type_bien);
-  if (min_price)   add('p.price >= ?',      Number(min_price));
-  if (max_price)   add('p.price <= ?',      Number(max_price));
-  if (min_surface) add('p.surface_m2 >= ?', Number(min_surface));
-  if (max_surface) add('p.surface_m2 <= ?', Number(max_surface));
-  if (rooms)       add('p.rooms >= ?',      Number(rooms));
-  if (q) {
-    const like = '%' + q.toLowerCase() + '%';
+  // Bornes numériques : une valeur qui n'est pas un nombre fini (« abc », liste, vide) est ignorée
+  const num = v => (v !== '' && v != null && Number.isFinite(Number(v))) ? Number(v) : null;
+  if (num(min_price)   !== null) add('p.price >= ?',      num(min_price));
+  if (num(max_price)   !== null) add('p.price <= ?',      num(max_price));
+  if (num(min_surface) !== null) add('p.surface_m2 >= ?', num(min_surface));
+  if (num(max_surface) !== null) add('p.surface_m2 <= ?', num(max_surface));
+  if (num(rooms)       !== null) add('p.rooms >= ?',      Math.min(1000, Math.ceil(num(rooms)))); // colonne entière
+  const like = likePattern(q);   // % et _ saisis sont cherchés tels quels ; texte vide ou non textuel : ignoré
+  if (like) {
     conds.push(
-      `(LOWER(p.title) LIKE $${idx} OR LOWER(COALESCE(p.commune,'')) LIKE $${idx}` +
-      ` OR LOWER(p.wilaya) LIKE $${idx} OR LOWER(COALESCE(p.description,'')) LIKE $${idx})`
+      `(p.title ILIKE $${idx} OR p.commune ILIKE $${idx} OR p.wilaya ILIKE $${idx} OR p.description ILIKE $${idx})`
     );
     params.push(like); idx++;
   }
 
   const where    = 'WHERE ' + conds.join(' AND ');
   const limitNum = Math.min(200, Math.max(1, parseInt(limitQ) || 12));
-  const pageNum  = Math.max(1, parseInt(page) || 1);
+  const pageNum  = Math.min(1000000, Math.max(1, parseInt(page) || 1)); // plafond : un OFFSET géant ferait échouer SQL
   const offset   = (pageNum - 1) * limitNum;
 
+  // La page est choisie (tri + LIMIT) sur properties seule, puis on joint propriétaire et agence pour ces
+  // quelques lignes : joindre d'abord obligeait à rattacher toutes les annonces correspondantes avant de trier.
   const [countR, dataR] = await Promise.all([
     pool.query(`SELECT COUNT(*) FROM properties p ${where}`, params),
     pool.query(
       `SELECT p.*,
          u.name   AS owner_name,  u.phone  AS owner_phone,  u.avatar AS owner_avatar,
          a.name   AS agency_name, a.logo   AS agency_logo,  a.phone  AS agency_phone
-       FROM properties p
+       FROM (SELECT p.* FROM properties p
+              ${where}
+              ORDER BY ${orderBy}
+              LIMIT $${idx} OFFSET $${idx + 1}) p
        LEFT JOIN users    u ON u.id = p.owner_id
        LEFT JOIN agencies a ON a.id = p.agency_id
-       ${where}
-       ORDER BY ${orderBy}
-       LIMIT $${idx} OFFSET $${idx + 1}`,
+       ORDER BY ${orderBy}`,
       [...params, limitNum, offset]
     ),
   ]);
