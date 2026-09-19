@@ -15,8 +15,9 @@ router.get('/', admin, async (req, res) => {
   const sold    = await db.properties.count(p => p.status === 'sold');
   const rented  = await db.properties.count(p => p.status === 'rented');
   const pending = await db.contact_requests.count(c => c.status === 'pending');
+  const pending_props = await db.properties.count(p => p.status === 'pending');
 
-  res.json({ users, properties, contacts, agencies, active, sold, rented, pending_contacts: pending });
+  res.json({ users, properties, contacts, agencies, active, sold, rented, pending_contacts: pending, pending_props });
 });
 
 // GET /api/stats/public — statistiques publiques de la plateforme (sans auth)

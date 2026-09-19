@@ -1,10 +1,15 @@
 const router = require('express').Router();
 const db     = require('../db');
 const auth   = require('../middleware/auth');
+const optionalAuth = require('../middleware/optionalAuth');
+const moderation   = require('../moderation');
 
 const MODES_VALIDES    = ['vente', 'location_longue', 'location_courte'];
 const TYPES_VALIDES    = ['appartement','villa','maison','bureau','local_commercial','terrain','ferme','entrepot'];
+// Statuts qu'un propriétaire peut demander ; « pending » / « rejected » relèvent de la modération
 const STATUTS_VALIDES  = ['active','sold','rented','archived'];
+// Statuts consultables par le public dans les listes
+const STATUTS_PUBLICS  = ['active','sold','rented'];
 
 async function withOwner(property) {
   const owner = await db.users.findOne(u => u.id === property.owner_id);
@@ -24,10 +29,14 @@ async function withOwner(property) {
 }
 
 // GET /api/properties — avec pagination SQL
-router.get('/', async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   const { wilaya, commune, mode, type_bien, min_price, max_price,
           min_surface, max_surface, rooms, q, status,
           page, limit: limitQ, sort } = req.query;
+
+  // Les annonces en attente / refusées / archivées ne sont pas listables publiquement
+  if (status && !STATUTS_PUBLICS.includes(status) && !req.user?.is_admin)
+    return res.status(403).json({ error: 'Statut non autorisé.' });
 
   const SORTS = {
     date_desc:    'p.created_at DESC',
@@ -163,12 +172,17 @@ router.get('/estimation', async (req, res) => {
 });
 
 // GET /api/properties/:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
   const property = await db.properties.findOne(p => p.id === Number(req.params.id));
   if (!property) return res.status(404).json({ error: 'Annonce introuvable.' });
 
-  // Incrémenter les vues
-  await db.properties.update(p => p.id === property.id, { views: (property.views || 0) + 1 });
+  // En attente / refusée : visible uniquement de son propriétaire et des admins (404 pour les autres)
+  const hidden = moderation.HIDDEN_STATUSES.includes(property.status);
+  const staff  = req.user && (req.user.is_admin || req.user.id === property.owner_id);
+  if (hidden && !staff) return res.status(404).json({ error: 'Annonce introuvable.' });
+
+  // Incrémenter les vues (pas pour une annonce non publiée)
+  if (!hidden) await db.properties.update(p => p.id === property.id, { views: (property.views || 0) + 1 });
 
   const revList = await db.reviews.find(r => r.property_id === property.id);
   const reviews = await Promise.all(
@@ -198,6 +212,9 @@ router.post('/', auth, async (req, res) => {
   const finalImage  = image || (Array.isArray(photos) && photos[0]) || '';
   const finalPhotos = Array.isArray(photos) && photos.length ? photos : (finalImage ? [finalImage] : []);
 
+  // Modération : publication directe pour les admins / agences vérifiées, sinon en attente de validation
+  const trusted = await moderation.isTrusted(req.user);
+
   const property = await db.properties.insert({
     owner_id:     req.user.id,
     agency_id:    agency_id ? Number(agency_id) : null,
@@ -212,7 +229,8 @@ router.post('/', auth, async (req, res) => {
     lat: lat ? Number(lat) : null, lng: lng ? Number(lng) : null,
     image: finalImage, photos: JSON.stringify(finalPhotos),
     features: JSON.stringify(Array.isArray(features) ? features : []),
-    status: 'active',
+    status:       trusted ? 'active' : 'pending',
+    published_at: trusted ? new Date() : null,
   });
 
   // Enregistrer le prix initial dans l'historique
@@ -222,7 +240,12 @@ router.post('/', auth, async (req, res) => {
   );
 
   await db.users.update(u => u.id === req.user.id, { is_agent: true });
-  res.status(201).json({ id: property.id });
+
+  if (!trusted) {
+    const owner = await db.users.findById(req.user.id);
+    moderation.notifyAdminsPending(property, owner ? owner.name : 'Un utilisateur').catch(() => {});
+  }
+  res.status(201).json({ id: property.id, status: property.status });
 });
 
 // PUT /api/properties/:id
@@ -241,11 +264,35 @@ router.put('/:id', auth, async (req, res) => {
   if (rooms       !== undefined) changes.rooms       = Number(rooms);
   if (baths       !== undefined) changes.baths       = Number(baths);
   if (image       !== undefined) changes.image       = image;
-  if (status      !== undefined && STATUTS_VALIDES.includes(status)) changes.status = status;
+  if (status      !== undefined && STATUTS_VALIDES.includes(status)) {
+    // Un propriétaire ne peut pas court-circuiter la modération : une annonce en attente, refusée,
+    // ou archivée après un refus (motif conservé) ne repasse pas « active » sans validation.
+    const needsAdmin = moderation.HIDDEN_STATUSES.includes(property.status)
+      || (property.status === 'archived' && (property.moderation_reason || !property.published_at));
+    if (!req.user.is_admin && moderation.enabled() && needsAdmin && status !== 'archived')
+      return res.status(400).json({ error: 'Cette annonce doit d\'abord être validée par la modération.' });
+    changes.status = status;
+  }
   if (Array.isArray(features))   changes.features    = JSON.stringify(features);
   if (Array.isArray(photos))     changes.photos      = JSON.stringify(photos);
 
+  // Modération : une annonce refusée qu'on corrige est renvoyée en validation ; une annonce active dont
+  // le contenu (titre, description, photos) change repasse en attente. Admins et agences vérifiées exemptés.
+  let resubmitted = false;
+  if (changes.status !== 'archived' && !(await moderation.isTrusted(req.user))) {
+    const edited = Object.keys(changes).some(k => k !== 'status');
+    if ((property.status === 'rejected' && edited)
+        || (property.status === 'active' && moderation.contentChanged(property, changes))) {
+      changes.status = 'pending';
+      resubmitted = true;
+    }
+  }
+
   await db.properties.update(p => p.id === property.id, changes);
+  if (resubmitted) {
+    const owner = await db.users.findById(property.owner_id);
+    moderation.notifyAdminsPending({ ...property, ...changes }, owner ? owner.name : 'Un utilisateur').catch(() => {});
+  }
 
   // Enregistrer le nouveau prix si modifié
   if (changes.price !== undefined && Number(changes.price) !== Number(property.price)) {
@@ -255,12 +302,18 @@ router.put('/:id', auth, async (req, res) => {
     );
   }
 
-  res.json({ ok: true });
+  res.json({ ok: true, status: changes.status || property.status });
 });
 
 // GET /api/properties/:id/price-history
-router.get('/:id/price-history', async (req, res) => {
+router.get('/:id/price-history', optionalAuth, async (req, res) => {
   const { pool } = db;
+  // Pas d'historique pour une annonce non publiée (sauf propriétaire / admin)
+  const prop = await pool.query('SELECT owner_id, status FROM properties WHERE id = $1', [Number(req.params.id)]);
+  const row  = prop.rows[0];
+  if (row && moderation.HIDDEN_STATUSES.includes(row.status)
+      && !(req.user && (req.user.is_admin || req.user.id === row.owner_id)))
+    return res.status(404).json({ error: 'Annonce introuvable.' });
   const r = await pool.query(
     'SELECT price, changed_at FROM price_history WHERE property_id = $1 ORDER BY changed_at ASC',
     [Number(req.params.id)]
@@ -286,8 +339,16 @@ router.post('/:id/photos', auth, async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: 'URL requise.' });
   const photos = [...(property.photos || [property.image].filter(Boolean)), url];
-  await db.properties.update(p => p.id === property.id, { photos: JSON.stringify(photos) });
-  res.json({ photos });
+  const patch = { photos: JSON.stringify(photos) };
+  // Nouvelle photo sur une annonce publiée : retour en modération (sauf admin / agence vérifiée)
+  const review = property.status === 'active' && !(await moderation.isTrusted(req.user));
+  if (review) patch.status = 'pending';
+  await db.properties.update(p => p.id === property.id, patch);
+  if (review) {
+    const owner = await db.users.findById(property.owner_id);
+    moderation.notifyAdminsPending(property, owner ? owner.name : 'Un utilisateur').catch(() => {});
+  }
+  res.json({ photos, status: patch.status || property.status });
 });
 
 // DELETE /api/properties/:id/photos
@@ -343,9 +404,12 @@ router.post('/:id/signaler', auth, async (req, res) => {
 });
 
 // GET /api/properties/user/:id — annonces d'un utilisateur avec compteur de contacts
-router.get('/user/:id', async (req, res) => {
+router.get('/user/:id', optionalAuth, async (req, res) => {
   const { pool } = db;
   const uid = Number(req.params.id);
+  // Le propriétaire (et les admins) voient aussi ses annonces en attente / refusées ; le public, seulement les publiées
+  const self = req.user && (req.user.is_admin || req.user.id === uid);
+  const visible = self ? "p.status != 'archived'" : "p.status IN ('active','sold','rented')";
   const r = await pool.query(
     `SELECT p.*,
        u.name  AS owner_name,  u.phone  AS owner_phone,  u.avatar AS owner_avatar,
@@ -355,7 +419,7 @@ router.get('/user/:id', async (req, res) => {
      LEFT JOIN users    u ON u.id = p.owner_id
      LEFT JOIN agencies a ON a.id = p.agency_id
      LEFT JOIN contact_requests c ON c.property_id = p.id
-     WHERE p.owner_id = $1 AND p.status != 'archived'
+     WHERE p.owner_id = $1 AND ${visible}
      GROUP BY p.id, u.id, a.id
      ORDER BY p.created_at DESC`,
     [uid]

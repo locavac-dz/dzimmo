@@ -45,7 +45,8 @@ router.post('/', auth, async (req, res) => {
   if (!TYPES_VALIDES.includes(type)) return res.status(400).json({ error: 'Type invalide.' });
 
   const property = await db.properties.findOne(p => p.id === Number(property_id));
-  if (!property) return res.status(404).json({ error: 'Annonce introuvable.' });
+  if (!property || ['pending', 'rejected'].includes(property.status))
+    return res.status(404).json({ error: 'Annonce introuvable.' });
   if (property.owner_id === req.user.id)
     return res.status(400).json({ error: 'Vous ne pouvez pas contacter votre propre annonce.' });
 

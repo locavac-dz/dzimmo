@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const db     = require('../db');
 const admin  = require('../middleware/admin');
+const moderation = require('../moderation');
 const { pool } = require('../db');
 
 // GET /api/admin/users
@@ -30,12 +31,69 @@ router.get('/properties', admin, async (req, res) => {
   res.json(props);
 });
 
+// GET /api/admin/moderation?status=pending|rejected — file de modération (les plus anciennes d'abord)
+router.get('/moderation', admin, async (req, res) => {
+  const status = req.query.status === 'rejected' ? 'rejected' : 'pending';
+  const r = await pool.query(
+    `SELECT p.id, p.title, p.description, p.mode, p.type_bien, p.price, p.surface_m2, p.rooms,
+            p.wilaya, p.commune, p.address, p.image, p.photos, p.status, p.created_at,
+            p.moderation_reason, p.moderated_at, p.published_at,
+            u.id AS owner_id, u.name AS owner_name, u.email AS owner_email, u.phone AS owner_phone,
+            u.email_verified AS owner_verified, u.created_at AS owner_since,
+            (SELECT COUNT(*)::int FROM properties x WHERE x.owner_id = p.owner_id AND x.status = 'active') AS owner_active,
+            a.name AS agency_name
+       FROM properties p
+       LEFT JOIN users u    ON u.id = p.owner_id
+       LEFT JOIN agencies a ON a.id = p.agency_id
+      WHERE p.status = $1
+      ORDER BY p.created_at ${status === 'pending' ? 'ASC' : 'DESC'}`, [status]);
+  const counts = await pool.query(
+    `SELECT COUNT(*) FILTER (WHERE status = 'pending')::int AS pending,
+            COUNT(*) FILTER (WHERE status = 'rejected')::int AS rejected FROM properties`);
+  res.json({ items: r.rows, counts: counts.rows[0], enabled: moderation.enabled() });
+});
+
+// PUT /api/admin/properties/:id/moderate — { decision: 'approve' | 'reject', reason }
+router.put('/properties/:id/moderate', admin, async (req, res) => {
+  const { decision, reason } = req.body;
+  if (!['approve', 'reject'].includes(decision))
+    return res.status(400).json({ error: 'Décision invalide.' });
+  const approve = decision === 'approve';
+  const motif = String(reason || '').trim();
+  if (!approve && motif.length < 5)
+    return res.status(400).json({ error: 'Un motif de refus (5 caractères minimum) est obligatoire.' });
+
+  const found = await pool.query('SELECT * FROM properties WHERE id = $1', [Number(req.params.id)]);
+  const property = found.rows[0];
+  if (!property) return res.status(404).json({ error: 'Annonce introuvable.' });
+
+  const status = approve ? 'active' : 'rejected';
+  await pool.query(
+    `UPDATE properties
+        SET status = $1,
+            published_at = CASE WHEN $1 = 'active' THEN COALESCE(published_at, NOW()) ELSE published_at END,
+            moderation_reason = $2, moderated_at = NOW(), moderated_by = $3
+      WHERE id = $4`,
+    [status, approve ? null : motif.slice(0, 500), req.user.id, property.id]);
+
+  // Notifier le propriétaire, sauf si l'annonce était déjà dans l'état demandé
+  if (property.status !== status) moderation.notifyOwnerDecision(property, approve, motif).catch(() => {});
+  res.json({ ok: true, status });
+});
+
 // PUT /api/admin/properties/:id/status
 router.put('/properties/:id/status', admin, async (req, res) => {
   const { status } = req.body;
   const VALIDES = ['active','sold','rented','archived'];
   if (!VALIDES.includes(status)) return res.status(400).json({ error: 'Statut invalide.' });
-  await db.properties.update(p => p.id === Number(req.params.id), { status });
+  if (status === 'active') {
+    // Publication manuelle : on date la publication (alertes email) et on lève un éventuel refus
+    await pool.query(
+      `UPDATE properties SET status = 'active', published_at = COALESCE(published_at, NOW()),
+              moderation_reason = NULL WHERE id = $1`, [Number(req.params.id)]);
+  } else {
+    await db.properties.update(p => p.id === Number(req.params.id), { status });
+  }
   res.json({ ok: true });
 });
 

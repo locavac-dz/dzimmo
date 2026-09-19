@@ -39,7 +39,7 @@ cron.schedule('0 * * * *', async () => {
     `);
     let sent = 0;
     for (const alert of alerts.rows) {
-      const conditions = ['p.status = $1', 'p.created_at > $2'];
+      const conditions = ['p.status = $1', 'p.published_at > $2'];
       const params = ['active', alert.last_sent];
       let idx = 3;
       if (alert.wilaya)      { conditions.push(`p.wilaya = $${idx++}`);      params.push(alert.wilaya); }
@@ -52,7 +52,7 @@ cron.schedule('0 * * * *', async () => {
       const r = await pool.query(
         `SELECT p.id, p.title, p.price, p.wilaya FROM properties p
          WHERE ${conditions.join(' AND ')}
-         ORDER BY p.created_at DESC LIMIT 10`,
+         ORDER BY p.published_at DESC LIMIT 10`,
         params
       );
 

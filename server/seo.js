@@ -9,6 +9,9 @@ const WILAYAS = require('./wilayas');
 
 const INDEX = path.join(__dirname, '..', 'public', 'index.html');
 
+// Annonces dont la page publique n'existe pas (retirée, en attente ou refusée de modération)
+const NOT_PUBLIC = ['archived', 'pending', 'rejected'];
+
 const DEFAULT_TITLE = 'DzImmo — Immobilier en Algérie';
 const DEFAULT_DESC  = 'Trouvez ou publiez des annonces immobilières en Algérie : appartements, villas, locaux, terrains à vendre ou à louer.';
 
@@ -299,7 +302,7 @@ function mount(app) {
     const legacyId = /^\d+$/.test(String(req.query.p || '')) ? Number(req.query.p) : null;
     if (legacyId && !req.query.page) {
       const p = await getProperty(legacyId);
-      if (p && p.status !== 'archived') return res.redirect(301, propertyPath(p));
+      if (p && !NOT_PUBLIC.includes(p.status)) return res.redirect(301, propertyPath(p));
     }
     await send(res, {
       title: DEFAULT_TITLE, description: DEFAULT_DESC, canonical: base + '/',
@@ -313,7 +316,7 @@ function mount(app) {
     const m = /^(\d+)(?:-.*)?$/.exec(req.params.slug);
     const p = m ? await getProperty(Number(m[1])) : null;
 
-    if (!p || p.status === 'archived') {
+    if (!p || NOT_PUBLIC.includes(p.status)) {
       // La SPA affiche l'erreur ; les moteurs ne doivent pas indexer ce statut 404
       return send(res, {
         title: 'Annonce introuvable | DzImmo', description: DEFAULT_DESC,

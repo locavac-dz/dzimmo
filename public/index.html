@@ -1442,6 +1442,7 @@
     </div>
     <div class="tabs" id="admin-tabs">
       <button class="tab-btn active" onclick="adminTab('resume')">📊 Résumé</button>
+      <button class="tab-btn" onclick="adminTab('moderation')">🛡️ Modération <span id="mod-badge" class="hidden" style="background:#dc2626;color:#fff;border-radius:20px;padding:0 .45rem;font-size:.72rem;font-weight:800;margin-inline-start:.2rem"></span></button>
       <button class="tab-btn" onclick="adminTab('users')">👤 Utilisateurs</button>
       <button class="tab-btn" onclick="adminTab('properties')">🏠 Annonces</button>
       <button class="tab-btn" onclick="adminTab('agencies')">🏢 Agences</button>
@@ -1575,6 +1576,12 @@ const TRANSLATIONS = {
     ft_mentions:'Mentions légales', ft_contact:'Contact',
     ft_stats:'📊 Statistiques plateforme', ft_contrats:'📄 Modèles de contrats',
     ft_explore:'Explorer',
+    mod_pending_ok:"Annonce envoyée ! Elle sera visible après validation par notre équipe (généralement sous 24 h). Vous serez notifié(e) de la décision.",
+    mod_banner_pending:"Votre annonce est en attente de validation : elle n'est visible que par vous et notre équipe.",
+    mod_banner_rejected:'Annonce refusée.', dash_reason:'Motif du refus :',
+    dash_st_active:'Actif', dash_st_sold:'Vendu', dash_st_rented:'Loué', dash_st_archived:'Archivé',
+    dash_st_pending:'En attente de validation', dash_st_rejected:'Refusée',
+    dash_delete:'Supprimer', dash_delete_confirm:'Supprimer définitivement cette annonce ?',
     seo_t_appartement:'Appartements', seo_t_villa:'Villas', seo_t_maison:'Maisons', seo_t_bureau:'Bureaux',
     seo_t_local_commercial:'Locaux commerciaux', seo_t_terrain:'Terrains', seo_t_ferme:'Fermes', seo_t_entrepot:'Entrepôts',
     seo_t_all:'Biens immobiliers', seo_m_vente:'à vendre', seo_m_location_longue:'à louer',
@@ -1749,6 +1756,12 @@ const TRANSLATIONS = {
     ft_mentions:'الإشعارات القانونية', ft_contact:'اتصل بنا',
     ft_stats:'📊 إحصائيات المنصة', ft_contrats:'📄 نماذج العقود',
     ft_explore:'استكشف',
+    mod_pending_ok:'تم إرسال الإعلان! سيظهر بعد مراجعة فريقنا له (عادةً خلال 24 ساعة). سيتم إشعارك بالقرار.',
+    mod_banner_pending:'إعلانك في انتظار المراجعة: لا يراه سواك وفريقنا.',
+    mod_banner_rejected:'إعلان مرفوض.', dash_reason:'سبب الرفض:',
+    dash_st_active:'نشط', dash_st_sold:'مباع', dash_st_rented:'مؤجَّر', dash_st_archived:'مؤرشف',
+    dash_st_pending:'في انتظار المراجعة', dash_st_rejected:'مرفوض',
+    dash_delete:'حذف', dash_delete_confirm:'هل تريد حذف هذا الإعلان نهائياً؟',
     seo_t_appartement:'شقق', seo_t_villa:'فيلات', seo_t_maison:'منازل', seo_t_bureau:'مكاتب',
     seo_t_local_commercial:'محلات تجارية', seo_t_terrain:'أراضٍ', seo_t_ferme:'مزارع', seo_t_entrepot:'مستودعات',
     seo_t_all:'عقارات', seo_m_vente:'للبيع', seo_m_location_longue:'للإيجار',
@@ -2441,6 +2454,12 @@ async function loadDetail(id) {
     // URL propre + titre d'onglet (utile au partage et à l'historique)
     history.replaceState(null, '', new URL(annonceUrl(p.id, p.title)).pathname);
     document.title = p.title + ' | DzImmo';
+    // Annonce non publiée (visible seulement de son propriétaire / d'un admin) : bandeau d'information
+    const modBanner = p.status === 'pending'
+      ? `<div style="background:#fef3c7;color:#92400e;border:1px solid #f59e0b;border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;font-size:.9rem">⏳ ${T('mod_banner_pending')}</div>`
+      : p.status === 'rejected'
+      ? `<div style="background:#fee2e2;color:#991b1b;border:1px solid #f87171;border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;font-size:.9rem">❌ ${T('mod_banner_rejected')} ${p.moderation_reason ? T('dash_reason') + ' ' + esc(p.moderation_reason) : ''}</div>`
+      : '';
     const photos = Array.isArray(p.photos) ? p.photos : [p.image].filter(Boolean);
     const price  = p.mode === 'vente' ? formatPrice(p.price) + ' DZD' : formatPrice(p.price) + ' DZD/mois';
     const feats  = Array.isArray(p.features) ? p.features : [];
@@ -2449,6 +2468,7 @@ async function loadDetail(id) {
     const photosJSON = JSON.stringify(photos).replace(/</g,'\\u003c').replace(/>/g,'\\u003e');
 
     container.innerHTML = `
+      ${modBanner}
       <div class="detail-gallery">
         <div style="position:relative">
           <img src="${photos[0] || ''}" alt="${esc(p.title)}"
@@ -3124,13 +3144,13 @@ function copyPropertyLink(id) {
 // ══════════════════════════════════════════════════
 // PANNEAU ADMIN
 // ══════════════════════════════════════════════════
-const ADMIN_TABS = ['resume','users','properties','agencies','signalements','newsletter'];
+const ADMIN_TABS = ['resume','moderation','users','properties','agencies','signalements','newsletter'];
 
 function adminTab(name) {
   document.querySelectorAll('#admin-tabs .tab-btn').forEach((b, i) => {
     b.classList.toggle('active', ADMIN_TABS[i] === name);
   });
-  ({ resume: adminLoadResume, users: adminLoadUsers, properties: adminLoadProperties,
+  ({ resume: adminLoadResume, moderation: () => adminLoadModeration(), users: adminLoadUsers, properties: adminLoadProperties,
      agencies: adminLoadAgencies, signalements: adminLoadSignalements,
      newsletter: adminLoadNewsletter })[name]?.();
 }
@@ -3138,6 +3158,98 @@ function adminTab(name) {
 async function loadAdmin() {
   if (!currentUser?.is_admin) { showPage('home'); return; }
   adminTab('resume');
+  refreshModerationBadge();
+}
+
+// ── Modération des annonces ──────────────────────────────────────────────────
+const MOD_REASONS = [
+  'Photos absentes ou de mauvaise qualité',
+  'Description insuffisante ou trompeuse',
+  'Prix incohérent avec le bien',
+  'Coordonnées personnelles dans le texte ou les photos',
+  'Annonce en double',
+  'Contenu non conforme aux CGU',
+];
+let _modStatus = 'pending';
+
+function setModerationBadge(n) {
+  const b = document.getElementById('mod-badge');
+  if (!b) return;
+  b.textContent = n > 99 ? '99+' : n;
+  b.classList.toggle('hidden', !n);
+}
+
+async function refreshModerationBadge() {
+  try { setModerationBadge((await api('/admin/moderation')).counts.pending); } catch { /* badge facultatif */ }
+}
+
+async function adminLoadModeration(status = _modStatus) {
+  _modStatus = status;
+  const c = document.getElementById('admin-content');
+  c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const { items, counts, enabled } = await api('/admin/moderation?status=' + status);
+    setModerationBadge(counts.pending);
+    window._modPhotos = {};
+    const card = p => {
+      const photos = (Array.isArray(p.photos) && p.photos.length ? p.photos : [p.image]).filter(Boolean);
+      window._modPhotos[p.id] = photos;
+      const MODES_L = { vente:'Vente', location_longue:'Location', location_courte:'Saisonnière' };
+      return `
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:1rem;box-shadow:var(--shadow)">
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.4rem">
+          <span class="card-mode mode-${p.mode}" style="font-size:.71rem;padding:.1rem .45rem">${MODES_L[p.mode] || esc(p.mode)}</span>
+          <span style="font-size:.8rem;color:var(--text-muted)">#${p.id} · ${new Date(p.created_at).toLocaleString('fr-DZ')}</span>
+        </div>
+        <a href="#" onclick="showPage('detail',${p.id});return false" style="color:var(--primary);font-weight:800;font-size:1rem">${esc(p.title)}</a>
+        <div style="font-size:.85rem;color:var(--text-muted);margin:.2rem 0 .5rem">📍 ${esc([p.commune, p.wilaya].filter(Boolean).join(', '))} · <strong style="color:var(--primary)">${formatPrice(p.price)} DZD</strong>${p.surface_m2 ? ' · ' + Number(p.surface_m2) + ' m²' : ''}${p.rooms ? ' · ' + p.rooms + ' p.' : ''}</div>
+        <div style="display:flex;gap:.4rem;overflow-x:auto;margin-bottom:.6rem">
+          ${photos.length ? photos.slice(0, 6).map((u, i) => `<img src="${esc(u)}" alt="" style="height:72px;width:104px;object-fit:cover;border-radius:8px;cursor:pointer;flex-shrink:0;background:var(--border)" onclick="openLightbox(window._modPhotos[${p.id}], ${i})" onerror="this.style.visibility='hidden'">`).join('')
+            : '<span style="font-size:.82rem;color:#dc2626">⚠ Aucune photo</span>'}
+        </div>
+        <div style="font-size:.85rem;line-height:1.55;margin-bottom:.6rem;white-space:pre-line">${esc((p.description || '').slice(0, 400)) || '<em style="color:var(--text-muted)">Aucune description</em>'}</div>
+        <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.7rem;padding:.5rem .7rem;background:var(--bg);border-radius:8px">
+          👤 <strong>${esc(p.owner_name || '—')}</strong> · ${esc(p.owner_email || '')} · ${esc(p.owner_phone || 'tél. —')}
+          · ${p.owner_verified ? '✅ email vérifié' : '⚠ email non vérifié'} · ${p.owner_active} annonce${p.owner_active > 1 ? 's' : ''} active${p.owner_active > 1 ? 's' : ''}
+          · inscrit le ${new Date(p.owner_since).toLocaleDateString('fr-DZ')}${p.agency_name ? ' · 🏢 ' + esc(p.agency_name) : ''}
+        </div>
+        ${status === 'rejected' ? `<div style="font-size:.83rem;color:#dc2626;margin-bottom:.6rem">❌ Refusée : ${esc(p.moderation_reason || '')}</div>` : ''}
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary btn-sm" onclick="adminModerate(${p.id},'approve')">✅ Approuver</button>
+          ${status === 'pending' ? `<button class="btn btn-outline btn-sm" style="border-color:#dc2626;color:#dc2626" onclick="document.getElementById('mod-refuse-${p.id}').classList.toggle('hidden')">❌ Refuser…</button>` : ''}
+        </div>
+        <div id="mod-refuse-${p.id}" class="hidden" style="margin-top:.7rem;display:flex;flex-direction:column;gap:.5rem">
+          <select id="mod-reason-${p.id}" style="padding:.4rem .6rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:.85rem">
+            ${MOD_REASONS.map(r => `<option>${esc(r)}</option>`).join('')}
+          </select>
+          <input id="mod-note-${p.id}" type="text" maxlength="300" placeholder="Précision pour le propriétaire (facultatif)" style="padding:.4rem .6rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:.85rem">
+          <button class="btn btn-sm" style="background:#dc2626;color:#fff;align-self:flex-start" onclick="adminModerate(${p.id},'reject')">Confirmer le refus</button>
+        </div>
+      </div>`;
+    };
+    c.innerHTML = `
+      <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap">
+        <button class="btn btn-sm ${status === 'pending' ? 'btn-primary' : 'btn-outline'}" onclick="adminLoadModeration('pending')">⏳ En attente (${counts.pending})</button>
+        <button class="btn btn-sm ${status === 'rejected' ? 'btn-primary' : 'btn-outline'}" onclick="adminLoadModeration('rejected')">❌ Refusées (${counts.rejected})</button>
+        ${enabled ? '' : '<span style="font-size:.82rem;color:#92400e;background:#fef3c7;border-radius:8px;padding:.3rem .6rem">Modération désactivée (MODERATION=off) : les nouvelles annonces sont publiées directement.</span>'}
+      </div>
+      ${items.length ? items.map(card).join('')
+        : `<div class="empty-state"><div class="icon">${status === 'pending' ? '🎉' : '📭'}</div><h3>${status === 'pending' ? 'Rien à valider' : 'Aucune annonce refusée'}</h3></div>`}`;
+  } catch (e) { c.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
+}
+
+async function adminModerate(id, decision) {
+  let reason = '';
+  if (decision === 'reject') {
+    const preset = document.getElementById('mod-reason-' + id)?.value || '';
+    const note = document.getElementById('mod-note-' + id)?.value.trim() || '';
+    reason = [preset, note].filter(Boolean).join(' — ');
+  }
+  try {
+    await api('/admin/properties/' + id + '/moderate', 'PUT', { decision, reason });
+    toast(decision === 'approve' ? '✅ Annonce publiée.' : '❌ Annonce refusée, le propriétaire est prévenu.');
+    adminLoadModeration();
+  } catch (e) { toast('❌ ' + e.message); }
 }
 
 async function adminLoadResume() {
@@ -3149,6 +3261,7 @@ async function adminLoadResume() {
       <div class="dashboard-stats">
         <div class="stat-card"><div class="val">${s.users}</div><div class="lbl">Utilisateurs</div></div>
         <div class="stat-card"><div class="val">${s.active}</div><div class="lbl">Annonces actives</div></div>
+        <div class="stat-card" style="cursor:pointer;${s.pending_props ? 'border:2px solid #d97706' : ''}" onclick="adminTab('moderation')"><div class="val">${s.pending_props || 0}</div><div class="lbl">À modérer</div></div>
         <div class="stat-card"><div class="val">${(s.sold||0)+(s.rented||0)}</div><div class="lbl">Vendues / Louées</div></div>
         <div class="stat-card"><div class="val">${s.agencies}</div><div class="lbl">Agences</div></div>
         <div class="stat-card"><div class="val">${s.contacts}</div><div class="lbl">Demandes contact</div></div>
@@ -3205,14 +3318,15 @@ async function adminLoadProperties() {
   c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
     const props = await api('/admin/properties' + (statusFilter ? '?status=' + statusFilter : ''));
-    const STATUTS = { active:'Actif', sold:'Vendu', rented:'Loué', archived:'Archivé' };
-    const COLORS  = { active:'#0C6E4F', sold:'#3b82f6', rented:'#f59e0b', archived:'#94a3b8' };
+    const STATUTS = { active:'Actif', sold:'Vendu', rented:'Loué', archived:'Archivé', pending:'En attente', rejected:'Refusé' };
+    const COLORS  = { active:'#0C6E4F', sold:'#3b82f6', rented:'#f59e0b', archived:'#94a3b8', pending:'#d97706', rejected:'#dc2626' };
     c.innerHTML = `
       <div style="margin-bottom:1rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
         <select id="admin-prop-status" style="padding:.35rem .65rem;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;background:var(--bg);color:var(--text)" onchange="adminLoadProperties()">
           <option value="">Tous</option>
           <option value="active">Actif</option><option value="sold">Vendu</option>
           <option value="rented">Loué</option><option value="archived">Archivé</option>
+          <option value="pending">En attente</option><option value="rejected">Refusé</option>
         </select>
         <span style="font-size:.85rem;color:var(--text-muted)">${props.length} annonce${props.length > 1 ? 's' : ''}</span>
         <button class="btn btn-outline btn-sm" onclick="exportCSV(window._adminProps,'annonces.csv')">⬇ CSV</button>
@@ -3521,6 +3635,15 @@ async function loadDashboard() {
   dashTab(currentDashTab);
 }
 
+// Suppression d'une annonce refusée par son propriétaire (il peut en publier une corrigée)
+async function ownerDelete(id) {
+  if (!confirm(T('dash_delete_confirm'))) return;
+  try {
+    await api('/properties/' + id, 'DELETE');
+    dashTab('mes-annonces');
+  } catch (e) { toast(e.message || 'Erreur', 'error'); }
+}
+
 async function ownerArchive(id) {
   if (!confirm('Archiver cette annonce ? Elle ne sera plus visible.')) return;
   try {
@@ -3542,8 +3665,8 @@ async function dashTab(tab) {
     const data = await api('/properties/user/' + currentUser.id);
     if (!data.length) { c.innerHTML = '<div class="empty-state"><div class="icon">🏠</div><h3>Aucune annonce</h3><p>Publiez votre première annonce !</p><button class="btn btn-primary" style="margin-top:1rem" onclick="showPage(\'publier\')">+ Publier</button></div>'; return; }
 
-    const SCOLOR = { active:'#0C6E4F', sold:'#3b82f6', rented:'#f59e0b', archived:'#94a3b8' };
-    const SLBL   = { active:'Actif', sold:'Vendu', rented:'Loué', archived:'Archivé' };
+    const SCOLOR = { active:'#0C6E4F', sold:'#3b82f6', rented:'#f59e0b', archived:'#94a3b8', pending:'#d97706', rejected:'#dc2626' };
+    const SLBL   = Object.fromEntries(['active','sold','rented','archived','pending','rejected'].map(k => [k, T('dash_st_' + k)]));
 
     c.innerHTML = `<div style="display:flex;flex-direction:column;gap:.7rem">
       ${data.map(p => `
@@ -3557,6 +3680,7 @@ async function dashTab(tab) {
             </div>
             <div style="font-weight:700;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(p.title)}">${esc(p.title)}</div>
             <div style="font-size:.79rem;color:var(--text-muted)">📍 ${esc(p.wilaya)} · <strong style="color:var(--primary)">${formatPrice(p.price)} DZD</strong></div>
+            ${p.status === 'rejected' && p.moderation_reason ? `<div style="font-size:.79rem;color:#dc2626;margin-top:.25rem">${T('dash_reason')} ${esc(p.moderation_reason)}</div>` : ''}
             <div style="display:flex;gap:1.1rem;margin-top:.4rem;flex-wrap:wrap">
               <span style="font-size:.79rem;color:var(--text-muted)">👁 <strong>${p.views||0}</strong> vue${(p.views||0)!==1?'s':''}</span>
               <span style="font-size:.79rem;color:var(--text-muted)">📩 <strong>${p.contact_count||0}</strong> demande${(p.contact_count||0)!==1?'s':''}</span>
@@ -3565,6 +3689,7 @@ async function dashTab(tab) {
           </div>
           <div style="padding:.8rem .65rem;display:flex;flex-direction:column;gap:.35rem;justify-content:center;flex-shrink:0">
             <button class="btn btn-primary btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap" onclick="showPage('detail',${p.id})">Voir</button>
+            ${p.status === 'rejected' ? `<button class="btn btn-outline btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap;border-color:#dc2626;color:#dc2626" onclick="ownerDelete(${p.id})">${T('dash_delete')}</button>` : ''}
             ${p.status==='active'?`<button class="btn btn-outline btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap;border-color:#94a3b8;color:#64748b" onclick="ownerArchive(${p.id})">Archiver</button>`:''}
           </div>
         </div>`).join('')}
@@ -3833,11 +3958,13 @@ async function submitProperty() {
       image: photoUrls[0] || '',
     };
     const r = await api('/properties', 'POST', body);
-    sucEl.textContent = '✅ Annonce publiée avec succès !';
+    // Modération : une annonce « pending » n'est pas encore publique, on renvoie vers le tableau de bord
+    const pending = r.status === 'pending';
+    sucEl.textContent = pending ? '⏳ ' + T('mod_pending_ok') : '✅ Annonce publiée avec succès !';
     sucEl.classList.remove('hidden');
     uploadedPhotos = [];
     renderPhotoPreviews();
-    setTimeout(() => showPage('detail', r.id), 1500);
+    setTimeout(() => pending ? showPage('dashboard') : showPage('detail', r.id), pending ? 3500 : 1500);
   } catch (e) {
     errEl.textContent = e.message;
     errEl.classList.remove('hidden');
@@ -3937,7 +4064,7 @@ function renderNotifList() {
   const list = document.getElementById('notif-list');
   if (!list) return;
   if (!_notifs.length) { list.innerHTML = '<div class="notif-empty">Aucune notification</div>'; return; }
-  const ICONS = { new_contact:'📩', contact_status:'✅', message:'💬' };
+  const ICONS = { new_contact:'📩', contact_status:'✅', message:'💬', moderation_pending:'🛡️', moderation_decision:'📋' };
   list.innerHTML = _notifs.slice(0, 20).map(n => `
     <div class="notif-item${n.read ? '' : ' unread'}" onclick="clickNotif(${n.id}, ${n.link_id || 0})">
       <div class="notif-icon">${ICONS[n.notif_type] || '🔔'}</div>

@@ -174,8 +174,45 @@ function mailSearchAlert({ email, name, properties, alertCriteria }) {
   });
 }
 
+// Décision de modération : annonce approuvée ou refusée (avec motif)
+function mailModerationDecision({ to, name, propertyTitle, approved, reason, url }) {
+  return sendMail({
+    to,
+    subject: approved ? `✅ Votre annonce est publiée — ${propertyTitle}` : `❌ Votre annonce a été refusée — ${propertyTitle}`,
+    html: wrap(approved ? `
+      <h2 style="color:#222;margin-top:0">Votre annonce est en ligne ✅</h2>
+      <p>Bonjour <strong>${esc(name)}</strong>,</p>
+      <p>Bonne nouvelle : votre annonce <strong>${esc(propertyTitle)}</strong> a été validée par notre équipe et est maintenant visible par tous les visiteurs.</p>
+      <a href="${esc(url)}" style="display:inline-block;background:#0C6E4F;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700">Voir mon annonce →</a>
+    ` : `
+      <h2 style="color:#222;margin-top:0">Votre annonce a été refusée</h2>
+      <p>Bonjour <strong>${esc(name)}</strong>,</p>
+      <p>Après vérification, votre annonce <strong>${esc(propertyTitle)}</strong> n'a pas pu être publiée.</p>
+      <div style="background:#fef2f2;border-radius:10px;padding:16px;margin:20px 0;border-left:4px solid #dc2626">
+        <p style="margin:4px 0"><strong>Motif :</strong> ${esc(reason)}</p>
+      </div>
+      <p>Vous pouvez publier une nouvelle annonce corrigée depuis votre espace DzImmo.</p>
+      <a href="https://dzimmo.dz" style="display:inline-block;background:#0C6E4F;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700">Accéder à DzImmo →</a>
+    `),
+  });
+}
+
+// Prévient un administrateur qu'une annonce attend une validation
+function mailAdminPending({ to, ownerName, propertyTitle, url }) {
+  return sendMail({
+    to, subject: `🛡️ Annonce à valider — ${propertyTitle}`,
+    html: wrap(`
+      <h2 style="color:#222;margin-top:0">Une annonce attend votre validation 🛡️</h2>
+      <p><strong>${esc(ownerName)}</strong> a publié <strong>${esc(propertyTitle)}</strong>.</p>
+      <p>Elle n'est pas visible tant qu'elle n'est pas approuvée (Administration → Modération).</p>
+      <a href="${esc(url)}" style="display:inline-block;background:#0C6E4F;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700">Ouvrir DzImmo →</a>
+    `),
+  });
+}
+
 module.exports = {
   sendMail,
   mailWelcome, mailVerifyEmail, mailPasswordReset,
   mailContactRequest, mailNewMessage, mailSearchAlert,
+  mailModerationDecision, mailAdminPending,
 };
