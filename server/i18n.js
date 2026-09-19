@@ -101,6 +101,8 @@ const translate = msg => AR[msg] || msg;
 // Traduit le champ « error » des réponses d'erreur (statut ≥ 400) ; les réponses de succès ne sont jamais modifiées
 function middleware(req, res, next) {
   req.lang = langOf(req);
+  // « Explicite » : le site a envoyé X-Lang (choix de l'utilisateur), par opposition à la simple préférence du navigateur
+  req.langExplicit = ['fr', 'ar'].includes(String(req.headers['x-lang'] || '').trim().toLowerCase());
   if (req.lang === 'ar') {
     const json = res.json.bind(res);
     res.json = body => json(

@@ -38,12 +38,12 @@ router.post('/register', async (req, res) => {
   const user = await db.users.insert({
     name: name.trim(), email: email.toLowerCase().trim(),
     password: await bcrypt.hash(password, 10),
-    phone: phone || null, is_agent: false,
+    phone: phone || null, is_agent: false, lang: req.lang,
     email_verified: false, verification_token: verificationToken,
   });
   const baseUrl = process.env.APP_URL || 'http://localhost:3001';
-  mailer.mailVerifyEmail({ name: user.name, email: user.email, verifyUrl: `${baseUrl}/api/auth/verify-email?token=${verificationToken}` });
-  mailer.mailWelcome({ name: user.name, email: user.email });
+  mailer.mailVerifyEmail({ name: user.name, email: user.email, lang: user.lang, verifyUrl: `${baseUrl}/api/auth/verify-email?token=${verificationToken}` });
+  mailer.mailWelcome({ name: user.name, email: user.email, lang: user.lang });
   res.status(201).json({ token: sign(user), user: safe(user) });
 });
 
@@ -57,6 +57,7 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Email ou mot de passe incorrect.' });
   if (user.banned)
     return res.status(403).json({ error: 'Ce compte a été suspendu. Contactez le support.' });
+  if (req.langExplicit && user.lang !== req.lang) await db.pool.query('UPDATE users SET lang = $1 WHERE id = $2', [req.lang, user.id]);
   res.json({ token: sign(user), user: safe(user) });
 });
 
@@ -95,7 +96,8 @@ router.post('/forgot-password', async (req, res) => {
     [user.id, token, expires]
   );
   const baseUrl = process.env.APP_URL || 'http://localhost:3001';
-  mailer.mailPasswordReset({ name: user.name, email: user.email, resetUrl: `${baseUrl}/#reset_token=${token}` });
+  // Langue du site au moment de la demande, sinon celle enregistrée pour le compte
+  mailer.mailPasswordReset({ name: user.name, email: user.email, lang: req.langExplicit ? req.lang : user.lang, resetUrl: `${baseUrl}/#reset_token=${token}` });
   res.json({ ok: true });
 });
 

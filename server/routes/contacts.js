@@ -3,6 +3,7 @@ const db     = require('../db');
 const auth   = require('../middleware/auth');
 const mailer = require('../mailer');
 const ws     = require('../ws');
+const { notif } = require('../messages');
 
 const TYPES_VALIDES   = ['visite', 'info', 'offre'];
 const STATUTS_VALIDES = ['pending', 'confirmed', 'rejected', 'done'];
@@ -67,7 +68,7 @@ router.post('/', auth, async (req, res) => {
   const requester = await db.users.findOne(u => u.id === req.user.id);
   if (owner?.email) {
     mailer.mailContactRequest({
-      ownerName:    owner.name, ownerEmail: owner.email,
+      ownerName:    owner.name, ownerEmail: owner.email, lang: owner.lang,
       requesterName: requester.name, propertyTitle: property.title,
       type, message, visitDate: visit_date, offerAmount: offer_amount,
     });
@@ -77,8 +78,7 @@ router.post('/', auth, async (req, res) => {
   ws.send(property.owner_id, {
     type:       'notif',
     notif_type: 'new_contact',
-    title:      'Nouvelle demande de contact',
-    body:       `${requester.name} a envoyé une demande pour "${property.title}"`,
+    ...notif(owner?.lang, 'contact_new', { name: requester.name, title: property.title }),
     link_id:    property.id,
     time:       new Date().toISOString(),
   });
@@ -102,12 +102,11 @@ router.put('/:id/status', auth, async (req, res) => {
 
   // Notifier le demandeur en temps réel pour les statuts confirmé/refusé
   if (status === 'confirmed' || status === 'rejected') {
-    const isConfirmed = status === 'confirmed';
+    const requester = await db.users.findById(request.user_id);
     ws.send(request.user_id, {
       type:       'notif',
       notif_type: 'contact_status',
-      title:      isConfirmed ? 'Demande confirmée !' : 'Demande refusée',
-      body:       `Votre demande pour "${property.title}" a été ${isConfirmed ? 'confirmée' : 'refusée'}.`,
+      ...notif(requester?.lang, status === 'confirmed' ? 'contact_confirmed' : 'contact_rejected', { title: property.title }),
       link_id:    property.id,
       time:       new Date().toISOString(),
     });

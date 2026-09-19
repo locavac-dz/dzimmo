@@ -1,4 +1,6 @@
 const nodemailer = require('nodemailer');
+const WILAYAS_AR = require('./wilayas-ar');
+const { translateReason } = require('./messages');
 
 function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -31,188 +33,250 @@ async function sendMail({ to, subject, html }) {
   }
 }
 
-// ── Templates ────────────────────────────────────────────
-function wrap(content) {
-  return `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#f9f9f9;padding:0;margin:0">
-<div style="max-width:560px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.1)">
+// ── Langue (français / arabe) ────────────────────────────────────────────────
+// Chaque email est rédigé dans la langue du destinataire (users.lang). Les gabarits build*() sont
+// des fonctions pures { subject, html } : testables sans SMTP ; mail*() les envoie.
+const UI = {
+  fr: { dir: 'ltr', align: 'left',  tagline: 'Annonces immobilières — Algérie', country: 'Algérie', visit: 'Visiter le site', hello: 'Bonjour', dzd: 'DZD', arrow: '→' },
+  ar: { dir: 'rtl', align: 'right', tagline: 'إعلانات عقارية — الجزائر',        country: 'الجزائر', visit: 'زيارة الموقع',    hello: 'مرحباً', dzd: 'د.ج', arrow: '←' },
+};
+const ui = lang => UI[lang === 'ar' ? 'ar' : 'fr'];
+const pick = (lang, fr, ar) => (lang === 'ar' ? ar : fr);
+
+const MODES = {
+  fr: { vente: 'Vente', location_longue: 'Location longue', location_courte: 'Location courte', all: 'Tous modes' },
+  ar: { vente: 'بيع', location_longue: 'إيجار طويل الأمد', location_courte: 'إيجار قصير الأمد', all: 'جميع العمليات' },
+};
+const TYPES = {
+  fr: { appartement: 'Appartement', villa: 'Villa', maison: 'Maison', bureau: 'Bureau', local_commercial: 'Local commercial',
+        terrain: 'Terrain', ferme: 'Ferme', entrepot: 'Entrepôt', all: 'Tous types' },
+  ar: { appartement: 'شقة', villa: 'فيلا', maison: 'منزل', bureau: 'مكتب', local_commercial: 'محل تجاري',
+        terrain: 'أرض', ferme: 'مزرعة', entrepot: 'مستودع', all: 'جميع الأنواع' },
+};
+const wilayaName = (lang, w) => (w ? (lang === 'ar' && WILAYAS_AR[w]) || w : pick(lang, 'Toutes les wilayas', 'جميع الولايات'));
+const fmt = n => Number(n).toLocaleString('fr-DZ');
+
+// « N nouvelles annonces » : l'arabe distingue 1, 2 (duel), 3-10 (pluriel) puis 11+ (singulier)
+function newAds(lang, n) {
+  if (lang !== 'ar') return `nouvelle${n > 1 ? 's' : ''} annonce${n > 1 ? 's' : ''}`;
+  const m = n % 100;
+  return n === 1 ? 'إعلان جديد' : n === 2 ? 'إعلانان جديدان' : (m >= 3 && m <= 10) ? 'إعلانات جديدة' : 'إعلاناً جديداً';
+}
+
+// ── Gabarit commun ───────────────────────────────────────────────────────────
+function wrap(content, lang) {
+  const u = ui(lang);
+  return `<!DOCTYPE html><html lang="${lang === 'ar' ? 'ar' : 'fr'}" dir="${u.dir}"><body dir="${u.dir}" style="font-family:Arial,sans-serif;background:#f9f9f9;padding:0;margin:0;direction:${u.dir};text-align:${u.align}">
+<div style="max-width:560px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.1);direction:${u.dir};text-align:${u.align}">
   <div style="background:#0C6E4F;padding:24px 32px;color:#fff">
-    <span style="font-size:26px;font-weight:900;letter-spacing:-1px;font-family:Georgia,serif">Dz</span><span style="font-size:26px;font-weight:300;letter-spacing:-1px;font-family:Georgia,serif">Immo</span>
-    <span style="margin-left:12px;font-size:12px;opacity:.8;font-weight:400">Annonces immobilières — Algérie</span>
+    <span dir="ltr" style="font-size:26px;font-weight:900;letter-spacing:-1px;font-family:Georgia,serif">Dz</span><span dir="ltr" style="font-size:26px;font-weight:300;letter-spacing:-1px;font-family:Georgia,serif">Immo</span>
+    <span style="margin:0 12px;font-size:12px;opacity:.8;font-weight:400">${u.tagline}</span>
   </div>
   <div style="padding:28px 32px">${content}</div>
   <div style="background:#f1f1f1;padding:16px 32px;font-size:12px;color:#999;text-align:center">
-    © 2026 DzImmo · Algérie · <a href="https://dzimmo.dz" style="color:#0C6E4F">Visiter le site</a>
+    © 2026 DzImmo · ${u.country} · <a href="https://dzimmo.dz" style="color:#0C6E4F">${u.visit}</a>
   </div>
 </div></body></html>`;
 }
 
-function mailWelcome({ name, email }) {
-  return sendMail({
-    to: email, subject: '🏠 Bienvenue sur DzImmo !',
+const button = (href, label, lang, big) =>
+  `<a href="${esc(href)}" style="display:inline-block;background:#0C6E4F;color:#fff;padding:${big ? '14px 32px' : '12px 24px'};border-radius:${big ? 10 : 8}px;text-decoration:none;font-weight:700${big ? ';font-size:15px' : ''}">${label} ${ui(lang).arrow}</a>`;
+const centered = html => `<div style="text-align:center;margin:28px 0">${html}</div>`;
+
+// ── Gabarits ─────────────────────────────────────────────────────────────────
+function buildWelcome(lang, { name }) {
+  const li = pick(lang,
+    ['🔍 Rechercher des biens à vendre ou à louer dans toute l\'Algérie', '💬 Contacter directement propriétaires et agences',
+     '📌 Publier vos annonces immobilières gratuitement', '❤️ Sauvegarder vos biens favoris'],
+    ['🔍 البحث عن عقارات للبيع أو للإيجار في كامل الجزائر', '💬 التواصل مباشرة مع المالكين والوكالات',
+     '📌 نشر إعلاناتك العقارية مجاناً', '❤️ حفظ عقاراتك المفضلة']);
+  return {
+    subject: pick(lang, '🏠 Bienvenue sur DzImmo !', '🏠 مرحباً بك في DzImmo!'),
     html: wrap(`
-      <h2 style="color:#222;margin-top:0">Bienvenue, ${esc(name)} ! 🎉</h2>
-      <p>Votre compte DzImmo est prêt. Vous pouvez dès maintenant :</p>
-      <ul style="line-height:2;color:#444">
-        <li>🔍 Rechercher des biens à vendre ou à louer dans toute l'Algérie</li>
-        <li>💬 Contacter directement propriétaires et agences</li>
-        <li>📌 Publier vos annonces immobilières gratuitement</li>
-        <li>❤️ Sauvegarder vos biens favoris</li>
-      </ul>
-      <a href="https://dzimmo.dz" style="display:inline-block;background:#0C6E4F;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;margin-top:8px">Découvrir les annonces →</a>
-    `),
-  });
+      <h2 style="color:#222;margin-top:0">${pick(lang, `Bienvenue, ${esc(name)} ! 🎉`, `مرحباً بك، ${esc(name)}! 🎉`)}</h2>
+      <p>${pick(lang, 'Votre compte DzImmo est prêt. Vous pouvez dès maintenant :', 'حسابك في DzImmo جاهز. يمكنك الآن:')}</p>
+      <ul style="line-height:2;color:#444">${li.map(x => `<li>${x}</li>`).join('')}</ul>
+      ${button('https://dzimmo.dz', pick(lang, 'Découvrir les annonces', 'اكتشف الإعلانات'), lang)}
+    `, lang),
+  };
 }
 
-function mailVerifyEmail({ name, email, verifyUrl }) {
-  return sendMail({
-    to: email, subject: '✅ Confirmez votre adresse email — DzImmo',
+function buildVerifyEmail(lang, { name, verifyUrl }) {
+  return {
+    subject: pick(lang, '✅ Confirmez votre adresse email — DzImmo', '✅ أكِّد عنوان بريدك الإلكتروني — DzImmo'),
     html: wrap(`
-      <h2 style="color:#222;margin-top:0">Confirmez votre adresse email</h2>
-      <p>Bonjour <strong>${esc(name)}</strong>,</p>
-      <p>Pour activer votre compte DzImmo, confirmez votre adresse email :</p>
-      <div style="text-align:center;margin:28px 0">
-        <a href="${verifyUrl}" style="display:inline-block;background:#0C6E4F;color:#fff;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">Confirmer mon email →</a>
-      </div>
-      <p style="font-size:13px;color:#666">Ce lien est valable <strong>24 heures</strong>.</p>
-    `),
-  });
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Confirmez votre adresse email', 'أكِّد عنوان بريدك الإلكتروني')}</h2>
+      <p>${ui(lang).hello} <strong>${esc(name)}</strong>${pick(lang, ',', '،')}</p>
+      <p>${pick(lang, 'Pour activer votre compte DzImmo, confirmez votre adresse email :', 'لتفعيل حسابك في DzImmo، أكِّد عنوان بريدك الإلكتروني:')}</p>
+      ${centered(button(verifyUrl, pick(lang, 'Confirmer mon email', 'تأكيد بريدي الإلكتروني'), lang, true))}
+      <p style="font-size:13px;color:#666">${pick(lang, 'Ce lien est valable <strong>24 heures</strong>.', 'هذا الرابط صالح لمدة <strong>24 ساعة</strong>.')}</p>
+    `, lang),
+  };
 }
 
-function mailPasswordReset({ name, email, resetUrl }) {
-  return sendMail({
-    to: email, subject: '🔑 Réinitialisation de votre mot de passe — DzImmo',
+function buildPasswordReset(lang, { name, resetUrl }) {
+  return {
+    subject: pick(lang, '🔑 Réinitialisation de votre mot de passe — DzImmo', '🔑 إعادة تعيين كلمة المرور — DzImmo'),
     html: wrap(`
-      <h2 style="color:#222;margin-top:0">Réinitialisation du mot de passe</h2>
-      <p>Bonjour <strong>${esc(name)}</strong>,</p>
-      <p>Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe :</p>
-      <div style="text-align:center;margin:28px 0">
-        <a href="${resetUrl}" style="display:inline-block;background:#0C6E4F;color:#fff;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">Réinitialiser mon mot de passe →</a>
-      </div>
-      <p style="font-size:13px;color:#666">Ce lien est valable <strong>1 heure</strong>.</p>
-    `),
-  });
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Réinitialisation du mot de passe', 'إعادة تعيين كلمة المرور')}</h2>
+      <p>${ui(lang).hello} <strong>${esc(name)}</strong>${pick(lang, ',', '،')}</p>
+      <p>${pick(lang, 'Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe :', 'اضغط على الزر أدناه لاختيار كلمة مرور جديدة:')}</p>
+      ${centered(button(resetUrl, pick(lang, 'Réinitialiser mon mot de passe', 'إعادة تعيين كلمة المرور'), lang, true))}
+      <p style="font-size:13px;color:#666">${pick(lang, 'Ce lien est valable <strong>1 heure</strong>.', 'هذا الرابط صالح لمدة <strong>ساعة واحدة</strong>.')}</p>
+    `, lang),
+  };
 }
 
-function mailContactRequest({ ownerName, ownerEmail, requesterName, propertyTitle, type, message, visitDate, offerAmount }) {
-  const typeLabel = { visite: 'Demande de visite', info: 'Demande de renseignement', offre: 'Offre de prix' }[type] || type;
-  const extraInfo = type === 'visite' && visitDate
-    ? `<p style="margin:4px 0"><strong>📅 Date souhaitée :</strong> ${esc(visitDate)}</p>`
+function buildContactRequest(lang, { ownerName, requesterName, propertyTitle, type, message, visitDate, offerAmount }) {
+  const labels = pick(lang,
+    { visite: 'Demande de visite', info: 'Demande de renseignement', offre: 'Offre de prix' },
+    { visite: 'طلب زيارة', info: 'طلب معلومات', offre: 'عرض سعر' });
+  const typeLabel = labels[type] || type;
+  const extra = type === 'visite' && visitDate
+    ? `<p style="margin:4px 0"><strong>${pick(lang, '📅 Date souhaitée :', '📅 التاريخ المطلوب:')}</strong> ${esc(visitDate)}</p>`
     : type === 'offre' && offerAmount
-    ? `<p style="margin:4px 0"><strong>💰 Offre proposée :</strong> ${Number(offerAmount).toLocaleString('fr-DZ')} DZD</p>`
+    ? `<p style="margin:4px 0"><strong>${pick(lang, '💰 Offre proposée :', '💰 العرض المقترح:')}</strong> ${fmt(offerAmount)} ${ui(lang).dzd}</p>`
     : '';
-  return sendMail({
-    to: ownerEmail, subject: `📩 ${typeLabel} — ${propertyTitle}`,
+  return {
+    subject: `📩 ${typeLabel} — ${propertyTitle}`,
     html: wrap(`
-      <h2 style="color:#222;margin-top:0">Nouvelle demande sur votre annonce 📩</h2>
-      <p>Bonjour <strong>${esc(ownerName)}</strong>,</p>
-      <p><strong>${esc(requesterName)}</strong> a envoyé une <strong>${esc(typeLabel.toLowerCase())}</strong> pour votre bien <strong>${esc(propertyTitle)}</strong>.</p>
-      <div style="background:#f0fdf4;border-radius:10px;padding:16px;margin:20px 0;border-left:4px solid #0C6E4F">
-        <p style="margin:4px 0"><strong>👤 Demandeur :</strong> ${esc(requesterName)}</p>
-        <p style="margin:4px 0"><strong>📋 Type :</strong> ${esc(typeLabel)}</p>
-        ${extraInfo}
-        ${message ? `<p style="margin:4px 0"><strong>💬 Message :</strong> ${esc(message)}</p>` : ''}
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Nouvelle demande sur votre annonce 📩', 'طلب جديد على إعلانك 📩')}</h2>
+      <p>${ui(lang).hello} <strong>${esc(ownerName)}</strong>${pick(lang, ',', '،')}</p>
+      <p>${pick(lang,
+        `<strong>${esc(requesterName)}</strong> a envoyé une <strong>${esc(typeLabel.toLowerCase())}</strong> pour votre bien <strong>${esc(propertyTitle)}</strong>.`,
+        `أرسل <strong>${esc(requesterName)}</strong> <strong>${esc(typeLabel)}</strong> بخصوص عقارك <strong>${esc(propertyTitle)}</strong>.`)}</p>
+      <div style="background:#f0fdf4;border-radius:10px;padding:16px;margin:20px 0;border-${lang === 'ar' ? 'right' : 'left'}:4px solid #0C6E4F">
+        <p style="margin:4px 0"><strong>${pick(lang, '👤 Demandeur :', '👤 صاحب الطلب:')}</strong> ${esc(requesterName)}</p>
+        <p style="margin:4px 0"><strong>${pick(lang, '📋 Type :', '📋 النوع:')}</strong> ${esc(typeLabel)}</p>
+        ${extra}
+        ${message ? `<p style="margin:4px 0"><strong>${pick(lang, '💬 Message :', '💬 الرسالة:')}</strong> ${esc(message)}</p>` : ''}
       </div>
-      <a href="https://dzimmo.dz" style="display:inline-block;background:#0C6E4F;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700">Répondre sur DzImmo →</a>
-    `),
-  });
+      ${button('https://dzimmo.dz', pick(lang, 'Répondre sur DzImmo', 'الرد على DzImmo'), lang)}
+    `, lang),
+  };
 }
 
-function mailNewMessage({ to, senderName, propertyTitle, preview }) {
-  return sendMail({
-    to, subject: `💬 Nouveau message de ${senderName}`,
+function buildNewMessage(lang, { senderName, propertyTitle, preview }) {
+  const text = preview.length > 120 ? preview.slice(0, 120) + '…' : preview;
+  return {
+    subject: pick(lang, `💬 Nouveau message de ${senderName}`, `💬 رسالة جديدة من ${senderName}`),
     html: wrap(`
-      <h2 style="margin-top:0">Vous avez un nouveau message</h2>
-      <p><strong>${esc(senderName)}</strong> vous a envoyé un message concernant <strong>${esc(propertyTitle)}</strong> :</p>
-      <div style="background:#f9f9f9;border-left:4px solid #0C6E4F;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;font-style:italic;color:#444">
-        "${esc(preview.length > 120 ? preview.slice(0, 120) + '…' : preview)}"
+      <h2 style="margin-top:0">${pick(lang, 'Vous avez un nouveau message', 'لديك رسالة جديدة')}</h2>
+      <p>${pick(lang,
+        `<strong>${esc(senderName)}</strong> vous a envoyé un message concernant <strong>${esc(propertyTitle)}</strong> :`,
+        `أرسل لك <strong>${esc(senderName)}</strong> رسالة بخصوص <strong>${esc(propertyTitle)}</strong>:`)}</p>
+      <div style="background:#f9f9f9;border-${lang === 'ar' ? 'right' : 'left'}:4px solid #0C6E4F;padding:12px 16px;border-radius:8px;margin:16px 0;font-style:italic;color:#444">
+        "${esc(text)}"
       </div>
-      <a href="https://dzimmo.dz" style="display:inline-block;background:#0C6E4F;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700">Répondre sur DzImmo →</a>
-    `),
-  });
+      ${button('https://dzimmo.dz', pick(lang, 'Répondre sur DzImmo', 'الرد على DzImmo'), lang)}
+    `, lang),
+  };
 }
 
-function mailSearchAlert({ email, name, properties, alertCriteria }) {
-  const modeLabel = {
-    vente: 'Vente', location_longue: 'Location longue', location_courte: 'Location courte',
-  }[alertCriteria.mode] || 'Tous modes';
-  const typeLabel = alertCriteria.type_bien || 'Tous types';
-  const wilayaLabel = alertCriteria.wilaya || 'Toutes les wilayas';
-  const criteria = [wilayaLabel, modeLabel, typeLabel].join(' · ');
-
+function buildSearchAlert(lang, { name, properties, alertCriteria }) {
+  const n = properties.length;
+  const criteria = [
+    wilayaName(lang, alertCriteria.wilaya),
+    MODES[lang === 'ar' ? 'ar' : 'fr'][alertCriteria.mode] || MODES[lang === 'ar' ? 'ar' : 'fr'].all,
+    TYPES[lang === 'ar' ? 'ar' : 'fr'][alertCriteria.type_bien] || TYPES[lang === 'ar' ? 'ar' : 'fr'].all,
+  ].join(' · ');
+  const u = ui(lang);
+  const priceAlign = lang === 'ar' ? 'left' : 'right';
   const rows = properties.map(p => `
     <tr>
       <td style="padding:.6rem .5rem;border-bottom:1px solid #f0f0f0">
         <strong>${esc(p.title)}</strong><br>
-        <span style="font-size:.83rem;color:#666">${esc(p.wilaya)}</span>
+        <span style="font-size:.83rem;color:#666">${esc(wilayaName(lang, p.wilaya))}</span>
       </td>
-      <td style="padding:.6rem .5rem;border-bottom:1px solid #f0f0f0;text-align:right;white-space:nowrap;font-weight:700;color:#0C6E4F">
-        ${Number(p.price).toLocaleString('fr-DZ')} DZD
+      <td style="padding:.6rem .5rem;border-bottom:1px solid #f0f0f0;text-align:${priceAlign};white-space:nowrap;font-weight:700;color:#0C6E4F">
+        ${fmt(p.price)} ${u.dzd}
       </td>
     </tr>`).join('');
-
-  return sendMail({
-    to: email,
-    subject: `🔔 ${properties.length} nouvelle${properties.length > 1 ? 's' : ''} annonce${properties.length > 1 ? 's' : ''} — ${criteria}`,
+  return {
+    subject: `🔔 ${n} ${newAds(lang, n)} — ${criteria}`,
     html: wrap(`
-      <h2 style="color:#222;margin-top:0">🔔 Nouvelles annonces pour votre alerte</h2>
-      <p>Bonjour <strong>${esc(name)}</strong>,</p>
-      <p><strong>${properties.length}</strong> nouvelle${properties.length > 1 ? 's' : ''} annonce${properties.length > 1 ? 's' : ''} correspond${properties.length > 1 ? 'ent' : ''} à votre alerte :</p>
+      <h2 style="color:#222;margin-top:0">${pick(lang, '🔔 Nouvelles annonces pour votre alerte', '🔔 إعلانات جديدة لتنبيهك')}</h2>
+      <p>${u.hello} <strong>${esc(name)}</strong>${pick(lang, ',', '،')}</p>
+      <p>${pick(lang,
+        `<strong>${n}</strong> ${newAds(lang, n)} correspond${n > 1 ? 'ent' : ''} à votre alerte :`,
+        `<strong>${n}</strong> ${newAds(lang, n)} تطابق تنبيهك:`)}</p>
       <div style="background:#f0fdf4;border-radius:8px;padding:8px 14px;margin:12px 0;font-size:.88rem;color:#0C6E4F;font-weight:600">
         ${esc(criteria)}
       </div>
       <table style="width:100%;border-collapse:collapse;margin:16px 0">${rows}</table>
       <div style="text-align:center;margin:20px 0">
-        <a href="${process.env.APP_URL || 'https://dzimmo.dz'}" style="display:inline-block;background:#0C6E4F;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700">
-          Voir toutes les annonces →
-        </a>
+        ${button(process.env.APP_URL || 'https://dzimmo.dz', pick(lang, 'Voir toutes les annonces', 'عرض جميع الإعلانات'), lang)}
       </div>
-      <p style="font-size:.8rem;color:#aaa;margin-top:1.5rem">
-        Vous recevez cet email car vous avez activé une alerte sur DzImmo.
-        Gérez vos alertes depuis votre espace personnel.
-      </p>
-    `),
-  });
+      <p style="font-size:.8rem;color:#aaa;margin-top:1.5rem">${pick(lang,
+        'Vous recevez cet email car vous avez activé une alerte sur DzImmo. Gérez vos alertes depuis votre espace personnel.',
+        'وصلتك هذه الرسالة لأنك فعّلت تنبيهاً على DzImmo. يمكنك إدارة تنبيهاتك من مساحتك الشخصية.')}</p>
+    `, lang),
+  };
 }
 
-// Décision de modération : annonce approuvée ou refusée (avec motif)
-function mailModerationDecision({ to, name, propertyTitle, approved, reason, url }) {
-  return sendMail({
-    to,
-    subject: approved ? `✅ Votre annonce est publiée — ${propertyTitle}` : `❌ Votre annonce a été refusée — ${propertyTitle}`,
+function buildModerationDecision(lang, { name, propertyTitle, approved, reason, url }) {
+  const shownReason = translateReason(reason, lang);
+  return {
+    subject: approved
+      ? pick(lang, `✅ Votre annonce est publiée — ${propertyTitle}`, `✅ تم نشر إعلانك — ${propertyTitle}`)
+      : pick(lang, `❌ Votre annonce a été refusée — ${propertyTitle}`, `❌ تم رفض إعلانك — ${propertyTitle}`),
     html: wrap(approved ? `
-      <h2 style="color:#222;margin-top:0">Votre annonce est en ligne ✅</h2>
-      <p>Bonjour <strong>${esc(name)}</strong>,</p>
-      <p>Bonne nouvelle : votre annonce <strong>${esc(propertyTitle)}</strong> a été validée par notre équipe et est maintenant visible par tous les visiteurs.</p>
-      <a href="${esc(url)}" style="display:inline-block;background:#0C6E4F;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700">Voir mon annonce →</a>
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Votre annonce est en ligne ✅', 'إعلانك منشور الآن ✅')}</h2>
+      <p>${ui(lang).hello} <strong>${esc(name)}</strong>${pick(lang, ',', '،')}</p>
+      <p>${pick(lang,
+        `Bonne nouvelle : votre annonce <strong>${esc(propertyTitle)}</strong> a été validée par notre équipe et est maintenant visible par tous les visiteurs.`,
+        `خبر سار: تمت الموافقة على إعلانك <strong>${esc(propertyTitle)}</strong> من طرف فريقنا وأصبح ظاهراً لجميع الزوار.`)}</p>
+      ${button(url, pick(lang, 'Voir mon annonce', 'عرض إعلاني'), lang)}
     ` : `
-      <h2 style="color:#222;margin-top:0">Votre annonce a été refusée</h2>
-      <p>Bonjour <strong>${esc(name)}</strong>,</p>
-      <p>Après vérification, votre annonce <strong>${esc(propertyTitle)}</strong> n'a pas pu être publiée.</p>
-      <div style="background:#fef2f2;border-radius:10px;padding:16px;margin:20px 0;border-left:4px solid #dc2626">
-        <p style="margin:4px 0"><strong>Motif :</strong> ${esc(reason)}</p>
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Votre annonce a été refusée', 'تم رفض إعلانك')}</h2>
+      <p>${ui(lang).hello} <strong>${esc(name)}</strong>${pick(lang, ',', '،')}</p>
+      <p>${pick(lang,
+        `Après vérification, votre annonce <strong>${esc(propertyTitle)}</strong> n'a pas pu être publiée.`,
+        `بعد المراجعة، تعذّر نشر إعلانك <strong>${esc(propertyTitle)}</strong>.`)}</p>
+      <div style="background:#fef2f2;border-radius:10px;padding:16px;margin:20px 0;border-${lang === 'ar' ? 'right' : 'left'}:4px solid #dc2626">
+        <p style="margin:4px 0"><strong>${pick(lang, 'Motif :', 'السبب:')}</strong> ${esc(shownReason)}</p>
       </div>
-      <p>Vous pouvez publier une nouvelle annonce corrigée depuis votre espace DzImmo.</p>
-      <a href="https://dzimmo.dz" style="display:inline-block;background:#0C6E4F;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700">Accéder à DzImmo →</a>
-    `),
-  });
+      <p>${pick(lang, 'Vous pouvez publier une nouvelle annonce corrigée depuis votre espace DzImmo.', 'يمكنك نشر إعلان جديد بعد تصحيحه من مساحتك في DzImmo.')}</p>
+      ${button('https://dzimmo.dz', pick(lang, 'Accéder à DzImmo', 'الدخول إلى DzImmo'), lang)}
+    `, lang),
+  };
 }
 
-// Prévient un administrateur qu'une annonce attend une validation
-function mailAdminPending({ to, ownerName, propertyTitle, url }) {
-  return sendMail({
-    to, subject: `🛡️ Annonce à valider — ${propertyTitle}`,
+function buildAdminPending(lang, { ownerName, propertyTitle, url }) {
+  return {
+    subject: pick(lang, `🛡️ Annonce à valider — ${propertyTitle}`, `🛡️ إعلان في انتظار المراجعة — ${propertyTitle}`),
     html: wrap(`
-      <h2 style="color:#222;margin-top:0">Une annonce attend votre validation 🛡️</h2>
-      <p><strong>${esc(ownerName)}</strong> a publié <strong>${esc(propertyTitle)}</strong>.</p>
-      <p>Elle n'est pas visible tant qu'elle n'est pas approuvée (Administration → Modération).</p>
-      <a href="${esc(url)}" style="display:inline-block;background:#0C6E4F;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700">Ouvrir DzImmo →</a>
-    `),
-  });
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Une annonce attend votre validation 🛡️', 'إعلان ينتظر مراجعتك 🛡️')}</h2>
+      <p>${pick(lang,
+        `<strong>${esc(ownerName)}</strong> a publié <strong>${esc(propertyTitle)}</strong>.`,
+        `نشر <strong>${esc(ownerName)}</strong> الإعلان <strong>${esc(propertyTitle)}</strong>.`)}</p>
+      <p>${pick(lang,
+        'Elle n\'est pas visible tant qu\'elle n\'est pas approuvée (Administration → Modération).',
+        'لن يكون الإعلان ظاهراً حتى تتم الموافقة عليه (الإدارة ← الإشراف).')}</p>
+      ${button(url, pick(lang, 'Ouvrir DzImmo', 'فتح DzImmo'), lang)}
+    `, lang),
+  };
 }
+
+// ── Envoi ────────────────────────────────────────────────────────────────────
+// Chaque fonction reçoit `lang` (langue du destinataire) ; sans lang : français.
+const send = (to, built) => sendMail({ to, ...built });
+
+const mailWelcome = d => send(d.email, buildWelcome(d.lang, d));
+const mailVerifyEmail = d => send(d.email, buildVerifyEmail(d.lang, d));
+const mailPasswordReset = d => send(d.email, buildPasswordReset(d.lang, d));
+const mailContactRequest = d => send(d.ownerEmail, buildContactRequest(d.lang, d));
+const mailNewMessage = d => send(d.to, buildNewMessage(d.lang, d));
+const mailSearchAlert = d => send(d.email, buildSearchAlert(d.lang, d));
+const mailModerationDecision = d => send(d.to, buildModerationDecision(d.lang, d));
+const mailAdminPending = d => send(d.to, buildAdminPending(d.lang, d));
 
 module.exports = {
   sendMail,
   mailWelcome, mailVerifyEmail, mailPasswordReset,
   mailContactRequest, mailNewMessage, mailSearchAlert,
   mailModerationDecision, mailAdminPending,
+  // gabarits purs (tests)
+  build: { buildWelcome, buildVerifyEmail, buildPasswordReset, buildContactRequest, buildNewMessage,
+           buildSearchAlert, buildModerationDecision, buildAdminPending },
 };

@@ -54,4 +54,7 @@ Windows : `demarrer.bat`
 - Tout nouveau message d'erreur de l'API (`res.status(…).json({ error: '…' })`) doit être ajouté à `server/i18n.js`
   avec sa traduction arabe : le site envoie sa langue dans l'en-tête `X-Lang`, le serveur traduit à l'envoi.
   Un test (`tests/unit/i18n-errors.test.js`) échoue si un message n'a pas de traduction.
+- Emails (`server/mailer.js`, gabarits `build*`) et notifications temps réel (`server/messages.js`) sont rédigés en
+  français **et** en arabe, dans la langue du destinataire (`users.lang`, dernière langue choisie sur le site).
+  Tout nouvel email ou nouvelle notification doit recevoir `lang` et exister dans les deux langues.
 - Répondre et commenter le code en français.

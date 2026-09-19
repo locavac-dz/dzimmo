@@ -2603,7 +2603,7 @@ function renderDetail(p) {
     const modBanner = p.status === 'pending'
       ? `<div style="background:#fef3c7;color:#92400e;border:1px solid #f59e0b;border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;font-size:.9rem">⏳ ${T('mod_banner_pending')}</div>`
       : p.status === 'rejected'
-      ? `<div style="background:#fee2e2;color:#991b1b;border:1px solid #f87171;border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;font-size:.9rem">❌ ${T('mod_banner_rejected')} ${p.moderation_reason ? T('dash_reason') + ' ' + esc(p.moderation_reason) : ''}</div>`
+      ? `<div style="background:#fee2e2;color:#991b1b;border:1px solid #f87171;border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;font-size:.9rem">❌ ${T('mod_banner_rejected')} ${p.moderation_reason ? T('dash_reason') + ' ' + esc(modReason(p.moderation_reason)) : ''}</div>`
       : '';
     const photos = Array.isArray(p.photos) ? p.photos : [p.image].filter(Boolean);
     const price  = priceText(p);
@@ -3315,6 +3315,18 @@ const MOD_REASONS = [
   'Annonce en double',
   'Contenu non conforme aux CGU',
 ];
+// Traduction des motifs prédéfinis pour les propriétaires arabophones (même table que server/messages.js) ;
+// une précision libre ajoutée après « — » reste telle que saisie.
+const MOD_REASONS_AR = {
+  'Photos absentes ou de mauvaise qualité': 'الصور غائبة أو رديئة الجودة',
+  'Description insuffisante ou trompeuse': 'الوصف غير كافٍ أو مضلِّل',
+  'Prix incohérent avec le bien': 'السعر غير منطقي بالنسبة للعقار',
+  'Coordonnées personnelles dans le texte ou les photos': 'معلومات اتصال شخصية في النص أو الصور',
+  'Annonce en double': 'إعلان مكرَّر',
+  'Contenu non conforme aux CGU': 'محتوى مخالف لشروط الاستخدام',
+};
+const modReason = r => (currentLang === 'ar' && r
+  ? String(r).split(' — ').map((x, i) => (i === 0 && MOD_REASONS_AR[x]) || x).join(' — ') : r);
 let _modStatus = 'pending';
 
 function setModerationBadge(n) {
@@ -3825,7 +3837,7 @@ async function dashTab(tab) {
             </div>
             <div style="font-weight:700;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(p.title)}">${esc(p.title)}</div>
             <div style="font-size:.79rem;color:var(--text-muted)">📍 ${esc(wilayaName(p.wilaya))} · <strong style="color:var(--primary)">${priceText(p)}</strong></div>
-            ${p.status === 'rejected' && p.moderation_reason ? `<div style="font-size:.79rem;color:#dc2626;margin-top:.25rem">${T('dash_reason')} ${esc(p.moderation_reason)}</div>` : ''}
+            ${p.status === 'rejected' && p.moderation_reason ? `<div style="font-size:.79rem;color:#dc2626;margin-top:.25rem">${T('dash_reason')} ${esc(modReason(p.moderation_reason))}</div>` : ''}
             <div style="display:flex;gap:1.1rem;margin-top:.4rem;flex-wrap:wrap">
               <span style="font-size:.79rem;color:var(--text-muted)">👁 <strong>${p.views||0}</strong> ${unit(p.views||0, 'u_view')}</span>
               <span style="font-size:.79rem;color:var(--text-muted)">📩 <strong>${p.contact_count||0}</strong> ${unit(p.contact_count||0, 'u_req')}</span>

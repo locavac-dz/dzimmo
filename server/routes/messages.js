@@ -74,7 +74,7 @@ router.post('/', auth, async (req, res) => {
   const sender    = await db.users.findOne(u => u.id === req.user.id);
   if (recipient?.email) {
     require('../mailer').mailNewMessage({
-      to: recipient.email, senderName: sender.name,
+      to: recipient.email, lang: recipient.lang, senderName: sender.name,
       propertyTitle: property.title, preview: body.trim(),
     });
   }

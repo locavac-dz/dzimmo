@@ -6,6 +6,7 @@
 const db     = require('./db');
 const ws     = require('./ws');
 const mailer = require('./mailer');
+const { notif, translateReason } = require('./messages');
 
 const enabled = () => String(process.env.MODERATION || 'on').toLowerCase() !== 'off';
 
@@ -38,16 +39,15 @@ function contentChanged(property, changes) {
 // Prévient les admins (temps réel + email) qu'une annonce attend une validation
 async function notifyAdminsPending(property, ownerName) {
   const admins = (await db.pool.query(
-    'SELECT id, email FROM users WHERE is_admin = true AND banned = false')).rows;
+    'SELECT id, email, lang FROM users WHERE is_admin = true AND banned = false')).rows;
   for (const a of admins) {
     ws.send(a.id, {
       type: 'notif', notif_type: 'moderation_pending',
-      title: 'Annonce à valider',
-      body: `« ${property.title} » attend une validation.`,
+      ...notif(a.lang, 'mod_pending', { title: property.title }),
       link_id: property.id, time: new Date().toISOString(),
     });
     mailer.mailAdminPending({
-      to: a.email, ownerName, propertyTitle: property.title, url: `${siteUrl()}/`,
+      to: a.email, lang: a.lang, ownerName, propertyTitle: property.title, url: `${siteUrl()}/`,
     }).catch(() => {});
   }
 }
@@ -58,14 +58,13 @@ async function notifyOwnerDecision(property, approved, reason) {
   if (!owner) return;
   ws.send(owner.id, {
     type: 'notif', notif_type: 'moderation_decision',
-    title: approved ? 'Annonce publiée' : 'Annonce refusée',
-    body: approved
-      ? `« ${property.title} » est maintenant visible sur DzImmo.`
-      : `« ${property.title} » a été refusée : ${reason}`,
+    ...(approved
+      ? notif(owner.lang, 'mod_approved', { title: property.title })
+      : notif(owner.lang, 'mod_rejected', { title: property.title, reason: translateReason(reason, owner.lang) })),
     link_id: property.id, time: new Date().toISOString(),
   });
   mailer.mailModerationDecision({
-    to: owner.email, name: owner.name, propertyTitle: property.title,
+    to: owner.email, lang: owner.lang, name: owner.name, propertyTitle: property.title,
     approved, reason, url: listingUrl(property.id),
   }).catch(() => {});
 }
