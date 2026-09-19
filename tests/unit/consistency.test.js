@@ -51,6 +51,29 @@ test('toutes les clés data-i18n utilisées dans le HTML existent dans le dictio
   assert.deepEqual([...used].filter(k => !(k in T.fr)), []);
 });
 
+test('toutes les clés T(\'…\') utilisées dans le JavaScript existent en français et en arabe', () => {
+  const T = translations();
+  const contrats = fs.readFileSync(path.join(ROOT, 'public', 'contrats.js'), 'utf8');
+  const used = new Set([
+    ...inlineScripts().join('\n').matchAll(/\bT\('([a-z0-9_]+)'\)/g),
+    ...contrats.matchAll(/\bui\('([a-z0-9_]+)'\)/g),
+  ].map(m => m[1]));
+  assert.ok(used.size > 100, 'l\'extraction doit trouver les clés utilisées');
+  assert.deepEqual([...used].filter(k => !(k in T.fr)), [], 'clés absentes du français');
+  assert.deepEqual([...used].filter(k => !(k in T.ar)), [], 'clés absentes de l\'arabe');
+  // clés composées dynamiquement : préfixe + valeur
+  const dyn = { feat_: ['meuble', 'parking', 'balcon', 'terrasse', 'ascenseur', 'gardien', 'piscine', 'climatisation',
+    'chauffage', 'wifi', 'cave', 'jardin', 'alarme', 'interphone', 'eau', 'electricite', 'gaz', 'route', 'fibre'],
+    seo_t_: ['appartement', 'villa', 'maison', 'bureau', 'local_commercial', 'terrain', 'ferme', 'entrepot', 'all'],
+    seo_m_: ['vente', 'location_longue', 'location_courte'],
+    dash_st_: ['active', 'sold', 'rented', 'archived', 'pending', 'rejected'],
+    // pluriels : unit(n, base) lit base_one / base_two / base_many
+    u_room_: ['one', 'two', 'many'], u_bath_: ['one', 'two', 'many'], u_view_: ['one', 'two', 'many'], st_ad_: ['one', 'two', 'many'] };
+  for (const [prefix, list] of Object.entries(dyn))
+    for (const v of list) for (const lang of ['fr', 'ar'])
+      assert.ok((prefix + v) in T[lang], `${prefix}${v} manquante (${lang})`);
+});
+
 test('la liste des wilayas du serveur est identique à celle du front', () => {
   const server = require(path.join(ROOT, 'server', 'wilayas'));
   const literal = html.match(/const WILAYAS = \[([\s\S]*?)\];/)[1];

@@ -634,15 +634,15 @@
 <!-- ═══════════════════ COMPARATEUR ═══════════════════ -->
 <div id="compare-bar">
   <div id="compare-thumbs" style="display:flex;gap:.5rem;flex:1;flex-wrap:wrap"></div>
-  <button class="btn btn-primary" style="white-space:nowrap;flex-shrink:0" onclick="openCompare()">⚖ Comparer</button>
-  <button class="btn btn-outline btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="clearCompare()">✕ Vider</button>
+  <button class="btn btn-primary" style="white-space:nowrap;flex-shrink:0" onclick="openCompare()" data-i18n="cmp_compare">⚖ Comparer</button>
+  <button class="btn btn-outline btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="clearCompare()" data-i18n="cmp_clear">✕ Vider</button>
 </div>
 
 <div id="compare-modal" onclick="cmpBackdrop(event)">
   <div class="cmp-inner">
     <div class="cmp-head">
-      <strong style="font-size:1rem">⚖ Comparateur de biens</strong>
-      <button class="btn btn-outline btn-sm" onclick="closeCompare()">✕ Fermer</button>
+      <strong style="font-size:1rem" data-i18n="cmp_title">⚖ Comparateur de biens</strong>
+      <button class="btn btn-outline btn-sm" onclick="closeCompare()" data-i18n="cmp_close">✕ Fermer</button>
     </div>
     <div style="overflow-x:auto">
       <table id="compare-table"></table>
@@ -659,7 +659,7 @@
       <a class="nav-link" data-page="annonces" onclick="showPage('annonces')" data-i18n="nav_annonces">Annonces</a>
       <a class="nav-link" data-page="agences" onclick="showPage('agences')" data-i18n="nav_agences">Agences</a>
       <a class="nav-link" data-page="carte" onclick="showPage('carte')" data-i18n="nav_carte">Carte</a>
-      <a class="nav-link hidden" id="nav-admin" data-page="admin" onclick="showPage('admin')" style="color:#7c3aed;font-weight:700">⚙️ Admin</a>
+      <a class="nav-link hidden" id="nav-admin" data-page="admin" onclick="showPage('admin')" style="color:#7c3aed;font-weight:700" data-i18n="nav_admin">⚙️ Admin</a>
     </nav>
     <div class="header-actions">
       <button id="theme-toggle" onclick="toggleTheme()" title="Mode sombre / clair" aria-label="Basculer le thème" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:.3rem .5rem;font-size:1rem;cursor:pointer;color:var(--text);line-height:1;transition:border-color .15s">🌙</button>
@@ -679,8 +679,8 @@
           </button>
           <div id="notif-panel" class="hidden">
             <div class="notif-head">
-              <span>🔔 Notifications</span>
-              <button onclick="markAllNotifsRead()" style="background:none;border:none;cursor:pointer;font-size:.78rem;color:var(--primary);font-weight:700">Tout lire</button>
+              <span data-i18n="notif_title">🔔 Notifications</span>
+              <button onclick="markAllNotifsRead()" style="background:none;border:none;cursor:pointer;font-size:.78rem;color:var(--primary);font-weight:700" data-i18n="notif_read_all">Tout lire</button>
             </div>
             <div id="notif-list"></div>
           </div>
@@ -753,11 +753,11 @@
     <div style="background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:1.25rem;margin-bottom:1.5rem">
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.75rem;align-items:end">
         <div>
-          <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem">Wilaya</label>
+          <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem" data-i18n="filter_wilaya">Wilaya</label>
           <select id="f-wilaya" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></select>
         </div>
         <div>
-          <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem">Mode</label>
+          <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem" data-i18n="filter_mode">Mode</label>
           <select id="f-mode" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
             <option value="">Tous</option>
             <option value="vente">Vente</option>
@@ -766,7 +766,7 @@
           </select>
         </div>
         <div>
-          <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem">Type</label>
+          <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem" data-i18n="filter_type">Type</label>
           <select id="f-type" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
             <option value="">Tous</option>
             <option value="appartement">Appartement</option>
@@ -833,21 +833,21 @@
           </select>
         </div>
         <div>
-          <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem">Recherche</label>
-          <input id="f-q" type="text" placeholder="Mot-clé…" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
+          <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem" data-i18n="filter_search">Recherche</label>
+          <input id="f-q" type="text" data-i18n="filter_kw_ph" data-i18n-attr="placeholder" placeholder="Mot-clé…" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
         </div>
-        <button class="btn btn-primary" onclick="loadAnnonces()" style="align-self:end">🔍 Filtrer</button>
+        <button class="btn btn-primary" onclick="loadAnnonces()" style="align-self:end" data-i18n="filter_apply">🔍 Filtrer</button>
         <button class="btn btn-outline" onclick="createAlertFromFilters()" style="align-self:end" data-i18n="btn_create_alert">🔔 Créer une alerte</button>
-        <button class="btn btn-outline" id="btn-near-me" onclick="nearMe()" style="align-self:end;white-space:nowrap">📍 Près de moi</button>
+        <button class="btn btn-outline" id="btn-near-me" onclick="nearMe()" style="align-self:end;white-space:nowrap" data-i18n="near_me">📍 Près de moi</button>
       </div>
       <div id="near-me-badge" style="display:none;margin-top:.6rem;font-size:.82rem;color:var(--primary);font-weight:600">
-        📍 Résultats près de : <span id="near-me-label"></span>
-        <button onclick="clearNearMe()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.85rem;margin-left:.4rem">✕ Retirer</button>
+        <span data-i18n="near_me_results">📍 Résultats près de :</span> <span id="near-me-label"></span>
+        <button onclick="clearNearMe()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.85rem;margin-left:.4rem" data-i18n="near_me_clear">✕ Retirer</button>
       </div>
     </div>
 
     <div class="section-header">
-      <div class="section-title">Annonces immobilières</div>
+      <div class="section-title" data-i18n="annonces_heading">Annonces immobilières</div>
       <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
         <span class="count-badge" id="annonces-count">—</span>
         <select id="f-sort" onchange="loadAnnonces()" style="padding:.3rem .6rem;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);color:var(--text);cursor:pointer" data-i18n-title="sort_label">
@@ -979,7 +979,7 @@
           <input id="pub-photos-input" type="file" accept="image/*" multiple style="display:none" onchange="previewPhotos(this)">
         </div>
         <div class="photo-previews" id="photo-previews"></div>
-        <p style="font-size:.8rem;color:var(--text-muted);margin-top:.5rem">La première photo sera la photo principale.</p>
+        <p style="font-size:.8rem;color:var(--text-muted);margin-top:.5rem" data-i18n="pub_first_photo">La première photo sera la photo principale.</p>
       </div>
 
       <div style="margin-top:1.5rem;display:flex;gap:.75rem">
@@ -1027,13 +1027,13 @@
 <!-- ═══════════════════ PAGE MESSAGES ═══════════════════ -->
 <div id="page-messages" class="hidden">
   <div id="main" style="padding-top:1rem">
-    <h2 style="margin-bottom:1rem;font-size:1.2rem;font-weight:800">💬 Messagerie</h2>
+    <h2 style="margin-bottom:1rem;font-size:1.2rem;font-weight:800" data-i18n="msg_title">💬 Messagerie</h2>
     <div class="msg-layout">
       <div class="conv-list" id="conv-list"></div>
       <div class="chat-panel" id="chat-panel">
         <div class="empty-state" style="margin:auto">
           <div class="icon">💬</div>
-          <h3>Sélectionnez une conversation</h3>
+          <h3 data-i18n="msg_select">Sélectionnez une conversation</h3>
         </div>
       </div>
     </div>
@@ -1458,7 +1458,7 @@
   <div class="footer-inner">
     <div class="footer-col">
       <h4>DzImmo</h4>
-      <p style="font-size:.85rem;line-height:1.6;color:rgba(255,255,255,.6)">La plateforme de référence pour l'immobilier en Algérie. Achat, vente, location.</p>
+      <p style="font-size:.85rem;line-height:1.6;color:rgba(255,255,255,.6)" data-i18n="ft_about">La plateforme de référence pour l'immobilier en Algérie. Achat, vente, location.</p>
     </div>
     <div class="footer-col">
       <h4 data-i18n="ft_nav">Navigation</h4>
@@ -1576,6 +1576,38 @@ const TRANSLATIONS = {
     ft_mentions:'Mentions légales', ft_contact:'Contact',
     ft_stats:'📊 Statistiques plateforme', ft_contrats:'📄 Modèles de contrats',
     ft_explore:'Explorer',
+    ft_about:"La plateforme de référence pour l'immobilier en Algérie. Achat, vente, location.",
+    nav_admin:'⚙️ Admin', notif_title:'🔔 Notifications', notif_read_all:'Tout lire', notif_empty:'Aucune notification',
+    cmp_compare:'⚖ Comparer', cmp_clear:'✕ Vider', cmp_title:'⚖ Comparateur de biens', cmp_close:'✕ Fermer',
+    filter_search:'Recherche', filter_kw_ph:'Mot-clé…', filter_apply:'🔍 Filtrer',
+    near_me:'📍 Près de moi', near_me_results:'📍 Résultats près de :', near_me_clear:'✕ Retirer',
+    annonces_heading:'Annonces immobilières', res_one:'résultat', res_many:'résultats',
+    pub_first_photo:'La première photo sera la photo principale.',
+    msg_title:'💬 Messagerie', msg_select:'Sélectionnez une conversation', msg_none:'Aucune conversation',
+    u_dzd:'DZD', u_month:'/mois', u_m2:'m²',
+    u_room_one:'pièce', u_room_two:'pièces', u_room_many:'pièces',
+    u_bath_one:'SDB', u_bath_two:'SDB', u_bath_many:'SDB',
+    u_view_one:'vue', u_view_two:'vues', u_view_many:'vues', st_ad_two:'annonces',
+    no_listings:'Aucune annonce disponible', verified_badge:'✓ Vérifié', fav_tip:'Favori', cmp_tip:'Comparer',
+    fav_removed:'Retiré des favoris.', fav_added:'❤️ Ajouté aux favoris !', link_copied:'🔗 Lien copié !',
+    feat_meuble:'Meublé', feat_parking:'Parking', feat_balcon:'Balcon', feat_terrasse:'Terrasse', feat_ascenseur:'Ascenseur',
+    feat_gardien:'Gardien', feat_piscine:'Piscine', feat_climatisation:'Climatisation', feat_chauffage:'Chauffage',
+    feat_wifi:'Wi-Fi', feat_cave:'Cave', feat_jardin:'Jardin', feat_alarme:'Alarme', feat_interphone:'Interphone',
+    feat_eau:'Eau', feat_electricite:'Électricité', feat_gaz:'Gaz', feat_route:'Accès route', feat_fibre:'Fibre',
+    det_see_photos:'📷 Voir les {n} photos', det_desc:'Description', det_no_desc:'Aucune description fournie.',
+    det_reviews:'Avis', det_anon:'Anonyme', det_agency:'Agence immobilière', det_private:'Particulier',
+    det_contact:'Contacter le vendeur', det_req_type:'Type de demande',
+    det_opt_info:"Demande d'information", det_opt_visit:'Demander une visite', det_opt_offer:'Faire une offre de prix',
+    det_visit_date:'Date de visite souhaitée', det_offer_amount:"Montant de l'offre (DZD)",
+    det_msg:'Message', det_msg_ph:'Votre message…', det_send_req:'Envoyer la demande', det_send_msg:'💬 Envoyer un message',
+    det_login_hint:'Connectez-vous pour contacter le vendeur', det_login:'Se connecter',
+    det_published:'Publié le', det_copy:'🔗 Copier', det_sent:'✅ Demande envoyée au vendeur !',
+    det_price_hist:'📈 Historique des prix', det_stable:'stable', det_similar:'Biens similaires',
+    cmp_max:'Vous pouvez comparer 3 biens maximum.', cmp_min:'Sélectionnez au moins 2 biens à comparer.',
+    cmp_remove:'Retirer', cmp_view:'Voir →', cmp_r_price:'Prix', cmp_r_commune:'Commune', cmp_r_surface:'Surface',
+    cmp_r_floor:'Étage', cmp_r_published:'Publié', cmp_r_verified:'Vérifié',
+    map_no_pos:'sans position', map_view:"Voir l'annonce →", map_error:'Erreur de chargement',
+    ag_none:'Aucune agence enregistrée', ag_rating:'note', ag_website:'🌐 Site web',
     mod_pending_ok:"Annonce envoyée ! Elle sera visible après validation par notre équipe (généralement sous 24 h). Vous serez notifié(e) de la décision.",
     mod_banner_pending:"Votre annonce est en attente de validation : elle n'est visible que par vous et notre équipe.",
     mod_banner_rejected:'Annonce refusée.', dash_reason:'Motif du refus :',
@@ -1756,6 +1788,38 @@ const TRANSLATIONS = {
     ft_mentions:'الإشعارات القانونية', ft_contact:'اتصل بنا',
     ft_stats:'📊 إحصائيات المنصة', ft_contrats:'📄 نماذج العقود',
     ft_explore:'استكشف',
+    ft_about:'المنصة المرجعية للعقارات في الجزائر. شراء، بيع، إيجار.',
+    nav_admin:'⚙️ الإدارة', notif_title:'🔔 الإشعارات', notif_read_all:'قراءة الكل', notif_empty:'لا توجد إشعارات',
+    cmp_compare:'⚖ مقارنة', cmp_clear:'✕ إفراغ', cmp_title:'⚖ مقارنة العقارات', cmp_close:'✕ إغلاق',
+    filter_search:'بحث', filter_kw_ph:'كلمة مفتاحية…', filter_apply:'🔍 تصفية',
+    near_me:'📍 بالقرب مني', near_me_results:'📍 نتائج بالقرب من:', near_me_clear:'✕ إزالة',
+    annonces_heading:'إعلانات عقارية', res_one:'نتيجة', res_many:'نتائج',
+    pub_first_photo:'ستكون الصورة الأولى هي الصورة الرئيسية.',
+    msg_title:'💬 الرسائل', msg_select:'اختر محادثة', msg_none:'لا توجد محادثات',
+    u_dzd:'د.ج', u_month:'/شهر', u_m2:'م²',
+    u_room_one:'غرفة', u_room_two:'غرفتان', u_room_many:'غرف',
+    u_bath_one:'حمام', u_bath_two:'حمامان', u_bath_many:'حمامات',
+    u_view_one:'مشاهدة', u_view_two:'مشاهدتان', u_view_many:'مشاهدات', st_ad_two:'إعلانان',
+    no_listings:'لا توجد إعلانات متاحة', verified_badge:'✓ موثَّق', fav_tip:'المفضلة', cmp_tip:'مقارنة',
+    fav_removed:'تمت الإزالة من المفضلة.', fav_added:'❤️ تمت الإضافة إلى المفضلة!', link_copied:'🔗 تم نسخ الرابط!',
+    feat_meuble:'مفروش', feat_parking:'موقف سيارات', feat_balcon:'شرفة', feat_terrasse:'تراس', feat_ascenseur:'مصعد',
+    feat_gardien:'حارس', feat_piscine:'مسبح', feat_climatisation:'تكييف', feat_chauffage:'تدفئة',
+    feat_wifi:'واي فاي', feat_cave:'قبو', feat_jardin:'حديقة', feat_alarme:'جهاز إنذار', feat_interphone:'إنتركوم',
+    feat_eau:'ماء', feat_electricite:'كهرباء', feat_gaz:'غاز', feat_route:'مدخل على الطريق', feat_fibre:'ألياف بصرية',
+    det_see_photos:'📷 عرض {n} صور', det_desc:'الوصف', det_no_desc:'لا يوجد وصف.',
+    det_reviews:'التقييمات', det_anon:'مجهول', det_agency:'وكالة عقارية', det_private:'فرد',
+    det_contact:'تواصل مع البائع', det_req_type:'نوع الطلب',
+    det_opt_info:'طلب معلومات', det_opt_visit:'طلب زيارة', det_opt_offer:'تقديم عرض سعر',
+    det_visit_date:'تاريخ الزيارة المطلوب', det_offer_amount:'مبلغ العرض (د.ج)',
+    det_msg:'الرسالة', det_msg_ph:'رسالتك…', det_send_req:'إرسال الطلب', det_send_msg:'💬 إرسال رسالة',
+    det_login_hint:'سجّل الدخول للتواصل مع البائع', det_login:'تسجيل الدخول',
+    det_published:'نُشر في', det_copy:'🔗 نسخ', det_sent:'✅ تم إرسال الطلب إلى البائع!',
+    det_price_hist:'📈 تطور السعر', det_stable:'مستقر', det_similar:'عقارات مشابهة',
+    cmp_max:'يمكنك مقارنة 3 عقارات كحد أقصى.', cmp_min:'اختر عقارين على الأقل للمقارنة.',
+    cmp_remove:'إزالة', cmp_view:'عرض ←', cmp_r_price:'السعر', cmp_r_commune:'البلدية', cmp_r_surface:'المساحة',
+    cmp_r_floor:'الطابق', cmp_r_published:'تاريخ النشر', cmp_r_verified:'موثَّق',
+    map_no_pos:'بدون موقع', map_view:'عرض الإعلان ←', map_error:'خطأ في التحميل',
+    ag_none:'لا توجد وكالات مسجّلة', ag_rating:'التقييم', ag_website:'🌐 الموقع الإلكتروني',
     mod_pending_ok:'تم إرسال الإعلان! سيظهر بعد مراجعة فريقنا له (عادةً خلال 24 ساعة). سيتم إشعارك بالقرار.',
     mod_banner_pending:'إعلانك في انتظار المراجعة: لا يراه سواك وفريقنا.',
     mod_banner_rejected:'إعلان مرفوض.', dash_reason:'سبب الرفض:',
@@ -1940,6 +2004,10 @@ function applyLang(lang) {
   else if (currentPage === 'annonces') loadAnnonces();
   else if (currentPage === 'stats') loadStatsPage();
   else if (currentPage === 'contrats' && window.MC) MC.refresh();
+  else if (currentPage === 'detail' && window._detailProp) renderDetail(window._detailProp);
+  else if (currentPage === 'agences') loadAgences();
+  else if (currentPage === 'agency-detail' && window._agencyId) loadAgencyDetail(window._agencyId);
+  else if (currentPage === 'carte' && mapInstance) loadMapMarkers();
   relabelSeo();
 }
 
@@ -1994,9 +2062,24 @@ const WILAYAS = [
   'Aïn Ouessara','Messaad','Ksar El Boukhari','Bou Saâda','El Abiodh Sidi Cheikh'
 ];
 
-const MODES = { vente:'Vente', location_longue:'Location longue durée', location_courte:'Location courte durée' };
-const TYPES = { appartement:'Appartement', villa:'Villa', maison:'Maison', bureau:'Bureau', local_commercial:'Local commercial', terrain:'Terrain', ferme:'Ferme', entrepot:'Entrepôt' };
-const FEATURES = { meuble:'Meublé', parking:'Parking', balcon:'Balcon', terrasse:'Terrasse', ascenseur:'Ascenseur', gardien:'Gardien', piscine:'Piscine', climatisation:'Climatisation', chauffage:'Chauffage', wifi:'Wi-Fi', cave:'Cave', jardin:'Jardin', alarme:'Alarme', interphone:'Interphone', eau:'Eau', electricite:'Électricité', gaz:'Gaz', route:'Accès route', fibre:'Fibre' };
+// Libellés traduits (FR / AR) : la clé de traduction est lue à chaque accès, donc à jour après un changement de langue
+const i18nMap = keys => new Proxy(keys, { get: (m, k) => (Object.hasOwn(m, k) ? T(m[k]) : undefined) });
+const MODES = i18nMap({ vente:'s_vente', location_longue:'s_loc_longue', location_courte:'s_loc_courte' });
+const TYPES = i18nMap({ appartement:'s_appart', villa:'s_villa', maison:'s_maison', bureau:'s_bureau',
+  local_commercial:'s_local', terrain:'s_terrain', ferme:'s_ferme', entrepot:'s_entrepot' });
+const FEATURES = i18nMap(Object.fromEntries(['meuble','parking','balcon','terrasse','ascenseur','gardien','piscine',
+  'climatisation','chauffage','wifi','cave','jardin','alarme','interphone','eau','electricite','gaz','route','fibre']
+  .map(k => [k, 'feat_' + k])));
+// Prix avec unité traduite : « 75 000 DZD/mois » / « 75 000 د.ج/شهر »
+const priceText = p => formatPrice(p.price) + ' ' + T('u_dzd') + (p.mode === 'vente' ? '' : T('u_month'));
+const capFirst = str => str.charAt(0).toUpperCase() + str.slice(1);
+// Mot au bon nombre : unit(3, 'u_room') -> « pièces » / « غرف » ; l'arabe a un duel (2) et repasse au singulier dès 11
+function unit(n, base) {
+  n = Number(n) || 0;
+  if (currentLang !== 'ar') return T(base + (n > 1 ? '_many' : '_one'));
+  const m = n % 100;
+  return T(base + (n === 1 ? '_one' : n === 2 ? '_two' : (m >= 3 && m <= 10) ? '_many' : '_one'));
+}
 
 // ── Thème sombre / clair ─────────────────────────────
 function applyTheme(t) {
@@ -2217,7 +2300,7 @@ function showPage(page, data = null) {
   if (page === 'dashboard')       loadDashboard();
   if (page === 'messages')        loadMessages();
   if (page === 'detail' && data)       loadDetail(data);
-  if (page === 'agency-detail' && data) loadAgencyDetail(data);
+  if (page === 'agency-detail' && data) { window._agencyId = data; loadAgencyDetail(data); }
   if (page === 'admin')                 loadAdmin();
   if (page === 'sim-estimation')  initSeWilayaSelect();
   if (page === 'carte')           initMap();
@@ -2269,7 +2352,7 @@ function nearMe() {
   if (!navigator.geolocation) { toast('Géolocalisation non supportée.'); return; }
   btn.disabled = true; btn.textContent = '⏳ Localisation…';
   navigator.geolocation.getCurrentPosition(pos => {
-    btn.disabled = false; btn.textContent = '📍 Près de moi';
+    btn.disabled = false; btn.textContent = T('near_me');
     const { latitude: lat, longitude: lng } = pos.coords;
     _nearCoords = [lat, lng];
     let bestIdx = 0, bestDist = Infinity;
@@ -2283,7 +2366,7 @@ function nearMe() {
     document.getElementById('near-me-badge').style.display = '';
     loadAnnonces();
   }, () => {
-    btn.disabled = false; btn.textContent = '📍 Près de moi';
+    btn.disabled = false; btn.textContent = T('near_me');
     toast('Impossible d\'accéder à votre position.', 'error');
   }, { timeout: 8000 });
 }
@@ -2363,7 +2446,7 @@ async function loadAnnonces(page = 1) {
   try {
     const resp = await api('/properties?' + params);
     const { data, total, pages } = resp;
-    countEl.textContent = total + ' résultat' + (total > 1 ? 's' : '');
+    countEl.textContent = total + ' ' + T(total > 1 ? 'res_many' : 'res_one');
     if (!data.length) {
       grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🔍</div><h3>Aucune annonce trouvée</h3><p>Essayez d\'élargir vos critères.</p></div>';
       return;
@@ -2405,7 +2488,7 @@ function renderPagination(containerId, page, pages, fnName) {
 
 function renderGrid(container, props) {
   if (!props.length) {
-    container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🏠</div><h3>Aucune annonce disponible</h3></div>';
+    container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🏠</div><h3>' + T('no_listings') + '</h3></div>';
     return;
   }
   container.innerHTML = props.map(p => cardHTML(p)).join('');
@@ -2413,23 +2496,21 @@ function renderGrid(container, props) {
 
 function cardHTML(p) {
   window._propCache[p.id] = p;
-  const price = p.mode === 'vente'
-    ? formatPrice(p.price) + ' DZD'
-    : formatPrice(p.price) + ' DZD/mois';
+  const price = priceText(p);
   const meta = [
-    p.rooms      ? p.rooms + ' pièce' + (p.rooms > 1 ? 's' : '') : null,
-    p.surface_m2 ? p.surface_m2 + ' m²' : null,
-    p.baths      ? p.baths + ' SDB' : null,
+    p.rooms      ? p.rooms + ' ' + unit(p.rooms, 'u_room') : null,
+    p.surface_m2 ? p.surface_m2 + ' ' + T('u_m2') : null,
+    p.baths      ? p.baths + ' ' + unit(p.baths, 'u_bath') : null,
   ].filter(Boolean).join(' · ');
   const isCmp = _compareList.some(x => x.id === p.id);
   return `
   <div class="card-wrapper" onclick="showPage('detail', ${p.id})">
     <div class="card">
       <img class="card-img" src="${p.image || 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70'}" alt="${esc(p.title)}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70'">
-      ${p.verified ? '<span class="verified-badge">✓ Vérifié</span>' : ''}
-      ${token ? `<button class="card-fav" onclick="event.stopPropagation();toggleFav(${p.id},this)" title="Favori">🤍</button>` : ''}
+      ${p.verified ? '<span class="verified-badge">' + T('verified_badge') + '</span>' : ''}
+      ${token ? `<button class="card-fav" onclick="event.stopPropagation();toggleFav(${p.id},this)" title="${T('fav_tip')}">🤍</button>` : ''}
       <button class="card-cmp${isCmp ? ' active' : ''}" data-id="${p.id}"
-              onclick="event.stopPropagation();toggleCompare(${p.id})" title="Comparer">⚖</button>
+              onclick="event.stopPropagation();toggleCompare(${p.id})" title="${T('cmp_tip')}">⚖</button>
       <div class="card-body">
         <span class="card-mode mode-${p.mode}">${MODES[p.mode] || p.mode}</span>
         <div class="card-title">${esc(p.title)}</div>
@@ -2438,7 +2519,7 @@ function cardHTML(p) {
         <div class="card-meta">
           <span>${TYPES[p.type_bien] || p.type_bien}</span>
           ${meta ? `<span>${meta}</span>` : ''}
-          <span>${p.views || 0} vues</span>
+          <span>${p.views || 0} ${unit(p.views || 0, 'u_view')}</span>
         </div>
       </div>
     </div>
@@ -2451,6 +2532,15 @@ async function loadDetail(id) {
   container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
     const p = await api('/properties/' + id);
+    window._detailProp = p;
+    renderDetail(p);
+  } catch (e) { container.innerHTML = `<p style="color:red;padding:2rem">${e.message}</p>`; }
+}
+
+// Rendu de la fiche (rejoué sans nouvel appel API quand la langue change : pas de vue comptée en double)
+function renderDetail(p) {
+  const container = document.getElementById('detail-content');
+  try {
     // URL propre + titre d'onglet (utile au partage et à l'historique)
     history.replaceState(null, '', new URL(annonceUrl(p.id, p.title)).pathname);
     document.title = p.title + ' | DzImmo';
@@ -2461,7 +2551,7 @@ async function loadDetail(id) {
       ? `<div style="background:#fee2e2;color:#991b1b;border:1px solid #f87171;border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;font-size:.9rem">❌ ${T('mod_banner_rejected')} ${p.moderation_reason ? T('dash_reason') + ' ' + esc(p.moderation_reason) : ''}</div>`
       : '';
     const photos = Array.isArray(p.photos) ? p.photos : [p.image].filter(Boolean);
-    const price  = p.mode === 'vente' ? formatPrice(p.price) + ' DZD' : formatPrice(p.price) + ' DZD/mois';
+    const price  = priceText(p);
     const feats  = Array.isArray(p.features) ? p.features : [];
 
     let featuresHTML = feats.map(f => `<span class="feature-chip">${FEATURES[f] || f}</span>`).join('');
@@ -2474,7 +2564,7 @@ async function loadDetail(id) {
           <img src="${photos[0] || ''}" alt="${esc(p.title)}"
                onclick="openLightbox(${photosJSON}, 0)"
                onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=800&q=70'">
-          ${photos.length > 3 ? `<button class="gallery-more-btn" onclick="openLightbox(${photosJSON}, 0)">📷 Voir les ${photos.length} photos</button>` : ''}
+          ${photos.length > 3 ? `<button class="gallery-more-btn" onclick="openLightbox(${photosJSON}, 0)">${T('det_see_photos').replace('{n}', photos.length)}</button>` : ''}
         </div>
         <div class="detail-gallery-side">
           ${photos[1] ? `<img src="${photos[1]}" alt="Photo 2" onclick="openLightbox(${photosJSON}, 1)" onerror="this.remove()">` : '<div style="background:var(--border)"></div>'}
@@ -2488,20 +2578,20 @@ async function loadDetail(id) {
           <div class="detail-loc">📍 ${esc([p.address, p.commune, p.wilaya].filter(Boolean).join(', '))}</div>
           <div class="detail-price">${price}</div>
           <div class="detail-stats">
-            ${p.surface_m2 ? `<div class="stat-box"><div class="val">${p.surface_m2}</div><div class="lbl">m²</div></div>` : ''}
-            ${p.rooms      ? `<div class="stat-box"><div class="val">${p.rooms}</div><div class="lbl">Pièce${p.rooms > 1 ? 's' : ''}</div></div>` : ''}
-            ${p.baths      ? `<div class="stat-box"><div class="val">${p.baths}</div><div class="lbl">SDB</div></div>` : ''}
+            ${p.surface_m2 ? `<div class="stat-box"><div class="val">${p.surface_m2}</div><div class="lbl">${T('u_m2')}</div></div>` : ''}
+            ${p.rooms      ? `<div class="stat-box"><div class="val">${p.rooms}</div><div class="lbl">${capFirst(unit(p.rooms, 'u_room'))}</div></div>` : ''}
+            ${p.baths      ? `<div class="stat-box"><div class="val">${p.baths}</div><div class="lbl">${unit(p.baths, 'u_bath')}</div></div>` : ''}
           </div>
           ${featuresHTML ? `<div class="detail-features">${featuresHTML}</div>` : ''}
-          <h3 style="font-size:1rem;font-weight:700;margin-bottom:.75rem">Description</h3>
-          <div class="detail-desc">${esc(p.description || 'Aucune description fournie.')}</div>
+          <h3 style="font-size:1rem;font-weight:700;margin-bottom:.75rem">${T('det_desc')}</h3>
+          <div class="detail-desc">${esc(p.description || T('det_no_desc'))}</div>
           ${p.reviews > 0 ? `
           <div style="margin-top:2rem">
-            <h3 style="font-size:1rem;font-weight:700;margin-bottom:.75rem">Avis (${p.reviews})</h3>
+            <h3 style="font-size:1rem;font-weight:700;margin-bottom:.75rem">${T('det_reviews')} (${p.reviews})</h3>
             <div>${(p.reviews_list || p.reviews_data || []).map(r => `
               <div style="padding:.75rem 0;border-bottom:1px solid var(--border)">
                 <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">
-                  <strong style="font-size:.88rem">${esc(r.author_name || 'Anonyme')}</strong>
+                  <strong style="font-size:.88rem">${esc(r.author_name || T('det_anon'))}</strong>
                   <span class="stars">${'⭐'.repeat(Math.round(r.rating))}</span>
                 </div>
                 <p style="font-size:.88rem;color:var(--text-muted)">${esc(r.comment || '')}</p>
@@ -2515,45 +2605,45 @@ async function loadDetail(id) {
               <div class="owner-avatar">${(p.agency_name || p.owner_name || '?')[0].toUpperCase()}</div>
               <div>
                 <div class="owner-name">${esc(p.agency_name || p.owner_name)}</div>
-                <div class="owner-agency">${p.agency_name ? 'Agence immobilière' : 'Particulier'}</div>
+                <div class="owner-agency">${T(p.agency_name ? 'det_agency' : 'det_private')}</div>
               </div>
             </div>
             ${token ? `
             <form class="contact-form" onsubmit="return submitContact(event, ${p.id}, ${p.owner_id})">
-              <h3>Contacter le vendeur</h3>
-              <label>Type de demande</label>
+              <h3>${T('det_contact')}</h3>
+              <label>${T('det_req_type')}</label>
               <select id="ctype-${p.id}">
-                <option value="info">Demande d'information</option>
-                <option value="visite">Demander une visite</option>
-                <option value="offre">Faire une offre de prix</option>
+                <option value="info">${T('det_opt_info')}</option>
+                <option value="visite">${T('det_opt_visit')}</option>
+                <option value="offre">${T('det_opt_offer')}</option>
               </select>
               <div id="visit-field-${p.id}" class="hidden">
-                <label>Date de visite souhaitée</label>
+                <label>${T('det_visit_date')}</label>
                 <input type="date" id="cdate-${p.id}" min="${new Date().toISOString().slice(0,10)}">
               </div>
               <div id="offer-field-${p.id}" class="hidden">
-                <label>Montant de l'offre (DZD)</label>
+                <label>${T('det_offer_amount')}</label>
                 <input type="number" id="coffer-${p.id}" placeholder="ex: 25000000">
               </div>
-              <label>Message</label>
-              <textarea id="cmsg-${p.id}" placeholder="Votre message…"></textarea>
-              <button type="submit" class="btn btn-primary" style="width:100%;margin-top:.75rem;padding:.7rem">Envoyer la demande</button>
+              <label>${T('det_msg')}</label>
+              <textarea id="cmsg-${p.id}" placeholder="${T('det_msg_ph')}"></textarea>
+              <button type="submit" class="btn btn-primary" style="width:100%;margin-top:.75rem;padding:.7rem">${T('det_send_req')}</button>
             </form>
-            <button class="btn btn-outline" style="width:100%;margin-top:.5rem;padding:.7rem" onclick="openChat(${p.id}, ${p.owner_id})">💬 Envoyer un message</button>
+            <button class="btn btn-outline" style="width:100%;margin-top:.5rem;padding:.7rem" onclick="openChat(${p.id}, ${p.owner_id})">${T('det_send_msg')}</button>
             ` : `
-            <p style="font-size:.88rem;color:var(--text-muted);text-align:center;margin-bottom:1rem">Connectez-vous pour contacter le vendeur</p>
-            <button class="btn btn-primary" style="width:100%;padding:.7rem" onclick="openModal('login')">Se connecter</button>
+            <p style="font-size:.88rem;color:var(--text-muted);text-align:center;margin-bottom:1rem">${T('det_login_hint')}</p>
+            <button class="btn btn-primary" style="width:100%;padding:.7rem" onclick="openModal('login')">${T('det_login')}</button>
             `}
             <div style="margin-top:1rem;font-size:.8rem;color:var(--text-muted);text-align:center">
-              👁 ${p.views || 0} vue${(p.views || 0) > 1 ? 's' : ''} ·
-              Publié le ${new Date(p.created_at).toLocaleDateString('fr-DZ')}
+              👁 ${p.views || 0} ${unit(p.views || 0, 'u_view')} ·
+              ${T('det_published')} ${new Date(p.created_at).toLocaleDateString('fr-DZ')}
             </div>
             <div style="display:flex;gap:.5rem;margin-top:.75rem">
               <button class="btn btn-outline btn-sm" style="flex:1;display:flex;align-items:center;justify-content:center;gap:.4rem" onclick="shareWhatsApp(${p.id}, ${JSON.stringify(p.title)}, ${p.price})">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                 WhatsApp
               </button>
-              <button class="btn btn-outline btn-sm" style="flex:1" onclick="copyPropertyLink(${p.id})">🔗 Copier</button>
+              <button class="btn btn-outline btn-sm" style="flex:1" onclick="copyPropertyLink(${p.id})">${T('det_copy')}</button>
             </div>
           </div>
         </div>
@@ -2598,7 +2688,7 @@ async function loadPriceHistory(id, currentPrice) {
     const pct  = prices[0] ? ((diff / prices[0]) * 100).toFixed(1) : 0;
     const trend = diff > 0 ? `<span style="color:#ef4444">▲ +${pct}%</span>`
                 : diff < 0 ? `<span style="color:#0C6E4F">▼ ${pct}%</span>`
-                : `<span style="color:var(--text-muted)">→ stable</span>`;
+                : `<span style="color:var(--text-muted)">→ ${T('det_stable')}</span>`;
 
     const labels = history.map((h, i) => {
       const d = new Date(h.changed_at);
@@ -2614,7 +2704,7 @@ async function loadPriceHistory(id, currentPrice) {
     const section = document.createElement('div');
     section.style.cssText = 'margin-top:1.5rem';
     section.innerHTML = `
-      <h3 style="font-size:1rem;font-weight:700;margin-bottom:.5rem">📈 Historique des prix <small style="font-weight:400;color:var(--text-muted)">${trend}</small></h3>
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:.5rem">${T('det_price_hist')} <small style="font-weight:400;color:var(--text-muted)">${trend}</small></h3>
       <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:.75rem;box-shadow:var(--shadow)">
         <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;color:var(--text);overflow:visible">
           <defs>
@@ -2643,7 +2733,7 @@ async function loadSimilarProperties(excludeId, wilaya, type_bien) {
     if (!similar.length) return;
     const section = document.createElement('div');
     section.style.cssText = 'margin-top:2.5rem';
-    section.innerHTML = `<h3 style="font-size:1rem;font-weight:700;margin-bottom:1rem">Biens similaires</h3>
+    section.innerHTML = `<h3 style="font-size:1rem;font-weight:700;margin-bottom:1rem">${T('det_similar')}</h3>
       <div class="grid">${similar.map(p => cardHTML(p)).join('')}</div>`;
     container.appendChild(section);
   } catch {}
@@ -2658,7 +2748,7 @@ async function submitContact(event, propertyId, ownerId) {
   const offerAmount = document.getElementById('coffer-' + propertyId)?.value;
   try {
     await api('/contacts', 'POST', { property_id: propertyId, type, message, visit_date: visitDate || null, offer_amount: offerAmount || null });
-    toast('✅ Demande envoyée au vendeur !');
+    toast(T('det_sent'));
   } catch (e) { toast('❌ ' + e.message); }
   return false;
 }
@@ -2915,7 +3005,7 @@ async function loadAgences() {
   try {
     const data = await api('/agencies');
     if (!data.length) {
-      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🏢</div><h3>Aucune agence enregistrée</h3></div>';
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🏢</div><h3>' + T('ag_none') + '</h3></div>';
       return;
     }
     grid.innerHTML = data.map(a => `
@@ -2931,7 +3021,7 @@ async function loadAgences() {
           <div class="card-loc">📍 ${esc(a.wilaya || '')}</div>
           <div class="card-meta" style="margin-top:.5rem">
             ${a.phone ? `<span>📞 ${esc(a.phone)}</span>` : ''}
-            ${a.property_count ? `<span>🏠 ${a.property_count} annonce${a.property_count > 1 ? 's' : ''}</span>` : ''}
+            ${a.property_count ? `<span>🏠 ${a.property_count} ${unit(a.property_count, 'st_ad')}</span>` : ''}
             ${a.rating > 0 ? `<span>⭐ ${a.rating}</span>` : ''}
           </div>
         </div>
@@ -2960,15 +3050,15 @@ async function loadAgencyDetail(id) {
             </div>
           </div>
           <div style="padding:1.25rem 1.5rem;display:flex;gap:2rem;flex-wrap:wrap">
-            ${a.property_count ? `<div style="text-align:center"><div style="font-size:1.4rem;font-weight:800;color:var(--primary)">${a.property_count}</div><div style="font-size:.8rem;color:var(--text-muted)">annonce${a.property_count > 1 ? 's' : ''}</div></div>` : ''}
-            ${a.rating > 0 ? `<div style="text-align:center"><div style="font-size:1.4rem;font-weight:800;color:var(--primary)">⭐ ${a.rating}</div><div style="font-size:.8rem;color:var(--text-muted)">note</div></div>` : ''}
-            ${a.website ? `<a href="${esc(a.website)}" target="_blank" rel="noopener" style="color:var(--primary);font-size:.88rem;align-self:center">🌐 Site web</a>` : ''}
+            ${a.property_count ? `<div style="text-align:center"><div style="font-size:1.4rem;font-weight:800;color:var(--primary)">${a.property_count}</div><div style="font-size:.8rem;color:var(--text-muted)">${unit(a.property_count, 'st_ad')}</div></div>` : ''}
+            ${a.rating > 0 ? `<div style="text-align:center"><div style="font-size:1.4rem;font-weight:800;color:var(--primary)">⭐ ${a.rating}</div><div style="font-size:.8rem;color:var(--text-muted)">${T('ag_rating')}</div></div>` : ''}
+            ${a.website ? `<a href="${esc(a.website)}" target="_blank" rel="noopener" style="color:var(--primary);font-size:.88rem;align-self:center">${T('ag_website')}</a>` : ''}
           </div>
           ${a.description ? `<div style="padding:0 1.5rem 1.25rem;font-size:.9rem;color:var(--text-muted)">${esc(a.description)}</div>` : ''}
         </div>
         ${props.length ? `
         <div>
-          <h3 style="font-size:1rem;font-weight:700;margin-bottom:1rem">Annonces de l'agence</h3>
+          <h3 style="font-size:1rem;font-weight:700;margin-bottom:1rem">${T('agency_detail_listings')}</h3>
           <div class="grid">${props.map(p => cardHTML(p)).join('')}</div>
         </div>` : ''}
       </div>`;
@@ -3043,7 +3133,7 @@ function toggleCompare(id) {
   if (idx !== -1) {
     _compareList.splice(idx, 1);
   } else {
-    if (_compareList.length >= 3) { toast('Vous pouvez comparer 3 biens maximum.'); return; }
+    if (_compareList.length >= 3) { toast(T('cmp_max')); return; }
     _compareList.push(p);
   }
   updateCompareBar();
@@ -3067,25 +3157,25 @@ function updateCompareBar() {
     <div class="cmp-thumb">
       <img src="${esc(p.image||'')}" alt="" onerror="this.style.display='none'">
       <span>${esc(p.title)}</span>
-      <button class="cmp-rm" onclick="toggleCompare(${p.id})" title="Retirer">✕</button>
+      <button class="cmp-rm" onclick="toggleCompare(${p.id})" title="${T('cmp_remove')}">✕</button>
     </div>`).join('');
 }
 
 function openCompare() {
-  if (_compareList.length < 2) { toast('Sélectionnez au moins 2 biens à comparer.'); return; }
+  if (_compareList.length < 2) { toast(T('cmp_min')); return; }
   const ROWS = [
-    ['Prix',     p => (p.mode === 'vente' ? formatPrice(p.price) + ' DZD' : formatPrice(p.price) + ' DZD/mois')],
-    ['Type',     p => TYPES[p.type_bien] || p.type_bien],
-    ['Mode',     p => MODES[p.mode] || p.mode],
-    ['Wilaya',   p => p.wilaya || '—'],
-    ['Commune',  p => p.commune || '—'],
-    ['Surface',  p => p.surface_m2 ? p.surface_m2 + ' m²' : '—'],
-    ['Pièces',   p => p.rooms || '—'],
-    ['SDB',      p => p.baths || '—'],
-    ['Étage',    p => p.floor !== null && p.floor !== undefined ? p.floor : '—'],
-    ['Vues',     p => p.views || 0],
-    ['Publié',   p => new Date(p.created_at).toLocaleDateString('fr-DZ')],
-    ['Vérifié',  p => p.verified ? '✅' : '—'],
+    [T('cmp_r_price'),               p => priceText(p)],
+    [T('filter_type'),               p => TYPES[p.type_bien] || p.type_bien],
+    [T('filter_mode'),               p => MODES[p.mode] || p.mode],
+    [T('filter_wilaya'),             p => p.wilaya || '—'],
+    [T('cmp_r_commune'),             p => p.commune || '—'],
+    [T('cmp_r_surface'),             p => p.surface_m2 ? p.surface_m2 + ' ' + T('u_m2') : '—'],
+    [capFirst(T('u_room_many')),     p => p.rooms || '—'],
+    [T('u_bath_one'),                p => p.baths || '—'],
+    [T('cmp_r_floor'),               p => p.floor !== null && p.floor !== undefined ? p.floor : '—'],
+    [capFirst(T('u_view_many')),     p => p.views || 0],
+    [T('cmp_r_published'),           p => new Date(p.created_at).toLocaleDateString('fr-DZ')],
+    [T('cmp_r_verified'),            p => p.verified ? '✅' : '—'],
   ];
   const cols = _compareList;
   const tbl  = document.getElementById('compare-table');
@@ -3096,7 +3186,7 @@ function openCompare() {
         ${cols.map(p => `<th>
           <img class="cmp-prop-img" src="${esc(p.image||'')}" alt="" onerror="this.style.display='none'">
           <div style="font-size:.83rem;font-weight:700;margin:.35rem 0 .15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(p.title)}">${esc(p.title)}</div>
-          <button class="btn btn-primary btn-sm" style="font-size:.77rem" onclick="showPage('detail',${p.id});closeCompare()">Voir →</button>
+          <button class="btn btn-primary btn-sm" style="font-size:.77rem" onclick="showPage('detail',${p.id});closeCompare()">${T('cmp_view')}</button>
         </th>`).join('')}
       </tr>
     </thead>
@@ -3133,11 +3223,11 @@ function shareWhatsApp(id, title, price) {
 function copyPropertyLink(id) {
   // Sur la fiche, l'URL courante est déjà l'URL propre /annonce/id-slug
   const url = location.pathname.startsWith('/annonce/') ? location.origin + location.pathname : annonceUrl(id, '');
-  navigator.clipboard.writeText(url).then(() => toast('🔗 Lien copié !')).catch(() => {
+  navigator.clipboard.writeText(url).then(() => toast(T('link_copied'))).catch(() => {
     const el = document.createElement('textarea');
     el.value = url; document.body.appendChild(el); el.select();
     document.execCommand('copy'); document.body.removeChild(el);
-    toast('🔗 Lien copié !');
+    toast(T('link_copied'));
   });
 }
 
@@ -3505,11 +3595,11 @@ async function toggleFav(propertyId, btn) {
     if (is_favorite) {
       await api('/favorites/' + propertyId, 'DELETE');
       btn.textContent = '🤍';
-      toast('Retiré des favoris.');
+      toast(T('fav_removed'));
     } else {
       await api('/favorites', 'POST', { property_id: propertyId });
       btn.textContent = '❤️';
-      toast('❤️ Ajouté aux favoris !');
+      toast(T('fav_added'));
     }
   } catch (e) { toast('❌ ' + e.message); }
 }
@@ -3527,7 +3617,7 @@ async function loadStatsPage() {
       <div style="margin-bottom:.45rem">
         <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:.15rem">
           <span style="font-weight:600">${esc(w.wilaya)}</span>
-          <span style="color:var(--text-muted)">${w.count} ${T(w.count > 1 ? 'st_ad_many' : 'st_ad_one')}</span>
+          <span style="color:var(--text-muted)">${w.count} ${unit(w.count, 'st_ad')}</span>
         </div>
         <div style="background:var(--border);border-radius:20px;height:7px">
           <div style="width:${Math.round(w.count/maxW*100)}%;background:var(--primary);border-radius:20px;height:7px;transition:width .4s"></div>
@@ -3981,7 +4071,7 @@ async function loadMessages() {
   try {
     const data = await api('/messages');
     if (!data.length) {
-      list.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:.88rem">Aucune conversation</div>';
+      list.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:.88rem">' + T('msg_none') + '</div>';
       return;
     }
     list.innerHTML = data.map(c => `
@@ -4063,7 +4153,7 @@ function updateNotifBadge() {
 function renderNotifList() {
   const list = document.getElementById('notif-list');
   if (!list) return;
-  if (!_notifs.length) { list.innerHTML = '<div class="notif-empty">Aucune notification</div>'; return; }
+  if (!_notifs.length) { list.innerHTML = '<div class="notif-empty">' + T('notif_empty') + '</div>'; return; }
   const ICONS = { new_contact:'📩', contact_status:'✅', message:'💬', moderation_pending:'🛡️', moderation_decision:'📋' };
   list.innerHTML = _notifs.slice(0, 20).map(n => `
     <div class="notif-item${n.read ? '' : ' unread'}" onclick="clickNotif(${n.id}, ${n.link_id || 0})">
@@ -4234,8 +4324,8 @@ async function loadMapMarkers() {
     const props      = resp.data;
     const withCoords = props.filter(p => p.lat && p.lng);
     const sans       = props.length - withCoords.length;
-    countEl.textContent = `${resp.total} annonce${resp.total !== 1 ? 's' : ''}` +
-      (sans ? ` · ${sans} sans position` : '');
+    countEl.textContent = `${resp.total} ${unit(resp.total, 'st_ad')}` +
+      (sans ? ` · ${sans} ${T('map_no_pos')}` : '');
 
     mapCluster.clearLayers();
     if (!withCoords.length) return;
@@ -4252,9 +4342,7 @@ async function loadMapMarkers() {
         popupAnchor:[0, -20],
       });
 
-      const price = isVente
-        ? formatPrice(p.price) + ' DZD'
-        : formatPrice(p.price) + ' DZD/mois';
+      const price = priceText(p);
 
       const img = p.image || 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=400&q=70';
       const popup = `
@@ -4266,7 +4354,7 @@ async function loadMapMarkers() {
           <div style="font-size:.95rem;font-weight:700;color:${color};margin-bottom:8px">${price}</div>
           <button onclick="showPage('detail',${p.id})"
                   style="background:${color};color:#fff;border:none;border-radius:7px;padding:6px 0;font-size:.82rem;font-weight:600;cursor:pointer;width:100%;font-family:inherit">
-            Voir l'annonce →
+            ${T('map_view')}
           </button>
         </div>`;
 
@@ -4281,7 +4369,7 @@ async function loadMapMarkers() {
       mapInstance.fitBounds(bounds.pad(wilaya ? 0.15 : 0.08));
     }
   } catch (e) {
-    countEl.textContent = 'Erreur de chargement';
+    countEl.textContent = T('map_error');
     console.error('[carte]', e.message);
   }
 }
