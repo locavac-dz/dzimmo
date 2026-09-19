@@ -16,7 +16,11 @@ Fork de LocaVac. Package npm `dzimmo`. Domaine cible : dzimmo.dz.
 ```bash
 npm run dev      # nodemon
 npm start        # node server/index.js
+npm run make-admin -- <email>   # promeut un compte existant administrateur (--retirer pour l'inverse)
 ```
+
+Le compte et les annonces de démonstration (`seed()` dans `server/db.js`) ne sont créés qu'en dehors de
+`NODE_ENV=production`. En production, le premier admin s'obtient en s'inscrivant puis avec `make-admin`.
 
 Windows : `demarrer.bat`
 

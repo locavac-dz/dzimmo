@@ -166,7 +166,14 @@ const SEED_COORDS = [
   { lat: 36.4800, lng: 2.6800 }, { lat: 36.7213, lng: 3.1876 },
 ];
 
+// Données de démonstration (compte demo@dzimmo.dz, agence, annonces) : développement uniquement.
+// En production, jamais : ce compte a un mot de passe connu et serait un accès ouvert.
+// Pour créer le premier administrateur : s'inscrire sur le site puis `npm run make-admin -- <email>`.
 async function seed() {
+  if (process.env.NODE_ENV === 'production') {
+    console.log('ℹ️  Production : données de démonstration ignorées.');
+    return;
+  }
   const hash = bcrypt.hashSync('demo1234', 10);
   await pool.query(
     `INSERT INTO users (name, email, password, is_agent, is_admin, email_verified)
@@ -176,9 +183,12 @@ async function seed() {
   const ownerRow = await pool.query(`SELECT id FROM users WHERE email = 'demo@dzimmo.dz'`);
   const ownerId  = ownerRow.rows[0].id;
 
+  // La table agencies n'a pas de contrainte d'unicité : ON CONFLICT ne protégeait de rien et une
+  // agence identique était recréée à chaque démarrage. On teste donc l'existence explicitement.
   await pool.query(
     `INSERT INTO agencies (owner_id, name, description, phone, wilaya, verified)
-     VALUES ($1,$2,$3,$4,$5,true) ON CONFLICT DO NOTHING`,
+     SELECT $1::int, $2::text, $3::text, $4::text, $5::text, true
+      WHERE NOT EXISTS (SELECT 1 FROM agencies WHERE owner_id = $1::int AND name = $2::text)`,
     [ownerId, 'Agence Immobilière Horizon', 'Votre partenaire immobilier de confiance en Algérie depuis 2010.', '+213 21 XX XX XX', 'Alger']
   ).catch(() => {});
 
