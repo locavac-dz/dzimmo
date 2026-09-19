@@ -435,6 +435,41 @@
     .footer-col a:hover { color: #fff; }
     .footer-bottom { text-align: center; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,.1); font-size: 0.82rem; opacity: 0.6; }
 
+    /* ── Notifications ── */
+    .notif-wrap { position:relative; }
+    #notif-panel {
+      position: absolute; top: calc(100% + .5rem); right: 0;
+      width: 320px; max-height: 420px; overflow-y: auto;
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.15);
+      z-index: 500;
+    }
+    .notif-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .6rem .9rem; border-bottom: 1px solid var(--border);
+      font-size: .82rem; font-weight: 700;
+    }
+    .notif-item {
+      display: flex; gap: .65rem; padding: .65rem .9rem;
+      border-bottom: 1px solid var(--border); cursor: pointer;
+      transition: background .12s;
+    }
+    .notif-item:hover { background: var(--bg); }
+    .notif-item.unread { background: rgba(12,110,79,.06); }
+    .notif-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: .05rem; }
+    .notif-body { flex: 1; min-width: 0; }
+    .notif-title { font-size: .83rem; font-weight: 700; }
+    .notif-sub { font-size: .78rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .notif-time { font-size: .72rem; color: var(--text-muted); margin-top: .15rem; }
+    .notif-empty { padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: .85rem; }
+    #notif-badge {
+      position: absolute; top: -4px; right: -4px;
+      background: #ef4444; color: #fff;
+      font-size: .65rem; font-weight: 800; border-radius: 50%;
+      min-width: 17px; height: 17px; line-height: 17px; text-align: center;
+      padding: 0 3px; pointer-events: none;
+    }
+
     /* ── Langue / RTL ── */
     .lang-toggle { display:flex;gap:.2rem;align-items:center;margin-left:.5rem; }
     .lang-btn { padding:.25rem .55rem;border-radius:6px;border:1.5px solid var(--border);background:transparent;cursor:pointer;font-size:.8rem;font-weight:700;color:var(--text-muted);transition:all .15s; }
@@ -637,6 +672,18 @@
         <button class="btn btn-primary btn-sm" onclick="openModal('register')" data-i18n="btn_register">S'inscrire</button>
       </div>
       <div id="user-btns" class="hidden" style="display:flex;align-items:center;gap:.4rem">
+        <div class="notif-wrap">
+          <button class="btn btn-outline btn-sm" id="notif-btn" onclick="toggleNotifPanel()" aria-label="Notifications" style="position:relative;font-size:1rem;padding:.3rem .5rem">
+            🔔<span id="notif-badge" class="hidden"></span>
+          </button>
+          <div id="notif-panel" class="hidden">
+            <div class="notif-head">
+              <span>🔔 Notifications</span>
+              <button onclick="markAllNotifsRead()" style="background:none;border:none;cursor:pointer;font-size:.78rem;color:var(--primary);font-weight:700">Tout lire</button>
+            </div>
+            <div id="notif-list"></div>
+          </div>
+        </div>
         <button class="btn btn-outline btn-sm" onclick="showPage('messages')" style="position:relative">
           💬 <span id="msg-count" class="badge hidden">0</span>
         </button>
@@ -1907,6 +1954,22 @@ async function init() {
   if (params.get('p'))               showPage('detail', Number(params.get('p')));
   if (window.location.hash.includes('reset_token=')) openModal('login');
   if (navigator.serviceWorker) navigator.serviceWorker.register('/sw.js');
+
+  // Restaurer une recherche filtrée partagée par URL
+  if (params.get('page') === 'annonces') {
+    const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+    set('f-wilaya',      params.get('f-wilaya'));
+    set('f-mode',        params.get('f-mode'));
+    set('f-type',        params.get('f-type'));
+    set('f-min-price',   params.get('f-min-price'));
+    set('f-max-price',   params.get('f-max-price'));
+    set('f-rooms',       params.get('f-rooms'));
+    set('f-min-surface', params.get('f-min-surface'));
+    set('f-q',           params.get('f-q'));
+    set('f-sort',        params.get('f-sort'));
+    showPage('annonces');
+    loadAnnonces(Number(params.get('p')) || 1);
+  }
 }
 
 function populateWilayas() {
@@ -1931,6 +1994,8 @@ async function loadCurrentUser() {
     if (r.is_admin) document.getElementById('nav-admin').classList.remove('hidden');
     setupWs();
     loadUnreadCount();
+    loadNotifsFromStorage();
+    updateNotifBadge();
   } catch { token = null; localStorage.removeItem('dzimmo_token'); }
 }
 
@@ -2127,15 +2192,26 @@ async function loadAnnonces(page = 1) {
 
   const params = new URLSearchParams({ status: 'active', page, limit: 12 });
   const get = id => document.getElementById(id)?.value;
-  if (get('f-wilaya'))    params.set('wilaya',    get('f-wilaya'));
-  if (get('f-mode'))      params.set('mode',      get('f-mode'));
-  if (get('f-type'))      params.set('type_bien', get('f-type'));
-  if (get('f-min-price')) params.set('min_price', get('f-min-price'));
-  if (get('f-max-price')) params.set('max_price', get('f-max-price'));
-  if (get('f-rooms'))     params.set('rooms',     get('f-rooms'));
+  if (get('f-wilaya'))      params.set('wilaya',      get('f-wilaya'));
+  if (get('f-mode'))        params.set('mode',        get('f-mode'));
+  if (get('f-type'))        params.set('type_bien',   get('f-type'));
+  if (get('f-min-price'))   params.set('min_price',   get('f-min-price'));
+  if (get('f-max-price'))   params.set('max_price',   get('f-max-price'));
+  if (get('f-rooms'))       params.set('rooms',       get('f-rooms'));
   if (get('f-min-surface')) params.set('min_surface', get('f-min-surface'));
   if (get('f-q'))           params.set('q',           get('f-q'));
   if (get('f-sort'))        params.set('sort',        get('f-sort'));
+
+  // Persister les filtres dans l'URL (partage de recherche)
+  const urlParams = new URLSearchParams();
+  urlParams.set('page', 'annonces');
+  ['f-wilaya','f-mode','f-type','f-min-price','f-max-price','f-rooms','f-min-surface','f-q','f-sort'].forEach(id => {
+    const v = get(id);
+    if (v) urlParams.set(id, v);
+  });
+  if (page > 1) urlParams.set('p', page);
+  history.replaceState(null, '', '?' + urlParams.toString());
+
   try {
     const resp = await api('/properties?' + params);
     const { data, total, pages } = resp;
@@ -3546,6 +3622,86 @@ async function sendMessage() {
   } catch (e) { toast('❌ ' + e.message); }
 }
 
+// ── Notifications in-app ───────────────────────────
+const NOTIF_KEY = () => 'dzimmo_notifs_' + (currentUser?.id || '0');
+let _notifs = [];
+let _notifOpen = false;
+
+function loadNotifsFromStorage() {
+  try { _notifs = JSON.parse(localStorage.getItem(NOTIF_KEY()) || '[]'); } catch { _notifs = []; }
+}
+
+function saveNotifs() {
+  try { localStorage.setItem(NOTIF_KEY(), JSON.stringify(_notifs.slice(0, 30))); } catch {}
+}
+
+function pushNotif(n) {
+  _notifs.unshift({ ...n, id: Date.now(), read: false });
+  saveNotifs();
+  updateNotifBadge();
+  if (_notifOpen) renderNotifList();
+}
+
+function updateNotifBadge() {
+  const badge = document.getElementById('notif-badge');
+  if (!badge) return;
+  const count = _notifs.filter(n => !n.read).length;
+  if (count > 0) { badge.textContent = count > 9 ? '9+' : count; badge.classList.remove('hidden'); }
+  else badge.classList.add('hidden');
+}
+
+function renderNotifList() {
+  const list = document.getElementById('notif-list');
+  if (!list) return;
+  if (!_notifs.length) { list.innerHTML = '<div class="notif-empty">Aucune notification</div>'; return; }
+  const ICONS = { new_contact:'📩', contact_status:'✅', message:'💬' };
+  list.innerHTML = _notifs.slice(0, 20).map(n => `
+    <div class="notif-item${n.read ? '' : ' unread'}" onclick="clickNotif(${n.id}, ${n.link_id || 0})">
+      <div class="notif-icon">${ICONS[n.notif_type] || '🔔'}</div>
+      <div class="notif-body">
+        <div class="notif-title">${esc(n.title || '')}</div>
+        <div class="notif-sub">${esc(n.body || '')}</div>
+        <div class="notif-time">${n.time ? new Date(n.time).toLocaleString('fr-DZ', {hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'}) : ''}</div>
+      </div>
+    </div>`).join('');
+}
+
+function toggleNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  _notifOpen = !_notifOpen;
+  panel.classList.toggle('hidden', !_notifOpen);
+  if (_notifOpen) renderNotifList();
+}
+
+function clickNotif(id, linkId) {
+  const n = _notifs.find(x => x.id === id);
+  if (n) n.read = true;
+  saveNotifs();
+  updateNotifBadge();
+  renderNotifList();
+  if (linkId) showPage('detail', linkId);
+  else if (document.getElementById('notif-panel')) {
+    document.getElementById('notif-panel').classList.add('hidden');
+    _notifOpen = false;
+  }
+}
+
+function markAllNotifsRead() {
+  _notifs.forEach(n => n.read = true);
+  saveNotifs();
+  updateNotifBadge();
+  renderNotifList();
+}
+
+// Fermer le panel si clic à l'extérieur
+document.addEventListener('click', e => {
+  const wrap = document.querySelector('.notif-wrap');
+  if (wrap && !wrap.contains(e.target) && _notifOpen) {
+    document.getElementById('notif-panel').classList.add('hidden');
+    _notifOpen = false;
+  }
+});
+
 // ── WebSocket ──────────────────────────────────────
 function setupWs() {
   if (!token) return;
@@ -3556,6 +3712,10 @@ function setupWs() {
     if (d.type === 'message') {
       loadUnreadCount();
       if (currentPage === 'messages') loadMessages();
+    }
+    if (d.type === 'notif') {
+      pushNotif(d);
+      toast('🔔 ' + (d.title || 'Nouvelle notification'));
     }
   };
   wsConn.onclose = () => { setTimeout(() => token && setupWs(), 3000); };

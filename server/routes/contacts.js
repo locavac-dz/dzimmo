@@ -2,6 +2,7 @@ const router = require('express').Router();
 const db     = require('../db');
 const auth   = require('../middleware/auth');
 const mailer = require('../mailer');
+const ws     = require('../ws');
 
 const TYPES_VALIDES   = ['visite', 'info', 'offre'];
 const STATUTS_VALIDES = ['pending', 'confirmed', 'rejected', 'done'];
@@ -71,6 +72,16 @@ router.post('/', auth, async (req, res) => {
     });
   }
 
+  // Notifier le propriétaire en temps réel via WebSocket
+  ws.send(property.owner_id, {
+    type:       'notif',
+    notif_type: 'new_contact',
+    title:      'Nouvelle demande de contact',
+    body:       `${requester.name} a envoyé une demande pour "${property.title}"`,
+    link_id:    property.id,
+    time:       new Date().toISOString(),
+  });
+
   res.status(201).json({ id: request.id });
 });
 
@@ -87,6 +98,20 @@ router.put('/:id/status', auth, async (req, res) => {
   if (!STATUTS_VALIDES.includes(status)) return res.status(400).json({ error: 'Statut invalide.' });
 
   await db.contact_requests.update(c => c.id === request.id, { status });
+
+  // Notifier le demandeur en temps réel pour les statuts confirmé/refusé
+  if (status === 'confirmed' || status === 'rejected') {
+    const isConfirmed = status === 'confirmed';
+    ws.send(request.user_id, {
+      type:       'notif',
+      notif_type: 'contact_status',
+      title:      isConfirmed ? 'Demande confirmée !' : 'Demande refusée',
+      body:       `Votre demande pour "${property.title}" a été ${isConfirmed ? 'confirmée' : 'refusée'}.`,
+      link_id:    property.id,
+      time:       new Date().toISOString(),
+    });
+  }
+
   res.json({ ok: true });
 });
 
