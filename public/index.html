@@ -3123,6 +3123,31 @@ async function toggleFav(propertyId, btn) {
 }
 
 // ── Dashboard ─────────────────────────────────────
+function buildViewsChart(data) {
+  const top = [...data].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 8);
+  if (!top.length || top.every(p => !p.views)) return '';
+  const maxV = Math.max(...top.map(p => p.views || 0)) || 1;
+  const W = 560, H = 160, BAR_W = Math.floor((W - 40) / top.length - 6), PAD = 20;
+  const bars = top.map((p, i) => {
+    const bh = Math.round(((p.views || 0) / maxV) * (H - 40));
+    const x  = PAD + i * ((W - PAD * 2) / top.length);
+    const y  = H - 20 - bh;
+    const label = (p.title || '').slice(0, 10) + ((p.title || '').length > 10 ? '…' : '');
+    return `
+      <rect x="${x}" y="${y}" width="${BAR_W}" height="${bh}" rx="4" fill="#0C6E4F" opacity=".85"/>
+      <text x="${x + BAR_W / 2}" y="${y - 4}" text-anchor="middle" font-size="10" fill="currentColor" opacity=".8">${p.views || 0}</text>
+      <text x="${x + BAR_W / 2}" y="${H - 4}" text-anchor="middle" font-size="9" fill="currentColor" opacity=".6">${esc(label)}</text>`;
+  }).join('');
+  return `
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-top:1.25rem;box-shadow:var(--shadow)">
+      <div style="font-size:.88rem;font-weight:700;color:var(--text-muted);margin-bottom:.75rem">📊 Vues par annonce (top 8)</div>
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;height:auto;color:var(--text);overflow:visible">
+        ${bars}
+        <line x1="${PAD}" y1="${H - 20}" x2="${W - PAD}" y2="${H - 20}" stroke="var(--border)" stroke-width="1"/>
+      </svg>
+    </div>`;
+}
+
 let currentDashTab = 'mes-annonces';
 
 async function loadDashboard() {
@@ -3186,7 +3211,7 @@ async function dashTab(tab) {
             ${p.status==='active'?`<button class="btn btn-outline btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap;border-color:#94a3b8;color:#64748b" onclick="ownerArchive(${p.id})">Archiver</button>`:''}
           </div>
         </div>`).join('')}
-    </div>`;
+    </div>` + buildViewsChart(data);
   }
 
   if (tab === 'mes-contacts') {
