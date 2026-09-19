@@ -614,6 +614,7 @@
       <span class="count-badge" id="annonces-count">—</span>
     </div>
     <div class="grid" id="annonces-grid"><div class="loading"><div class="spinner"></div></div></div>
+    <div id="annonces-pagination"></div>
   </div>
 </div>
 
@@ -1801,19 +1802,24 @@ async function loadHomeProperties(mode = '') {
   const countEl = document.getElementById('props-count');
   grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
-    const params = new URLSearchParams({ status: 'active' });
+    const params = new URLSearchParams({ status: 'active', limit: 12 });
     if (mode) params.set('mode', mode);
-    const data = await api('/properties?' + params);
-    countEl.textContent = data.length + ' annonce' + (data.length > 1 ? 's' : '');
-    renderGrid(grid, data.slice(0, 12));
+    const resp = await api('/properties?' + params);
+    countEl.textContent = resp.total + ' annonce' + (resp.total > 1 ? 's' : '');
+    renderGrid(grid, resp.data);
   } catch (e) { grid.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
 }
 
-async function loadAnnonces() {
+let annoncesPage = 1;
+
+async function loadAnnonces(page = 1) {
+  annoncesPage = page;
   const grid = document.getElementById('annonces-grid');
   const countEl = document.getElementById('annonces-count');
   grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  const params = new URLSearchParams({ status: 'active' });
+  document.getElementById('annonces-pagination').innerHTML = '';
+
+  const params = new URLSearchParams({ status: 'active', page, limit: 12 });
   const get = id => document.getElementById(id)?.value;
   if (get('f-wilaya'))    params.set('wilaya',    get('f-wilaya'));
   if (get('f-mode'))      params.set('mode',      get('f-mode'));
@@ -1823,14 +1829,46 @@ async function loadAnnonces() {
   if (get('f-rooms'))     params.set('rooms',     get('f-rooms'));
   if (get('f-q'))         params.set('q',         get('f-q'));
   try {
-    const data = await api('/properties?' + params);
-    countEl.textContent = data.length + ' résultat' + (data.length > 1 ? 's' : '');
+    const resp = await api('/properties?' + params);
+    const { data, total, pages } = resp;
+    countEl.textContent = total + ' résultat' + (total > 1 ? 's' : '');
     if (!data.length) {
       grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🔍</div><h3>Aucune annonce trouvée</h3><p>Essayez d\'élargir vos critères.</p></div>';
       return;
     }
     renderGrid(grid, data);
+    renderPagination('annonces-pagination', page, pages, 'loadAnnonces');
   } catch (e) { grid.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
+}
+
+function renderPagination(containerId, page, pages, fnName) {
+  const c = document.getElementById(containerId);
+  if (!c || pages <= 1) { if (c) c.innerHTML = ''; return; }
+
+  const dot = `<span style="padding:.4rem .2rem;color:var(--text-muted)">…</span>`;
+
+  const btn = (label, p, active, disabled) => {
+    const style = `min-width:36px;padding:.35rem .65rem;font-size:.85rem`;
+    if (disabled) return `<button class="btn btn-outline btn-sm" style="${style};opacity:.4" disabled>${label}</button>`;
+    if (active)   return `<button class="btn btn-primary btn-sm" style="${style}">${label}</button>`;
+    return `<button class="btn btn-outline btn-sm" style="${style}" onclick="${fnName}(${p})">${label}</button>`;
+  };
+
+  const range = [];
+  for (let p = Math.max(1, page - 2); p <= Math.min(pages, page + 2); p++) range.push(p);
+
+  const first = range[0] > 1
+    ? btn(1, 1, false, false) + (range[0] > 2 ? dot : '')
+    : '';
+  const last  = range[range.length - 1] < pages
+    ? (range[range.length - 1] < pages - 1 ? dot : '') + btn(pages, pages, false, false)
+    : '';
+
+  c.innerHTML = `<div style="display:flex;gap:.3rem;flex-wrap:wrap;justify-content:center;padding:1.5rem 0">
+    ${btn('←', page - 1, false, page <= 1)}
+    ${first}${range.map(p => btn(p, p, p === page, false)).join('')}${last}
+    ${btn('→', page + 1, false, page >= pages)}
+  </div>`;
 }
 
 function renderGrid(container, props) {
@@ -2751,11 +2789,13 @@ async function loadMapMarkers() {
   const countEl = document.getElementById('map-count');
   countEl.textContent = T('loading');
 
+  params.set('limit', '500');
   try {
-    const props     = await api('/properties?' + params);
+    const resp       = await api('/properties?' + params);
+    const props      = resp.data;
     const withCoords = props.filter(p => p.lat && p.lng);
     const sans       = props.length - withCoords.length;
-    countEl.textContent = `${props.length} annonce${props.length !== 1 ? 's' : ''}` +
+    countEl.textContent = `${resp.total} annonce${resp.total !== 1 ? 's' : ''}` +
       (sans ? ` · ${sans} sans position` : '');
 
     mapCluster.clearLayers();

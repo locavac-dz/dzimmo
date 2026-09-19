@@ -23,33 +23,67 @@ async function withOwner(property) {
   };
 }
 
-// GET /api/properties
+// GET /api/properties — avec pagination SQL
 router.get('/', async (req, res) => {
-  const { wilaya, commune, mode, type_bien, min_price, max_price, min_surface, max_surface, rooms, q, status } = req.query;
+  const { wilaya, commune, mode, type_bien, min_price, max_price,
+          min_surface, max_surface, rooms, q, status,
+          page, limit: limitQ } = req.query;
 
-  const all = await db.properties.find(p => {
-    if (p.status !== (status || 'active')) return false;
-    if (wilaya    && p.wilaya    !== wilaya)              return false;
-    if (commune   && p.commune   !== commune)             return false;
-    if (mode      && p.mode      !== mode)                return false;
-    if (type_bien && p.type_bien !== type_bien)           return false;
-    if (min_price   && p.price      < Number(min_price))  return false;
-    if (max_price   && p.price      > Number(max_price))  return false;
-    if (min_surface && p.surface_m2 < Number(min_surface)) return false;
-    if (max_surface && p.surface_m2 > Number(max_surface)) return false;
-    if (rooms     && p.rooms     <  Number(rooms))        return false;
-    if (q) {
-      const s = q.toLowerCase();
-      if (!p.title.toLowerCase().includes(s) &&
-          !(p.commune||'').toLowerCase().includes(s) &&
-          !(p.wilaya||'').toLowerCase().includes(s) &&
-          !(p.description||'').toLowerCase().includes(s)) return false;
-    }
-    return true;
+  const { pool } = db;
+  const conds  = [];
+  const params = [];
+  let   idx    = 1;
+
+  const add = (sql, val) => { conds.push(sql.replace('?', `$${idx++}`)); params.push(val); };
+
+  add('p.status = ?', status || 'active');
+  if (wilaya)                                     add('p.wilaya = ?',       wilaya);
+  if (commune)                                    add('p.commune = ?',      commune);
+  if (mode      && MODES_VALIDES.includes(mode))  add('p.mode = ?',        mode);
+  if (type_bien && TYPES_VALIDES.includes(type_bien)) add('p.type_bien = ?', type_bien);
+  if (min_price)   add('p.price >= ?',      Number(min_price));
+  if (max_price)   add('p.price <= ?',      Number(max_price));
+  if (min_surface) add('p.surface_m2 >= ?', Number(min_surface));
+  if (max_surface) add('p.surface_m2 <= ?', Number(max_surface));
+  if (rooms)       add('p.rooms >= ?',      Number(rooms));
+  if (q) {
+    const like = '%' + q.toLowerCase() + '%';
+    conds.push(
+      `(LOWER(p.title) LIKE $${idx} OR LOWER(COALESCE(p.commune,'')) LIKE $${idx}` +
+      ` OR LOWER(p.wilaya) LIKE $${idx} OR LOWER(COALESCE(p.description,'')) LIKE $${idx})`
+    );
+    params.push(like); idx++;
+  }
+
+  const where    = 'WHERE ' + conds.join(' AND ');
+  const limitNum = Math.min(200, Math.max(1, parseInt(limitQ) || 12));
+  const pageNum  = Math.max(1, parseInt(page) || 1);
+  const offset   = (pageNum - 1) * limitNum;
+
+  const [countR, dataR] = await Promise.all([
+    pool.query(`SELECT COUNT(*) FROM properties p ${where}`, params),
+    pool.query(
+      `SELECT p.*,
+         u.name   AS owner_name,  u.phone  AS owner_phone,  u.avatar AS owner_avatar,
+         a.name   AS agency_name, a.logo   AS agency_logo,  a.phone  AS agency_phone
+       FROM properties p
+       LEFT JOIN users    u ON u.id = p.owner_id
+       LEFT JOIN agencies a ON a.id = p.agency_id
+       ${where}
+       ORDER BY p.created_at DESC
+       LIMIT $${idx} OFFSET $${idx + 1}`,
+      [...params, limitNum, offset]
+    ),
+  ]);
+
+  const total = parseInt(countR.rows[0].count);
+  res.json({
+    data:  dataR.rows,
+    total,
+    page:  pageNum,
+    pages: Math.ceil(total / limitNum) || 1,
+    limit: limitNum,
   });
-
-  all.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
-  res.json(await Promise.all(all.map(withOwner)));
 });
 
 // GET /api/properties/estimation — prix/m² moyen depuis la BDD (DOIT être avant /:id)
