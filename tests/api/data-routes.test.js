@@ -279,7 +279,7 @@ test('administration : comptes (liste sans mot de passe, suspension) et droits',
   const u = await s.register('adm-user');
   const list = await s.request('GET', '/api/admin/users', { token: admin.token });
   assert.equal(list.status, 200);
-  const me = list.body.find(x => x.id === u.id);
+  const me = list.body.items.find(x => x.id === u.id);
   assert.equal(me.email, u.email);
   assert.doesNotMatch(list.text, /password|\$2[aby]\$/, 'aucun mot de passe dans la liste');
   assert.equal((await s.request('GET', '/api/admin/users', { token: u.token })).status, 403);
@@ -295,10 +295,10 @@ test('administration : annonces (filtre par statut, statut, vérification, suppr
   const o = await s.register('adm-prop');
   const pending = (await s.request('POST', '/api/properties', { token: o.token, body: { title: 'Admin en attente', mode: 'vente', type_bien: 'villa', price: 1, wilaya: 'Oran', photos: [] } })).body.id;
   const active = await listing('Admin active');
-  const byStatus = async st => (await s.request('GET', `/api/admin/properties?status=${st}`, { token: admin.token })).body.map(p => p.id);
+  const byStatus = async st => (await s.request('GET', `/api/admin/properties?per_page=100&status=${st}`, { token: admin.token })).body.items.map(p => p.id);
   assert.ok((await byStatus('pending')).includes(pending) && !(await byStatus('pending')).includes(active));
   assert.ok((await byStatus('active')).includes(active) && !(await byStatus('active')).includes(pending));
-  assert.ok((await s.request('GET', '/api/admin/properties', { token: admin.token })).body.some(p => p.id === pending), 'sans filtre : tout');
+  assert.ok((await s.request('GET', '/api/admin/properties?per_page=100', { token: admin.token })).body.items.some(p => p.id === pending), 'sans filtre : tout');
 
   assert.equal((await s.request('PUT', `/api/admin/properties/${active}/status`, { token: admin.token, body: { status: 'sold' } })).status, 200);
   assert.equal((await s.request('PUT', `/api/admin/properties/${active}/status`, { token: admin.token, body: { status: 'bizarre' } })).status, 400);
@@ -312,7 +312,7 @@ test('administration : annonces (filtre par statut, statut, vérification, suppr
   assert.equal((await s.request('GET', `/api/properties/${pending}`)).status, 404);
 
   const ag = await s.request('POST', '/api/agencies', { token: o.token, body: { name: 'Agence admin', wilaya: 'Blida' } });
-  const agencies = (await s.request('GET', '/api/admin/agencies', { token: admin.token })).body;
+  const agencies = (await s.request('GET', '/api/admin/agencies?per_page=100', { token: admin.token })).body.items;
   assert.equal(agencies.find(a => a.id === ag.body.id).verified, false);
   await s.request('PUT', `/api/admin/agencies/${ag.body.id}/verify`, { token: admin.token });
   assert.equal((await q('SELECT verified FROM agencies WHERE id = $1', [ag.body.id])).rows[0].verified, true);
@@ -323,7 +323,7 @@ test('signalements : dépôt, liste admin, résolution', async () => {
   const p = await listing('Bien signalé');
   assert.equal((await s.request('POST', `/api/properties/${p}/signaler`, { token: u.token, body: {} })).status, 400);
   assert.equal((await s.request('POST', `/api/properties/${p}/signaler`, { token: u.token, body: { motif: 'Arnaque', message: 'Prix trop bas' } })).status, 200);
-  const list = (await s.request('GET', '/api/admin/signalements', { token: admin.token })).body;
+  const list = (await s.request('GET', '/api/admin/signalements', { token: admin.token })).body.items;
   const sig = list.find(x => x.property_id === p);
   assert.equal(sig.property_title, 'Bien signalé'); assert.equal(sig.reporter_name, 'Test signal'); assert.equal(sig.status, 'pending');
   assert.equal((await s.request('PUT', `/api/admin/signalements/${sig.id}/resolve`, { token: admin.token, body: { status: 'nimporte' } })).status, 400);
