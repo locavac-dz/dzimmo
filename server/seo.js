@@ -355,4 +355,4 @@ function mount(app) {
   }, 404));
 }
 
-module.exports = { mount, propertyPath, slugify };
+module.exports = { mount, propertyPath, slugify, landingPath };

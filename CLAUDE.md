@@ -17,7 +17,12 @@ Fork de LocaVac. Package npm `dzimmo`. Domaine cible : dzimmo.dz.
 npm run dev      # nodemon
 npm start        # node server/index.js
 npm run make-admin -- <email>   # promeut un compte existant administrateur (--retirer pour l'inverse)
+npm test         # tests automatiques (node --test)
 ```
+
+Les tests d'API tournent sur un **schéma PostgreSQL jetable** (créé puis supprimé par `tests/helpers/server.js`) :
+les données de développement ne sont jamais touchées. Base utilisée : `TEST_DATABASE_URL`, sinon `DATABASE_URL`.
+`server/app.js` définit l'application Express (sans démarrage, importée par les tests) ; `server/index.js` la lance.
 
 Le compte et les annonces de démonstration (`seed()` dans `server/db.js`) ne sont créés qu'en dehors de
 `NODE_ENV=production`. En production, le premier admin s'obtient en s'inscrivant puis avec `make-admin`.
