@@ -1340,6 +1340,16 @@
   </div>
 </div>
 
+<!-- ═══════════════════ PAGE STATISTIQUES ═══════════════════ -->
+<div id="page-stats" class="hidden">
+  <div id="main" style="max-width:880px;margin:0 auto;padding:2rem 1rem 3rem">
+    <button class="btn btn-outline btn-sm" style="margin-bottom:1.5rem" onclick="showPage('home')">← Retour</button>
+    <h2 style="font-size:1.4rem;font-weight:800;margin-bottom:.35rem">📊 DzImmo en chiffres</h2>
+    <p style="color:var(--text-muted);font-size:.9rem;margin-bottom:2rem">Statistiques en temps réel de la plateforme</p>
+    <div id="stats-content"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+</div>
+
 <!-- ═══════════════════ CARTE INTERACTIVE ════════ -->
 <div id="page-carte" class="hidden">
   <!-- barre de filtres -->
@@ -1461,6 +1471,7 @@
       <a href="#" onclick="showPage('confidentialite')" data-i18n="ft_privacy">Politique de confidentialité</a>
       <a href="#" onclick="showPage('mentions')" data-i18n="ft_mentions">Mentions légales</a>
       <a href="#" onclick="showPage('contact')" data-i18n="ft_contact">Contact</a>
+      <a href="#" onclick="showPage('stats')">📊 Statistiques plateforme</a>
     </div>
     <div class="footer-col">
       <h4 data-i18n="ft_sim">Nos simulateurs</h4>
@@ -2058,7 +2069,7 @@ async function api(path, method = 'GET', body = null) {
 }
 
 // ── Navigation ────────────────────────────────────
-const PAGES = ['home','annonces','detail','publier','agences','agency-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte'];
+const PAGES = ['home','annonces','detail','publier','agences','agency-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats'];
 
 function showPage(page, data = null) {
   PAGES.forEach(p => {
@@ -2083,6 +2094,7 @@ function showPage(page, data = null) {
   if (page === 'admin')                 loadAdmin();
   if (page === 'sim-estimation')  initSeWilayaSelect();
   if (page === 'carte')           initMap();
+  if (page === 'stats')           loadStatsPage();
 }
 
 function goBack() { showPage(currentPage === 'detail' ? 'annonces' : 'home'); }
@@ -3259,6 +3271,85 @@ async function toggleFav(propertyId, btn) {
       toast('❤️ Ajouté aux favoris !');
     }
   } catch (e) { toast('❌ ' + e.message); }
+}
+
+// ── Page statistiques publiques ────────────────────
+async function loadStatsPage() {
+  const el = document.getElementById('stats-content');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const s = await api('/stats/public');
+
+    // Graphique wilayas (barres horizontales)
+    const maxW = Math.max(...s.top_wilayas.map(w => w.count), 1);
+    const wilayaBars = s.top_wilayas.map(w => `
+      <div style="margin-bottom:.45rem">
+        <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:.15rem">
+          <span style="font-weight:600">${esc(w.wilaya)}</span>
+          <span style="color:var(--text-muted)">${w.count} annonce${w.count > 1?'s':''}</span>
+        </div>
+        <div style="background:var(--border);border-radius:20px;height:7px">
+          <div style="width:${Math.round(w.count/maxW*100)}%;background:var(--primary);border-radius:20px;height:7px;transition:width .4s"></div>
+        </div>
+      </div>`).join('');
+
+    // Répartition par type (barres horizontales)
+    const TYPES_LABELS = { appartement:'Appartement', villa:'Villa', maison:'Maison',
+      bureau:'Bureau', local_commercial:'Local commercial', terrain:'Terrain', ferme:'Ferme', entrepot:'Entrepôt' };
+    const maxT = Math.max(...s.top_types.map(t => t.count), 1);
+    const typeBars = s.top_types.map(t => `
+      <div style="margin-bottom:.45rem">
+        <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:.15rem">
+          <span style="font-weight:600">${TYPES_LABELS[t.type_bien] || t.type_bien}</span>
+          <span style="color:var(--text-muted)">${t.count}</span>
+        </div>
+        <div style="background:var(--border);border-radius:20px;height:7px">
+          <div style="width:${Math.round(t.count/maxT*100)}%;background:#3b82f6;border-radius:20px;height:7px"></div>
+        </div>
+      </div>`).join('');
+
+    el.innerHTML = `
+      <!-- KPIs -->
+      <div class="dashboard-stats" style="margin-bottom:2rem">
+        <div class="stat-card"><div class="val">${(s.active||0).toLocaleString('fr-DZ')}</div><div class="lbl">Annonces actives</div></div>
+        <div class="stat-card"><div class="val">${(s.sold||0).toLocaleString('fr-DZ')}</div><div class="lbl">Biens vendus</div></div>
+        <div class="stat-card"><div class="val">${(s.rented||0).toLocaleString('fr-DZ')}</div><div class="lbl">Biens loués</div></div>
+        <div class="stat-card"><div class="val">${(s.users||0).toLocaleString('fr-DZ')}</div><div class="lbl">Utilisateurs</div></div>
+        <div class="stat-card"><div class="val">${(s.agencies||0).toLocaleString('fr-DZ')}</div><div class="lbl">Agences</div></div>
+        <div class="stat-card"><div class="val">${Number(s.total_views||0).toLocaleString('fr-DZ')}</div><div class="lbl">Vues totales</div></div>
+      </div>
+
+      <!-- Mode répartition -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:2rem">
+        <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:1.25rem;box-shadow:var(--shadow)">
+          <div style="font-weight:700;font-size:.9rem;margin-bottom:.15rem">Répartition par mode</div>
+          <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:1rem">Annonces actives</div>
+          <div style="display:flex;gap:.6rem;margin-bottom:.75rem;flex-wrap:wrap">
+            <span style="background:#0C6E4F20;color:#0C6E4F;padding:.25rem .65rem;border-radius:20px;font-size:.82rem;font-weight:700">Vente : ${s.vente}</span>
+            <span style="background:#3b82f620;color:#3b82f6;padding:.25rem .65rem;border-radius:20px;font-size:.82rem;font-weight:700">Loc. longue : ${s.loc_longue}</span>
+            <span style="background:#f59e0b20;color:#d97706;padding:.25rem .65rem;border-radius:20px;font-size:.82rem;font-weight:700">Loc. courte : ${s.loc_courte}</span>
+          </div>
+        </div>
+        <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:1.25rem;box-shadow:var(--shadow)">
+          <div style="font-weight:700;font-size:.9rem;margin-bottom:.15rem">Types de biens</div>
+          <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:1rem">Top 6 — annonces actives</div>
+          ${typeBars}
+        </div>
+      </div>
+
+      <!-- Top wilayas -->
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:1.25rem;box-shadow:var(--shadow)">
+        <div style="font-weight:700;font-size:.9rem;margin-bottom:.15rem">Top wilayas</div>
+        <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:1rem">Annonces actives par wilaya</div>
+        ${wilayaBars}
+      </div>
+
+      <p style="font-size:.75rem;color:var(--text-muted);text-align:center;margin-top:1.5rem">
+        Données en temps réel · DzImmo ${new Date().getFullYear()}
+      </p>`;
+  } catch (e) {
+    el.innerHTML = `<p style="color:red;padding:2rem;text-align:center">${e.message}</p>`;
+  }
 }
 
 // ── Dashboard ─────────────────────────────────────
