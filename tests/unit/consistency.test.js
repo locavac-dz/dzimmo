@@ -96,6 +96,11 @@ test('la bannière d\'accueil ne contient pas de chiffre d\'annonces en dur', ()
   assert.doesNotMatch(html.match(/data-i18n="hero_sub">([^<]*)</)[1], claim);
 });
 
+test('le site envoie sa langue à l\'API (en-tête X-Lang) sur les appels JSON et l\'envoi de photos', () => {
+  const sent = html.match(/'X-Lang': currentLang/g) || [];
+  assert.equal(sent.length, 2, 'api() et l\'upload des photos doivent envoyer X-Lang');
+});
+
 test('la liste des wilayas du serveur est identique à celle du front', () => {
   const server = require(path.join(ROOT, 'server', 'wilayas'));
   const literal = html.match(/const WILAYAS = \[([\s\S]*?)\];/)[1];

@@ -68,6 +68,9 @@ app.use(cors({
   credentials: true,
 }));
 
+// ── Langue des messages d'erreur de l'API (X-Lang / Accept-Language) ──
+app.use('/api', require('./i18n').middleware);
+
 // ── Rate limiting ────────────────────────────────────────────────
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -131,7 +134,9 @@ app.get('*', (_, res) => res.sendFile(path.join(__dirname, '..', 'public', 'inde
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   console.error('[Erreur]', err.message);
   const status = err.status || 500;
-  const msg = status < 500 ? err.message : 'Erreur interne du serveur.';
+  // Erreurs techniques d'Express / body-parser : message français stable (traduisible), pas l'anglais du module
+  const TECHNIQUES = { 'entity.parse.failed': 'Requête invalide (JSON mal formé).', 'entity.too.large': 'Requête trop volumineuse.' };
+  const msg = TECHNIQUES[err.type] || (status < 500 ? err.message : 'Erreur interne du serveur.');
   res.status(status).json({ error: msg });
 });
 

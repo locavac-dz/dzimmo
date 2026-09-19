@@ -51,4 +51,7 @@ Windows : `demarrer.bat`
 
 - Ne jamais committer `.env`, `.env.production` ni `dzimmo.json`.
 - Toute variable de configuration nouvelle doit être ajoutée à `.env.example`.
+- Tout nouveau message d'erreur de l'API (`res.status(…).json({ error: '…' })`) doit être ajouté à `server/i18n.js`
+  avec sa traduction arabe : le site envoie sa langue dans l'en-tête `X-Lang`, le serveur traduit à l'envoi.
+  Un test (`tests/unit/i18n-errors.test.js`) échoue si un message n'a pas de traduction.
 - Répondre et commenter le code en français.

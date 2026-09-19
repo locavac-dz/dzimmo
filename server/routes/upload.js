@@ -23,6 +23,14 @@ const upload = multer({
   },
 });
 
+// Erreurs de multer (en anglais) : messages français stables, donc traduisibles
+const UPLOAD_ERRORS = {
+  LIMIT_FILE_SIZE: `Fichier trop volumineux (${MAX_SIZE_MB} Mo maximum).`,
+  LIMIT_FILE_COUNT: 'Trop de fichiers (10 maximum).',
+  LIMIT_UNEXPECTED_FILE: 'Fichier inattendu.',
+};
+const uploadErrorMessage = err => UPLOAD_ERRORS[err.code] || err.message;
+
 // Compresse et sauvegarde un buffer image → WebP ≤ 1920 px, qualité 82
 async function processImage(buffer) {
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
@@ -38,7 +46,7 @@ async function processImage(buffer) {
 // POST /api/upload — upload d'une image
 router.post('/', auth, (req, res) => {
   upload.single('file')(req, res, async err => {
-    if (err) return res.status(400).json({ error: err.message });
+    if (err) return res.status(400).json({ error: uploadErrorMessage(err) });
     if (!req.file) return res.status(400).json({ error: 'Aucun fichier reçu.' });
     try {
       const url = await processImage(req.file.buffer);
@@ -53,7 +61,7 @@ router.post('/', auth, (req, res) => {
 // POST /api/upload/multiple — upload de plusieurs images (max 10)
 router.post('/multiple', auth, (req, res) => {
   upload.array('files', 10)(req, res, async err => {
-    if (err) return res.status(400).json({ error: err.message });
+    if (err) return res.status(400).json({ error: uploadErrorMessage(err) });
     if (!req.files?.length) return res.status(400).json({ error: 'Aucun fichier reçu.' });
     try {
       const urls = await Promise.all(req.files.map(f => processImage(f.buffer)));
