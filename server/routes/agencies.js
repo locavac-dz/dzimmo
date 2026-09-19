@@ -2,18 +2,33 @@ const router = require('express').Router();
 const db     = require('../db');
 const auth   = require('../middleware/auth');
 
-// GET /api/agencies — liste des agences
+// GET /api/agencies — liste des agences avec compteur d'annonces actives
 router.get('/', async (req, res) => {
   const { wilaya, q } = req.query;
-  const all = await db.agencies.find(a => {
-    if (wilaya && a.wilaya !== wilaya) return false;
-    if (q) {
-      const s = q.toLowerCase();
-      if (!a.name.toLowerCase().includes(s) && !(a.description||'').toLowerCase().includes(s)) return false;
-    }
-    return true;
-  });
-  res.json(all);
+  const { pool } = db;
+
+  const conds  = [];
+  const params = [];
+  let   idx    = 1;
+  if (wilaya) { conds.push(`a.wilaya = $${idx++}`); params.push(wilaya); }
+  if (q) {
+    const like = '%' + q.toLowerCase() + '%';
+    conds.push(`(LOWER(a.name) LIKE $${idx} OR LOWER(COALESCE(a.description,'')) LIKE $${idx})`);
+    params.push(like); idx++;
+  }
+  const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
+
+  const r = await pool.query(
+    `SELECT a.*,
+       COUNT(p.id) FILTER (WHERE p.status = 'active') AS property_count
+     FROM agencies a
+     LEFT JOIN properties p ON p.agency_id = a.id
+     ${where}
+     GROUP BY a.id
+     ORDER BY property_count DESC, a.name`,
+    params
+  );
+  res.json(r.rows.map(row => ({ ...row, property_count: parseInt(row.property_count) })));
 });
 
 // GET /api/agencies/:id

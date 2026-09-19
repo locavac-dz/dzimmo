@@ -611,7 +611,16 @@
 
     <div class="section-header">
       <div class="section-title">Annonces immobilières</div>
-      <span class="count-badge" id="annonces-count">—</span>
+      <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+        <span class="count-badge" id="annonces-count">—</span>
+        <select id="f-sort" onchange="loadAnnonces()" style="padding:.3rem .6rem;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);color:var(--text);cursor:pointer" data-i18n-title="sort_label">
+          <option value="date_desc" data-i18n="sort_date_desc">Plus récentes</option>
+          <option value="price_asc" data-i18n="sort_price_asc">Prix croissant</option>
+          <option value="price_desc" data-i18n="sort_price_desc">Prix décroissant</option>
+          <option value="surface_desc" data-i18n="sort_surface_desc">Plus grande surface</option>
+          <option value="date_asc" data-i18n="sort_date_asc">Plus anciennes</option>
+        </select>
+      </div>
     </div>
     <div class="grid" id="annonces-grid"><div class="loading"><div class="spinner"></div></div></div>
     <div id="annonces-pagination"></div>
@@ -750,6 +759,14 @@
       <div class="section-title" data-i18n="agencies_title">🏢 Agences immobilières</div>
     </div>
     <div class="grid" id="agences-grid"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PAGE DÉTAIL AGENCE ═══════════════════ -->
+<div id="page-agency-detail" class="hidden">
+  <div id="main">
+    <button class="btn btn-outline" style="margin-bottom:1.5rem;padding:.4rem .9rem;font-size:.88rem" onclick="showPage('agences')" data-i18n="btn_back">← Retour</button>
+    <div id="agency-detail-content"><div class="loading"><div class="spinner"></div></div></div>
   </div>
 </div>
 
@@ -1318,6 +1335,9 @@ const TRANSLATIONS = {
     alert_criteria:'Critères :',
     agencies_title:'🏢 Agences immobilières',
     btn_back:'← Retour',
+    sort_label:'Trier', sort_date_desc:'Plus récentes', sort_date_asc:'Plus anciennes',
+    sort_price_asc:'Prix croissant', sort_price_desc:'Prix décroissant', sort_surface_desc:'Plus grande surface',
+    similar_title:'Biens similaires', agency_detail_listings:'Annonces de l\'agence',
     cgu_title:"Conditions Générales d'Utilisation",
     privacy_title:'Politique de Confidentialité', mentions_title:'Mentions Légales',
     contact_title:'Contactez-nous', contact_sub:'Notre équipe vous répond dans les 24 h ouvrées.',
@@ -1470,6 +1490,9 @@ const TRANSLATIONS = {
     alert_criteria:'المعايير:',
     agencies_title:'🏢 الوكالات العقارية',
     btn_back:'رجوع →',
+    sort_label:'ترتيب', sort_date_desc:'الأحدث أولاً', sort_date_asc:'الأقدم أولاً',
+    sort_price_asc:'السعر تصاعدي', sort_price_desc:'السعر تنازلي', sort_surface_desc:'أكبر مساحة',
+    similar_title:'عقارات مشابهة', agency_detail_listings:'إعلانات الوكالة',
     cgu_title:'شروط الاستخدام',
     privacy_title:'سياسة الخصوصية', mentions_title:'الإشعارات القانونية',
     contact_title:'اتصل بنا', contact_sub:'فريقنا يرد خلال 24 ساعة عمل.',
@@ -1741,7 +1764,7 @@ async function api(path, method = 'GET', body = null) {
 }
 
 // ── Navigation ────────────────────────────────────
-const PAGES = ['home','annonces','detail','publier','agences','dashboard','messages','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte'];
+const PAGES = ['home','annonces','detail','publier','agences','agency-detail','dashboard','messages','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte'];
 
 function showPage(page, data = null) {
   PAGES.forEach(p => {
@@ -1761,7 +1784,8 @@ function showPage(page, data = null) {
   if (page === 'agences')         loadAgences();
   if (page === 'dashboard')       loadDashboard();
   if (page === 'messages')        loadMessages();
-  if (page === 'detail' && data)  loadDetail(data);
+  if (page === 'detail' && data)       loadDetail(data);
+  if (page === 'agency-detail' && data) loadAgencyDetail(data);
   if (page === 'sim-estimation')  initSeWilayaSelect();
   if (page === 'carte')           initMap();
 }
@@ -1828,6 +1852,7 @@ async function loadAnnonces(page = 1) {
   if (get('f-max-price')) params.set('max_price', get('f-max-price'));
   if (get('f-rooms'))     params.set('rooms',     get('f-rooms'));
   if (get('f-q'))         params.set('q',         get('f-q'));
+  if (get('f-sort'))      params.set('sort',      get('f-sort'));
   try {
     const resp = await api('/properties?' + params);
     const { data, total, pages } = resp;
@@ -2006,7 +2031,25 @@ async function loadDetail(id) {
       document.getElementById('visit-field-' + p.id).classList.toggle('hidden', ctype.value !== 'visite');
       document.getElementById('offer-field-' + p.id).classList.toggle('hidden', ctype.value !== 'offre');
     });
+
+    // Annonces similaires (même wilaya + même type, sans l'annonce courante)
+    loadSimilarProperties(p.id, p.wilaya, p.type_bien);
   } catch (e) { container.innerHTML = `<p style="color:red;padding:2rem">${e.message}</p>`; }
+}
+
+async function loadSimilarProperties(excludeId, wilaya, type_bien) {
+  const container = document.getElementById('detail-content');
+  if (!container) return;
+  try {
+    const resp = await api(`/properties?wilaya=${encodeURIComponent(wilaya)}&type_bien=${encodeURIComponent(type_bien)}&limit=5`);
+    const similar = (resp.data || []).filter(p => p.id !== excludeId).slice(0, 4);
+    if (!similar.length) return;
+    const section = document.createElement('div');
+    section.style.cssText = 'margin-top:2.5rem';
+    section.innerHTML = `<h3 style="font-size:1rem;font-weight:700;margin-bottom:1rem">Biens similaires</h3>
+      <div class="grid">${similar.map(p => cardHTML(p)).join('')}</div>`;
+    container.appendChild(section);
+  } catch {}
 }
 
 async function submitContact(event, propertyId, ownerId) {
@@ -2279,7 +2322,7 @@ async function loadAgences() {
       return;
     }
     grid.innerHTML = data.map(a => `
-      <div class="card" style="cursor:pointer" onclick="">
+      <div class="card" style="cursor:pointer" onclick="showPage('agency-detail', ${a.id})">
         <div style="height:120px;background:linear-gradient(135deg,#0a3d2b,#0C6E4F);display:flex;align-items:center;justify-content:center">
           ${a.logo ? `<img src="${a.logo}" style="height:80px;width:80px;object-fit:contain;border-radius:8px">` : `<div style="font-size:2.5rem;color:#fff">${a.name[0]}</div>`}
         </div>
@@ -2291,11 +2334,48 @@ async function loadAgences() {
           <div class="card-loc">📍 ${esc(a.wilaya || '')}</div>
           <div class="card-meta" style="margin-top:.5rem">
             ${a.phone ? `<span>📞 ${esc(a.phone)}</span>` : ''}
+            ${a.property_count ? `<span>🏠 ${a.property_count} annonce${a.property_count > 1 ? 's' : ''}</span>` : ''}
             ${a.rating > 0 ? `<span>⭐ ${a.rating}</span>` : ''}
           </div>
         </div>
       </div>`).join('');
   } catch (e) { grid.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
+}
+
+// ── Détail agence ─────────────────────────────────
+async function loadAgencyDetail(id) {
+  const c = document.getElementById('agency-detail-content');
+  c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const a = await api('/agencies/' + id);
+    const props = Array.isArray(a.properties) ? a.properties : [];
+    c.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr;gap:1.5rem">
+        <div style="background:var(--surface);border-radius:16px;overflow:hidden;border:1px solid var(--border)">
+          <div style="height:140px;background:linear-gradient(135deg,#0a3d2b,#0C6E4F);display:flex;align-items:center;justify-content:center;gap:1.5rem;padding:1.5rem">
+            ${a.logo
+              ? `<img src="${esc(a.logo)}" style="height:80px;width:80px;object-fit:contain;border-radius:10px;background:#fff;padding:4px">`
+              : `<div style="width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:2rem;color:#fff">${a.name[0]}</div>`}
+            <div style="color:#fff">
+              <div style="font-size:1.35rem;font-weight:800">${esc(a.name)}${a.verified ? ' <span style="background:#fff;color:#0C6E4F;font-size:.7rem;padding:.1rem .45rem;border-radius:4px;font-weight:700;vertical-align:middle">✓</span>' : ''}</div>
+              <div style="opacity:.8;font-size:.9rem;margin-top:.25rem">📍 ${esc(a.wilaya || '')}</div>
+              ${a.phone ? `<div style="opacity:.8;font-size:.9rem">📞 ${esc(a.phone)}</div>` : ''}
+            </div>
+          </div>
+          <div style="padding:1.25rem 1.5rem;display:flex;gap:2rem;flex-wrap:wrap">
+            ${a.property_count ? `<div style="text-align:center"><div style="font-size:1.4rem;font-weight:800;color:var(--primary)">${a.property_count}</div><div style="font-size:.8rem;color:var(--text-muted)">annonce${a.property_count > 1 ? 's' : ''}</div></div>` : ''}
+            ${a.rating > 0 ? `<div style="text-align:center"><div style="font-size:1.4rem;font-weight:800;color:var(--primary)">⭐ ${a.rating}</div><div style="font-size:.8rem;color:var(--text-muted)">note</div></div>` : ''}
+            ${a.website ? `<a href="${esc(a.website)}" target="_blank" rel="noopener" style="color:var(--primary);font-size:.88rem;align-self:center">🌐 Site web</a>` : ''}
+          </div>
+          ${a.description ? `<div style="padding:0 1.5rem 1.25rem;font-size:.9rem;color:var(--text-muted)">${esc(a.description)}</div>` : ''}
+        </div>
+        ${props.length ? `
+        <div>
+          <h3 style="font-size:1rem;font-weight:700;margin-bottom:1rem">Annonces de l'agence</h3>
+          <div class="grid">${props.map(p => cardHTML(p)).join('')}</div>
+        </div>` : ''}
+      </div>`;
+  } catch (e) { c.innerHTML = `<p style="color:red;padding:2rem">${e.message}</p>`; }
 }
 
 // ── Favoris ───────────────────────────────────────

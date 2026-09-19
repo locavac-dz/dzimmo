@@ -27,7 +27,16 @@ async function withOwner(property) {
 router.get('/', async (req, res) => {
   const { wilaya, commune, mode, type_bien, min_price, max_price,
           min_surface, max_surface, rooms, q, status,
-          page, limit: limitQ } = req.query;
+          page, limit: limitQ, sort } = req.query;
+
+  const SORTS = {
+    date_desc:    'p.created_at DESC',
+    date_asc:     'p.created_at ASC',
+    price_asc:    'p.price::numeric ASC',
+    price_desc:   'p.price::numeric DESC',
+    surface_desc: 'p.surface_m2 DESC NULLS LAST',
+  };
+  const orderBy = SORTS[sort] || SORTS.date_desc;
 
   const { pool } = db;
   const conds  = [];
@@ -70,7 +79,7 @@ router.get('/', async (req, res) => {
        LEFT JOIN users    u ON u.id = p.owner_id
        LEFT JOIN agencies a ON a.id = p.agency_id
        ${where}
-       ORDER BY p.created_at DESC
+       ORDER BY ${orderBy}
        LIMIT $${idx} OFFSET $${idx + 1}`,
       [...params, limitNum, offset]
     ),
