@@ -317,11 +317,25 @@ router.post('/:id/signaler', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
-// GET /api/properties/user/:id — annonces d'un utilisateur
+// GET /api/properties/user/:id — annonces d'un utilisateur avec compteur de contacts
 router.get('/user/:id', async (req, res) => {
-  const uid   = Number(req.params.id);
-  const props = await db.properties.find(p => p.owner_id === uid && p.status !== 'archived');
-  res.json(await Promise.all(props.map(withOwner)));
+  const { pool } = db;
+  const uid = Number(req.params.id);
+  const r = await pool.query(
+    `SELECT p.*,
+       u.name  AS owner_name,  u.phone  AS owner_phone,  u.avatar AS owner_avatar,
+       a.name  AS agency_name, a.logo   AS agency_logo,  a.phone  AS agency_phone,
+       COUNT(c.id)::int AS contact_count
+     FROM properties p
+     LEFT JOIN users    u ON u.id = p.owner_id
+     LEFT JOIN agencies a ON a.id = p.agency_id
+     LEFT JOIN contact_requests c ON c.property_id = p.id
+     WHERE p.owner_id = $1 AND p.status != 'archived'
+     GROUP BY p.id, u.id, a.id
+     ORDER BY p.created_at DESC`,
+    [uid]
+  );
+  res.json(r.rows);
 });
 
 module.exports = router;

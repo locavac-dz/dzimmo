@@ -23,13 +23,35 @@
       --accent: #f59e0b;
       --red: #dc2626;
       --text: #1e293b;
+      --text-secondary: #475569;
       --text-muted: #64748b;
       --border: #e2e8f0;
       --bg: #f8fafc;
       --white: #ffffff;
+      --surface: #ffffff;
       --radius: 12px;
       --shadow: 0 2px 12px rgba(0,0,0,.08);
       --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --text: #e2e8f0; --text-secondary: #cbd5e1; --text-muted: #94a3b8;
+        --border: #334155; --bg: #0f172a; --white: #1e293b; --surface: #1e293b;
+        --primary-light: rgba(12,110,79,.2);
+        --shadow: 0 2px 12px rgba(0,0,0,.35); --shadow-lg: 0 8px 32px rgba(0,0,0,.55);
+      }
+    }
+    :root[data-theme="dark"] {
+      --text: #e2e8f0; --text-secondary: #cbd5e1; --text-muted: #94a3b8;
+      --border: #334155; --bg: #0f172a; --white: #1e293b; --surface: #1e293b;
+      --primary-light: rgba(12,110,79,.2);
+      --shadow: 0 2px 12px rgba(0,0,0,.35); --shadow-lg: 0 8px 32px rgba(0,0,0,.55);
+    }
+    :root[data-theme="light"] {
+      --text: #1e293b; --text-secondary: #475569; --text-muted: #64748b;
+      --border: #e2e8f0; --bg: #f8fafc; --white: #ffffff; --surface: #ffffff;
+      --primary-light: #e8f5f0;
+      --shadow: 0 2px 12px rgba(0,0,0,.08); --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
     }
     *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
@@ -375,7 +397,7 @@
     /* ── Toast ── */
     #toast {
       position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999;
-      background: #1e293b; color: #fff; padding: 0.75rem 1.25rem;
+      background: var(--text); color: var(--bg); padding: 0.75rem 1.25rem;
       border-radius: 10px; font-size: 0.9rem; max-width: 340px;
       box-shadow: var(--shadow-lg); transform: translateY(20px); opacity: 0;
       transition: all 0.25s; pointer-events: none;
@@ -466,6 +488,7 @@
       <a class="nav-link hidden" id="nav-admin" data-page="admin" onclick="showPage('admin')" style="color:#7c3aed;font-weight:700">⚙️ Admin</a>
     </nav>
     <div class="header-actions">
+      <button id="theme-toggle" onclick="toggleTheme()" title="Mode sombre / clair" aria-label="Basculer le thème" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:.3rem .5rem;font-size:1rem;cursor:pointer;color:var(--text);line-height:1;transition:border-color .15s">🌙</button>
       <div class="lang-toggle">
         <button class="lang-btn active" data-lang="fr" onclick="applyLang('fr')">FR</button>
         <button class="lang-btn" data-lang="ar" onclick="applyLang('ar')">ع</button>
@@ -1713,8 +1736,25 @@ const MODES = { vente:'Vente', location_longue:'Location longue durée', locatio
 const TYPES = { appartement:'Appartement', villa:'Villa', maison:'Maison', bureau:'Bureau', local_commercial:'Local commercial', terrain:'Terrain', ferme:'Ferme', entrepot:'Entrepôt' };
 const FEATURES = { meuble:'Meublé', parking:'Parking', balcon:'Balcon', terrasse:'Terrasse', ascenseur:'Ascenseur', gardien:'Gardien', piscine:'Piscine', climatisation:'Climatisation', chauffage:'Chauffage', wifi:'Wi-Fi', cave:'Cave', jardin:'Jardin', alarme:'Alarme', interphone:'Interphone', eau:'Eau', electricite:'Électricité', gaz:'Gaz', route:'Accès route', fibre:'Fibre' };
 
+// ── Thème sombre / clair ─────────────────────────────
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('dzimmo_theme', t);
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = t === 'dark' ? '☀️' : '🌙';
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme')
+    || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+}
+
 // ── Initialisation ─────────────────────────────────
 async function init() {
+  const savedTheme = localStorage.getItem('dzimmo_theme');
+  if (savedTheme) applyTheme(savedTheme);
+  else if (window.matchMedia('(prefers-color-scheme: dark)').matches) applyTheme('dark');
+
   populateWilayas();
   if (token) await loadCurrentUser();
   loadHomeProperties();
@@ -2756,6 +2796,15 @@ async function loadDashboard() {
   dashTab(currentDashTab);
 }
 
+async function ownerArchive(id) {
+  if (!confirm('Archiver cette annonce ? Elle ne sera plus visible.')) return;
+  try {
+    await api('/properties/' + id, 'PUT', { status: 'archived' });
+    toast('Annonce archivée.');
+    dashTab('mes-annonces');
+  } catch (e) { toast(e.message || 'Erreur', 'error'); }
+}
+
 async function dashTab(tab) {
   currentDashTab = tab;
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
@@ -2767,7 +2816,34 @@ async function dashTab(tab) {
   if (tab === 'mes-annonces') {
     const data = await api('/properties/user/' + currentUser.id);
     if (!data.length) { c.innerHTML = '<div class="empty-state"><div class="icon">🏠</div><h3>Aucune annonce</h3><p>Publiez votre première annonce !</p><button class="btn btn-primary" style="margin-top:1rem" onclick="showPage(\'publier\')">+ Publier</button></div>'; return; }
-    c.innerHTML = `<div class="grid">${data.map(p => cardHTML(p)).join('')}</div>`;
+
+    const SCOLOR = { active:'#0C6E4F', sold:'#3b82f6', rented:'#f59e0b', archived:'#94a3b8' };
+    const SLBL   = { active:'Actif', sold:'Vendu', rented:'Loué', archived:'Archivé' };
+
+    c.innerHTML = `<div style="display:flex;flex-direction:column;gap:.7rem">
+      ${data.map(p => `
+        <div style="background:var(--white);border-radius:12px;border:1px solid var(--border);overflow:hidden;display:flex;box-shadow:var(--shadow)">
+          <img src="${esc(p.image||'')}" style="width:96px;min-height:80px;object-fit:cover;flex-shrink:0;background:var(--border)" onerror="this.style.background='var(--border)'">
+          <div style="flex:1;padding:.8rem 1rem;min-width:0">
+            <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.3rem">
+              <span class="card-mode mode-${p.mode}" style="font-size:.71rem;padding:.1rem .4rem">${MODES[p.mode]||p.mode}</span>
+              <span style="background:${SCOLOR[p.status]||'#94a3b8'}20;color:${SCOLOR[p.status]||'#94a3b8'};padding:.1rem .42rem;border-radius:20px;font-size:.71rem;font-weight:700">${SLBL[p.status]||p.status}</span>
+              ${p.verified?'<span style="background:#0C6E4F20;color:#0C6E4F;padding:.1rem .42rem;border-radius:20px;font-size:.71rem;font-weight:700">✓</span>':''}
+            </div>
+            <div style="font-weight:700;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(p.title)}">${esc(p.title)}</div>
+            <div style="font-size:.79rem;color:var(--text-muted)">📍 ${esc(p.wilaya)} · <strong style="color:var(--primary)">${formatPrice(p.price)} DZD</strong></div>
+            <div style="display:flex;gap:1.1rem;margin-top:.4rem;flex-wrap:wrap">
+              <span style="font-size:.79rem;color:var(--text-muted)">👁 <strong>${p.views||0}</strong> vue${(p.views||0)!==1?'s':''}</span>
+              <span style="font-size:.79rem;color:var(--text-muted)">📩 <strong>${p.contact_count||0}</strong> demande${(p.contact_count||0)!==1?'s':''}</span>
+              <span style="font-size:.79rem;color:var(--text-muted)">${new Date(p.created_at).toLocaleDateString('fr-DZ')}</span>
+            </div>
+          </div>
+          <div style="padding:.8rem .65rem;display:flex;flex-direction:column;gap:.35rem;justify-content:center;flex-shrink:0">
+            <button class="btn btn-primary btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap" onclick="showPage('detail',${p.id})">Voir</button>
+            ${p.status==='active'?`<button class="btn btn-outline btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap;border-color:#94a3b8;color:#64748b" onclick="ownerArchive(${p.id})">Archiver</button>`:''}
+          </div>
+        </div>`).join('')}
+    </div>`;
   }
 
   if (tab === 'mes-contacts') {
