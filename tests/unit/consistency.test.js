@@ -68,7 +68,9 @@ test('toutes les clés T(\'…\') utilisées dans le JavaScript existent en fran
     seo_m_: ['vente', 'location_longue', 'location_courte'],
     dash_st_: ['active', 'sold', 'rented', 'archived', 'pending', 'rejected'],
     // pluriels : unit(n, base) lit base_one / base_two / base_many
-    u_room_: ['one', 'two', 'many'], u_bath_: ['one', 'two', 'many'], u_view_: ['one', 'two', 'many'], st_ad_: ['one', 'two', 'many'] };
+    u_room_: ['one', 'two', 'many'], u_bath_: ['one', 'two', 'many'], u_view_: ['one', 'two', 'many'], st_ad_: ['one', 'two', 'many'],
+    u_req_: ['one', 'two', 'many'],
+    dash_t_: ['visite', 'offre', 'info'], dash_c_: ['pending', 'confirmed', 'rejected', 'done'] };
   for (const [prefix, list] of Object.entries(dyn))
     for (const v of list) for (const lang of ['fr', 'ar'])
       assert.ok((prefix + v) in T[lang], `${prefix}${v} manquante (${lang})`);

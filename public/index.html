@@ -1608,6 +1608,16 @@ const TRANSLATIONS = {
     cmp_r_floor:'Étage', cmp_r_published:'Publié', cmp_r_verified:'Vérifié',
     map_no_pos:'sans position', map_view:"Voir l'annonce →", map_error:'Erreur de chargement',
     ag_none:'Aucune agence enregistrée', ag_rating:'note', ag_website:'🌐 Site web',
+    dash_chart:'📊 Vues par annonce (top 8)', dash_archive_confirm:'Archiver cette annonce ? Elle ne sera plus visible.',
+    dash_archived:'Annonce archivée.', dash_error:'Erreur', dash_none:'Aucune annonce', dash_first:'Publiez votre première annonce !',
+    dash_view:'Voir', dash_archive:'Archiver', u_req_one:'demande', u_req_two:'demandes', u_req_many:'demandes',
+    dash_no_req:'Aucune demande reçue', dash_t_visite:'🗓 Visite', dash_t_offre:'💰 Offre', dash_t_info:'ℹ️ Info',
+    dash_c_pending:'En attente', dash_c_confirmed:'Confirmée', dash_c_rejected:'Refusée', dash_c_done:'Terminée',
+    dash_status_updated:'Statut mis à jour.', dash_no_fav:'Aucun favori', dash_fav_hint:'Cœurez des annonces pour les retrouver ici.',
+    alert_active:'🔔 Alerte active', ph_example:'ex : {v}',
+    prof_title:'Informations personnelles', prof_name:'Nom', prof_email:'Email', prof_phone:'Téléphone', prof_bio:'Bio',
+    prof_save:'Enregistrer', prof_logout:'Déconnexion', prof_logout_confirm:'Déconnexion ?', prof_updated:'✅ Profil mis à jour !',
+    logout_done:'Déconnexion effectuée.',
     mod_pending_ok:"Annonce envoyée ! Elle sera visible après validation par notre équipe (généralement sous 24 h). Vous serez notifié(e) de la décision.",
     mod_banner_pending:"Votre annonce est en attente de validation : elle n'est visible que par vous et notre équipe.",
     mod_banner_rejected:'Annonce refusée.', dash_reason:'Motif du refus :',
@@ -1820,6 +1830,16 @@ const TRANSLATIONS = {
     cmp_r_floor:'الطابق', cmp_r_published:'تاريخ النشر', cmp_r_verified:'موثَّق',
     map_no_pos:'بدون موقع', map_view:'عرض الإعلان ←', map_error:'خطأ في التحميل',
     ag_none:'لا توجد وكالات مسجّلة', ag_rating:'التقييم', ag_website:'🌐 الموقع الإلكتروني',
+    dash_chart:'📊 المشاهدات حسب الإعلان (أفضل 8)', dash_archive_confirm:'هل تريد أرشفة هذا الإعلان؟ لن يعود ظاهراً.',
+    dash_archived:'تمت أرشفة الإعلان.', dash_error:'خطأ', dash_none:'لا توجد إعلانات', dash_first:'انشر إعلانك الأول!',
+    dash_view:'عرض', dash_archive:'أرشفة', u_req_one:'طلب', u_req_two:'طلبان', u_req_many:'طلبات',
+    dash_no_req:'لا توجد طلبات مستلمة', dash_t_visite:'🗓 زيارة', dash_t_offre:'💰 عرض', dash_t_info:'ℹ️ معلومات',
+    dash_c_pending:'في الانتظار', dash_c_confirmed:'مؤكَّد', dash_c_rejected:'مرفوض', dash_c_done:'منتهٍ',
+    dash_status_updated:'تم تحديث الحالة.', dash_no_fav:'لا توجد مفضلات', dash_fav_hint:'أضف إعلانات إلى المفضلة لتجدها هنا.',
+    alert_active:'🔔 تنبيه نشط', ph_example:'مثال: {v}',
+    prof_title:'المعلومات الشخصية', prof_name:'الاسم', prof_email:'البريد الإلكتروني', prof_phone:'الهاتف', prof_bio:'نبذة',
+    prof_save:'حفظ', prof_logout:'تسجيل الخروج', prof_logout_confirm:'هل تريد تسجيل الخروج؟', prof_updated:'✅ تم تحديث الملف الشخصي!',
+    logout_done:'تم تسجيل الخروج.',
     mod_pending_ok:'تم إرسال الإعلان! سيظهر بعد مراجعة فريقنا له (عادةً خلال 24 ساعة). سيتم إشعارك بالقرار.',
     mod_banner_pending:'إعلانك في انتظار المراجعة: لا يراه سواك وفريقنا.',
     mod_banner_rejected:'إعلان مرفوض.', dash_reason:'سبب الرفض:',
@@ -2008,6 +2028,7 @@ function applyLang(lang) {
   else if (currentPage === 'agences') loadAgences();
   else if (currentPage === 'agency-detail' && window._agencyId) loadAgencyDetail(window._agencyId);
   else if (currentPage === 'carte' && mapInstance) loadMapMarkers();
+  else if (currentPage === 'dashboard' && currentUser) loadDashboard();
   relabelSeo();
 }
 
@@ -2208,7 +2229,7 @@ function logout() {
   document.getElementById('auth-btns').classList.remove('hidden');
   document.getElementById('user-btns').classList.add('hidden');
   showPage('home');
-  toast('Déconnexion effectuée.');
+  toast(T('logout_done'));
 }
 
 // ── API helper ────────────────────────────────────
@@ -3701,7 +3722,7 @@ function buildViewsChart(data) {
   }).join('');
   return `
     <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-top:1.25rem;box-shadow:var(--shadow)">
-      <div style="font-size:.88rem;font-weight:700;color:var(--text-muted);margin-bottom:.75rem">📊 Vues par annonce (top 8)</div>
+      <div style="font-size:.88rem;font-weight:700;color:var(--text-muted);margin-bottom:.75rem">${T('dash_chart')}</div>
       <svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;height:auto;color:var(--text);overflow:visible">
         ${bars}
         <line x1="${PAD}" y1="${H - 20}" x2="${W - PAD}" y2="${H - 20}" stroke="var(--border)" stroke-width="1"/>
@@ -3716,11 +3737,11 @@ async function loadDashboard() {
   try {
     const stats = await api('/stats/me');
     document.getElementById('dash-stats').innerHTML = `
-      <div class="stat-card"><div class="val">${stats.properties}</div><div class="lbl">Annonces</div></div>
-      <div class="stat-card"><div class="val">${stats.active}</div><div class="lbl">Actives</div></div>
-      <div class="stat-card"><div class="val">${stats.contacts}</div><div class="lbl">Demandes reçues</div></div>
-      <div class="stat-card"><div class="val">${stats.pending}</div><div class="lbl">En attente</div></div>
-      <div class="stat-card"><div class="val">${stats.total_views}</div><div class="lbl">Vues totales</div></div>`;
+      <div class="stat-card"><div class="val">${stats.properties}</div><div class="lbl">${T('dash_annonces')}</div></div>
+      <div class="stat-card"><div class="val">${stats.active}</div><div class="lbl">${T('dash_actives')}</div></div>
+      <div class="stat-card"><div class="val">${stats.contacts}</div><div class="lbl">${T('dash_demandes')}</div></div>
+      <div class="stat-card"><div class="val">${stats.pending}</div><div class="lbl">${T('dash_attente')}</div></div>
+      <div class="stat-card"><div class="val">${stats.total_views}</div><div class="lbl">${T('dash_vues')}</div></div>`;
   } catch {}
   dashTab(currentDashTab);
 }
@@ -3731,16 +3752,16 @@ async function ownerDelete(id) {
   try {
     await api('/properties/' + id, 'DELETE');
     dashTab('mes-annonces');
-  } catch (e) { toast(e.message || 'Erreur', 'error'); }
+  } catch (e) { toast(e.message || T('dash_error'), 'error'); }
 }
 
 async function ownerArchive(id) {
-  if (!confirm('Archiver cette annonce ? Elle ne sera plus visible.')) return;
+  if (!confirm(T('dash_archive_confirm'))) return;
   try {
     await api('/properties/' + id, 'PUT', { status: 'archived' });
-    toast('Annonce archivée.');
+    toast(T('dash_archived'));
     dashTab('mes-annonces');
-  } catch (e) { toast(e.message || 'Erreur', 'error'); }
+  } catch (e) { toast(e.message || T('dash_error'), 'error'); }
 }
 
 async function dashTab(tab) {
@@ -3753,7 +3774,7 @@ async function dashTab(tab) {
 
   if (tab === 'mes-annonces') {
     const data = await api('/properties/user/' + currentUser.id);
-    if (!data.length) { c.innerHTML = '<div class="empty-state"><div class="icon">🏠</div><h3>Aucune annonce</h3><p>Publiez votre première annonce !</p><button class="btn btn-primary" style="margin-top:1rem" onclick="showPage(\'publier\')">+ Publier</button></div>'; return; }
+    if (!data.length) { c.innerHTML = '<div class="empty-state"><div class="icon">🏠</div><h3>' + T('dash_none') + '</h3><p>' + T('dash_first') + '</p><button class="btn btn-primary" style="margin-top:1rem" onclick="showPage(\'publier\')">' + T('btn_publier') + '</button></div>'; return; }
 
     const SCOLOR = { active:'#0C6E4F', sold:'#3b82f6', rented:'#f59e0b', archived:'#94a3b8', pending:'#d97706', rejected:'#dc2626' };
     const SLBL   = Object.fromEntries(['active','sold','rented','archived','pending','rejected'].map(k => [k, T('dash_st_' + k)]));
@@ -3769,18 +3790,18 @@ async function dashTab(tab) {
               ${p.verified?'<span style="background:#0C6E4F20;color:#0C6E4F;padding:.1rem .42rem;border-radius:20px;font-size:.71rem;font-weight:700">✓</span>':''}
             </div>
             <div style="font-weight:700;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(p.title)}">${esc(p.title)}</div>
-            <div style="font-size:.79rem;color:var(--text-muted)">📍 ${esc(p.wilaya)} · <strong style="color:var(--primary)">${formatPrice(p.price)} DZD</strong></div>
+            <div style="font-size:.79rem;color:var(--text-muted)">📍 ${esc(p.wilaya)} · <strong style="color:var(--primary)">${priceText(p)}</strong></div>
             ${p.status === 'rejected' && p.moderation_reason ? `<div style="font-size:.79rem;color:#dc2626;margin-top:.25rem">${T('dash_reason')} ${esc(p.moderation_reason)}</div>` : ''}
             <div style="display:flex;gap:1.1rem;margin-top:.4rem;flex-wrap:wrap">
-              <span style="font-size:.79rem;color:var(--text-muted)">👁 <strong>${p.views||0}</strong> vue${(p.views||0)!==1?'s':''}</span>
-              <span style="font-size:.79rem;color:var(--text-muted)">📩 <strong>${p.contact_count||0}</strong> demande${(p.contact_count||0)!==1?'s':''}</span>
+              <span style="font-size:.79rem;color:var(--text-muted)">👁 <strong>${p.views||0}</strong> ${unit(p.views||0, 'u_view')}</span>
+              <span style="font-size:.79rem;color:var(--text-muted)">📩 <strong>${p.contact_count||0}</strong> ${unit(p.contact_count||0, 'u_req')}</span>
               <span style="font-size:.79rem;color:var(--text-muted)">${new Date(p.created_at).toLocaleDateString('fr-DZ')}</span>
             </div>
           </div>
           <div style="padding:.8rem .65rem;display:flex;flex-direction:column;gap:.35rem;justify-content:center;flex-shrink:0">
-            <button class="btn btn-primary btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap" onclick="showPage('detail',${p.id})">Voir</button>
+            <button class="btn btn-primary btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap" onclick="showPage('detail',${p.id})">${T('dash_view')}</button>
             ${p.status === 'rejected' ? `<button class="btn btn-outline btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap;border-color:#dc2626;color:#dc2626" onclick="ownerDelete(${p.id})">${T('dash_delete')}</button>` : ''}
-            ${p.status==='active'?`<button class="btn btn-outline btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap;border-color:#94a3b8;color:#64748b" onclick="ownerArchive(${p.id})">Archiver</button>`:''}
+            ${p.status==='active'?`<button class="btn btn-outline btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap;border-color:#94a3b8;color:#64748b" onclick="ownerArchive(${p.id})">${T('dash_archive')}</button>`:''}
           </div>
         </div>`).join('')}
     </div>` + buildViewsChart(data);
@@ -3788,15 +3809,15 @@ async function dashTab(tab) {
 
   if (tab === 'mes-contacts') {
     const data = await api('/contacts/received');
-    if (!data.length) { c.innerHTML = '<div class="empty-state"><div class="icon">📩</div><h3>Aucune demande reçue</h3></div>'; return; }
+    if (!data.length) { c.innerHTML = '<div class="empty-state"><div class="icon">📩</div><h3>' + T('dash_no_req') + '</h3></div>'; return; }
     c.innerHTML = data.map(d => `
       <div style="background:var(--white);border-radius:10px;padding:1rem;margin-bottom:.75rem;box-shadow:var(--shadow);display:flex;align-items:center;gap:1rem">
         <img src="${d.property_image}" style="width:64px;height:64px;border-radius:8px;object-fit:cover;background:var(--border)" onerror="this.style.background='#e2e8f0'">
         <div style="flex:1">
           <div style="font-weight:700;font-size:.9rem">${esc(d.property_title)}</div>
           <div style="font-size:.83rem;color:var(--text-muted)">
-            <strong>${esc(d.requester_name)}</strong> · ${d.type === 'visite' ? '🗓 Visite' : d.type === 'offre' ? '💰 Offre' : 'ℹ️ Info'} ·
-            <span class="status-${d.status}">${{pending:'En attente',confirmed:'Confirmée',rejected:'Refusée',done:'Terminée'}[d.status] || d.status}</span>
+            <strong>${esc(d.requester_name)}</strong> · ${T('dash_t_' + (['visite', 'offre'].includes(d.type) ? d.type : 'info'))} ·
+            <span class="status-${d.status}">${['pending', 'confirmed', 'rejected', 'done'].includes(d.status) ? T('dash_c_' + d.status) : d.status}</span>
           </div>
           ${d.message ? `<div style="font-size:.83rem;color:var(--text-muted);margin-top:.25rem">"${esc(d.message.slice(0,80))}..."</div>` : ''}
         </div>
@@ -3810,28 +3831,25 @@ async function dashTab(tab) {
 
   if (tab === 'favoris') {
     const data = await api('/favorites');
-    if (!data.length) { c.innerHTML = '<div class="empty-state"><div class="icon">❤️</div><h3>Aucun favori</h3><p>Cœurez des annonces pour les retrouver ici.</p></div>'; return; }
+    if (!data.length) { c.innerHTML = '<div class="empty-state"><div class="icon">❤️</div><h3>' + T('dash_no_fav') + '</h3><p>' + T('dash_fav_hint') + '</p></div>'; return; }
     c.innerHTML = `<div class="grid">${data.map(p => cardHTML(p)).join('')}</div>`;
   }
 
   if (tab === 'alertes') {
     const data = await api('/alerts').catch(() => []);
-    const modeMap = { vente:'Vente', location_longue:'Location longue', location_courte:'Location courte' };
-    const typeMap = { appartement:'Appartement', villa:'Villa', maison:'Maison', bureau:'Bureau',
-      local_commercial:'Local commercial', terrain:'Terrain', ferme:'Ferme', entrepot:'Entrepôt' };
     const rows = data.map(a => {
       const parts = [
         a.wilaya || T('s_all_wilayas'),
-        modeMap[a.mode] || T('s_all_modes'),
-        typeMap[a.type_bien] || T('s_all_types'),
-        a.min_price ? `≥ ${Number(a.min_price).toLocaleString()} DZD` : null,
-        a.max_price ? `≤ ${Number(a.max_price).toLocaleString()} DZD` : null,
-        a.min_surface ? `≥ ${a.min_surface} m²` : null,
+        MODES[a.mode] || T('s_all_modes'),
+        TYPES[a.type_bien] || T('s_all_types'),
+        a.min_price ? `≥ ${Number(a.min_price).toLocaleString('fr-DZ')} ${T('u_dzd')}` : null,
+        a.max_price ? `≤ ${Number(a.max_price).toLocaleString('fr-DZ')} ${T('u_dzd')}` : null,
+        a.min_surface ? `≥ ${a.min_surface} ${T('u_m2')}` : null,
       ].filter(Boolean).join(' · ');
       return `
         <div style="background:var(--white);border-radius:10px;padding:1rem 1.25rem;margin-bottom:.6rem;box-shadow:var(--shadow);display:flex;align-items:center;gap:1rem">
           <div style="flex:1">
-            <div style="font-size:.85rem;font-weight:600;color:var(--primary)">🔔 Alerte active</div>
+            <div style="font-size:.85rem;font-weight:600;color:var(--primary)">${T('alert_active')}</div>
             <div style="font-size:.83rem;color:var(--text-muted);margin-top:.2rem">${esc(parts)}</div>
           </div>
           <button class="btn btn-danger btn-sm" onclick="deleteAlert(${a.id})">${T('alert_del')}</button>
@@ -3867,9 +3885,9 @@ async function dashTab(tab) {
                 <option value="ferme">${T('s_ferme')}</option>
                 <option value="entrepot">${T('s_entrepot')}</option>
               </select></div>
-            <div class="form-group"><label>${T('alert_min_surf')}</label><input id="al-surf" type="number" min="0" placeholder="ex: 80" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
-            <div class="form-group"><label>${T('alert_min_price')}</label><input id="al-min-price" type="number" min="0" placeholder="ex: 5000000" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
-            <div class="form-group"><label>${T('alert_max_price')}</label><input id="al-max-price" type="number" min="0" placeholder="ex: 20000000" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
+            <div class="form-group"><label>${T('alert_min_surf')}</label><input id="al-surf" type="number" min="0" placeholder="${T('ph_example').replace('{v}', '80')}" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
+            <div class="form-group"><label>${T('alert_min_price')}</label><input id="al-min-price" type="number" min="0" placeholder="${T('ph_example').replace('{v}', '5 000 000')}" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
+            <div class="form-group"><label>${T('alert_max_price')}</label><input id="al-max-price" type="number" min="0" placeholder="${T('ph_example').replace('{v}', '20 000 000')}" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
           </div>
           <div style="display:flex;gap:.6rem;margin-top:.75rem">
             <button class="btn btn-primary btn-sm" onclick="saveAlert()">${T('alert_save')}</button>
@@ -3886,14 +3904,14 @@ async function dashTab(tab) {
     c.innerHTML = `
       <div style="max-width:480px">
         <div style="background:var(--white);border-radius:var(--radius);padding:1.5rem;box-shadow:var(--shadow)">
-          <h3 style="font-size:1rem;font-weight:700;margin-bottom:1.25rem">Informations personnelles</h3>
-          <div class="form-row"><label>Nom</label><input id="p-name" value="${esc(currentUser.name)}"></div>
-          <div class="form-row"><label>Email</label><input value="${esc(currentUser.email)}" disabled style="background:#f1f5f9"></div>
-          <div class="form-row"><label>Téléphone</label><input id="p-phone" value="${esc(currentUser.phone || '')}"></div>
-          <div class="form-row"><label>Bio</label><textarea id="p-bio" rows="3">${esc(currentUser.bio || '')}</textarea></div>
+          <h3 style="font-size:1rem;font-weight:700;margin-bottom:1.25rem">${T('prof_title')}</h3>
+          <div class="form-row"><label>${T('prof_name')}</label><input id="p-name" value="${esc(currentUser.name)}"></div>
+          <div class="form-row"><label>${T('prof_email')}</label><input value="${esc(currentUser.email)}" disabled style="background:#f1f5f9"></div>
+          <div class="form-row"><label>${T('prof_phone')}</label><input id="p-phone" value="${esc(currentUser.phone || '')}"></div>
+          <div class="form-row"><label>${T('prof_bio')}</label><textarea id="p-bio" rows="3">${esc(currentUser.bio || '')}</textarea></div>
           <div style="display:flex;gap:.75rem;margin-top:1rem">
-            <button class="btn btn-primary" style="flex:1" onclick="updateProfile()">Enregistrer</button>
-            <button class="btn btn-danger btn-sm" onclick="if(confirm('Déconnexion ?')) logout()">Déconnexion</button>
+            <button class="btn btn-primary" style="flex:1" onclick="updateProfile()">${T('prof_save')}</button>
+            <button class="btn btn-danger btn-sm" onclick="if(confirm(T('prof_logout_confirm'))) logout()">${T('prof_logout')}</button>
           </div>
         </div>
       </div>`;
@@ -3955,7 +3973,7 @@ function fillWilayaSelect(select) {
 }
 
 async function updateContact(id, status) {
-  try { await api('/contacts/' + id + '/status', 'PUT', { status }); dashTab('mes-contacts'); toast('Statut mis à jour.'); }
+  try { await api('/contacts/' + id + '/status', 'PUT', { status }); dashTab('mes-contacts'); toast(T('dash_status_updated')); }
   catch (e) { toast('❌ ' + e.message); }
 }
 
@@ -3967,7 +3985,7 @@ async function updateProfile() {
     const updated = await api('/auth/profile', 'PUT', { name, phone, bio });
     currentUser = { ...currentUser, ...updated };
     document.getElementById('avatar-btn').textContent = (currentUser.name || '?')[0].toUpperCase();
-    toast('✅ Profil mis à jour !');
+    toast(T('prof_updated'));
   } catch (e) { toast('❌ ' + e.message); }
 }
 
