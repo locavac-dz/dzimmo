@@ -76,6 +76,17 @@ test('toutes les clés T(\'…\') utilisées dans le JavaScript existent en fran
       assert.ok((prefix + v) in T[lang], `${prefix}${v} manquante (${lang})`);
 });
 
+test('les fonctions d\'alerte lisent des champs qui existent dans la page', () => {
+  // Régression : createAlertFromFilters lisait f-min / f-max, qui n'existent pas (les prix ne partaient jamais)
+  const code = inlineScripts().join('\n');
+  for (const fn of ['createAlertFromFilters', 'saveAlert']) {
+    const body = code.match(new RegExp(`async function ${fn}\\(\\) \\{[\\s\\S]*?\\n\\}`))[0];
+    const ids = [...body.matchAll(/getElementById\('([^']+)'\)/g)].map(m => m[1]);
+    assert.ok(ids.length >= 5, `${fn} : champs trouvés`);
+    for (const id of ids) assert.ok(html.includes(`id="${id}"`), `${fn} lit #${id}, absent de la page`);
+  }
+});
+
 test('la bannière d\'accueil ne contient pas de chiffre d\'annonces en dur', () => {
   // « Plus de 50 000 annonces » était faux (7 annonces) : pas de volume annoncé dans un texte statique
   const T = translations();

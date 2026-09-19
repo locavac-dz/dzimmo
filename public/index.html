@@ -3950,10 +3950,11 @@ async function createAlertFromFilters() {
   const wilaya    = document.getElementById('f-wilaya')?.value || '';
   const mode      = document.getElementById('f-mode')?.value   || '';
   const type_bien = document.getElementById('f-type')?.value   || '';
-  const min_price = document.getElementById('f-min')?.value    || '';
-  const max_price = document.getElementById('f-max')?.value    || '';
+  const min_price   = document.getElementById('f-min-price')?.value   || '';
+  const max_price   = document.getElementById('f-max-price')?.value   || '';
+  const min_surface = document.getElementById('f-min-surface')?.value || '';
   try {
-    await api('/alerts', 'POST', { wilaya, mode, type_bien, min_price, max_price });
+    await api('/alerts', 'POST', { wilaya, mode, type_bien, min_price, max_price, min_surface });
     toast(T('alert_saved'));
   } catch (e) {
     toast('❌ ' + (e.message || T('alert_max')));
