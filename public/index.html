@@ -610,6 +610,20 @@
           </select>
         </div>
         <div>
+          <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem" data-i18n="filter_surf_min">Surface min (m²)</label>
+          <select id="f-min-surface" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
+            <option value="">Toutes</option>
+            <option value="30">30 m²+</option>
+            <option value="50">50 m²+</option>
+            <option value="70">70 m²+</option>
+            <option value="100">100 m²+</option>
+            <option value="150">150 m²+</option>
+            <option value="200">200 m²+</option>
+            <option value="300">300 m²+</option>
+            <option value="500">500 m²+</option>
+          </select>
+        </div>
+        <div>
           <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem">Recherche</label>
           <input id="f-q" type="text" placeholder="Mot-clé…" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
         </div>
@@ -1371,6 +1385,7 @@ const TRANSLATIONS = {
     contact_title:'Contactez-nous', contact_sub:'Notre équipe vous répond dans les 24 h ouvrées.',
     filter_wilaya:'Wilaya', filter_mode:'Mode', filter_type:'Type',
     filter_price_min:'Prix min (DZD)', filter_price_max:'Prix max (DZD)', filter_rooms:'Pièces min',
+    filter_surf_min:'Surface min (m²)',
     cgu_sub:'Dernière mise à jour : 1er janvier 2026',
     cgu_h1:'1. Objet', cgu_h2:"2. Accès et inscription", cgu_h3:"3. Publication d'annonces",
     cgu_h4:'4. Responsabilité', cgu_h5:'5. Propriété intellectuelle',
@@ -1526,6 +1541,7 @@ const TRANSLATIONS = {
     contact_title:'اتصل بنا', contact_sub:'فريقنا يرد خلال 24 ساعة عمل.',
     filter_wilaya:'الولاية', filter_mode:'النوع', filter_type:'نوع العقار',
     filter_price_min:'الحد الأدنى (د.ج)', filter_price_max:'الحد الأقصى (د.ج)', filter_rooms:'الغرف الدنيا',
+    filter_surf_min:'أدنى مساحة (م²)',
     cgu_sub:'آخر تحديث: 1 يناير 2026',
     cgu_h1:'1. الموضوع', cgu_h2:'2. الوصول والتسجيل', cgu_h3:'3. نشر الإعلانات',
     cgu_h4:'4. المسؤولية', cgu_h5:'5. الملكية الفكرية',
@@ -1705,6 +1721,7 @@ async function init() {
 
   const params = new URLSearchParams(location.search);
   if (params.get('verify') === 'ok') toast('✅ Email vérifié. Bienvenue !');
+  if (params.get('p'))               showPage('detail', Number(params.get('p')));
   if (window.location.hash.includes('reset_token=')) openModal('login');
   if (navigator.serviceWorker) navigator.serviceWorker.register('/sw.js');
 }
@@ -1881,8 +1898,9 @@ async function loadAnnonces(page = 1) {
   if (get('f-min-price')) params.set('min_price', get('f-min-price'));
   if (get('f-max-price')) params.set('max_price', get('f-max-price'));
   if (get('f-rooms'))     params.set('rooms',     get('f-rooms'));
-  if (get('f-q'))         params.set('q',         get('f-q'));
-  if (get('f-sort'))      params.set('sort',      get('f-sort'));
+  if (get('f-min-surface')) params.set('min_surface', get('f-min-surface'));
+  if (get('f-q'))           params.set('q',           get('f-q'));
+  if (get('f-sort'))        params.set('sort',        get('f-sort'));
   try {
     const resp = await api('/properties?' + params);
     const { data, total, pages } = resp;
@@ -2050,6 +2068,13 @@ async function loadDetail(id) {
             <div style="margin-top:1rem;font-size:.8rem;color:var(--text-muted);text-align:center">
               👁 ${p.views || 0} vue${(p.views || 0) > 1 ? 's' : ''} ·
               Publié le ${new Date(p.created_at).toLocaleDateString('fr-DZ')}
+            </div>
+            <div style="display:flex;gap:.5rem;margin-top:.75rem">
+              <button class="btn btn-outline btn-sm" style="flex:1;display:flex;align-items:center;justify-content:center;gap:.4rem" onclick="shareWhatsApp(${p.id}, ${JSON.stringify(p.title)}, ${p.price})">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                WhatsApp
+              </button>
+              <button class="btn btn-outline btn-sm" style="flex:1" onclick="copyPropertyLink(${p.id})">🔗 Copier</button>
             </div>
           </div>
         </div>
@@ -2408,6 +2433,33 @@ async function loadAgencyDetail(id) {
   } catch (e) { c.innerHTML = `<p style="color:red;padding:2rem">${e.message}</p>`; }
 }
 
+// Génère et télécharge un CSV côté client
+function exportCSV(rows, filename) {
+  if (!rows || !rows.length) { toast('Aucune donnée à exporter.'); return; }
+  const keys = Object.keys(rows[0]);
+  const escape = v => (v === null || v === undefined) ? '' : `"${String(v).replace(/"/g, '""')}"`;
+  const csv = [keys.join(','), ...rows.map(r => keys.map(k => escape(r[k])).join(','))].join('\r\n');
+  const a   = document.createElement('a');
+  a.href    = 'data:text/csv;charset=utf-8,' + encodeURIComponent('﻿' + csv);
+  a.download = filename; a.click();
+}
+
+function shareWhatsApp(id, title, price) {
+  const url  = window.location.origin + '/?p=' + id;
+  const text = `🏠 ${title} — ${formatPrice(price)} DZD\n${url}`;
+  window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(text), '_blank', 'noopener');
+}
+
+function copyPropertyLink(id) {
+  const url = window.location.origin + '/?p=' + id;
+  navigator.clipboard.writeText(url).then(() => toast('🔗 Lien copié !')).catch(() => {
+    const el = document.createElement('textarea');
+    el.value = url; document.body.appendChild(el); el.select();
+    document.execCommand('copy'); document.body.removeChild(el);
+    toast('🔗 Lien copié !');
+  });
+}
+
 // ══════════════════════════════════════════════════
 // PANNEAU ADMIN
 // ══════════════════════════════════════════════════
@@ -2449,8 +2501,12 @@ async function adminLoadUsers() {
   c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
     const users = await api('/admin/users');
+    window._adminUsers = users;
     c.innerHTML = `
-      <p style="margin-bottom:.75rem;color:var(--text-muted);font-size:.85rem">${users.length} utilisateur${users.length > 1 ? 's' : ''}</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+        <span style="color:var(--text-muted);font-size:.85rem">${users.length} utilisateur${users.length > 1 ? 's' : ''}</span>
+        <button class="btn btn-outline btn-sm" onclick="exportCSV(window._adminUsers,'utilisateurs.csv')">⬇ CSV</button>
+      </div>
       <div style="overflow-x:auto">
         <table class="admin-table">
           <thead><tr><th>ID</th><th>Nom</th><th>Email</th><th>Rôle</th><th>Vérifié</th><th>Inscrit</th><th>Actions</th></tr></thead>
@@ -2498,6 +2554,7 @@ async function adminLoadProperties() {
           <option value="rented">Loué</option><option value="archived">Archivé</option>
         </select>
         <span style="font-size:.85rem;color:var(--text-muted)">${props.length} annonce${props.length > 1 ? 's' : ''}</span>
+        <button class="btn btn-outline btn-sm" onclick="exportCSV(window._adminProps,'annonces.csv')">⬇ CSV</button>
       </div>
       <div style="overflow-x:auto">
         <table class="admin-table">
@@ -2523,6 +2580,7 @@ async function adminLoadProperties() {
           </tbody>
         </table>
       </div>`;
+    window._adminProps = props.map(p => ({ id:p.id, titre:p.title, wilaya:p.wilaya, prix:p.price, mode:p.mode, type:p.type_bien, statut:p.status, verifie:p.verified }));
     if (statusFilter) document.getElementById('admin-prop-status').value = statusFilter;
   } catch (e) { c.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
 }
@@ -2600,24 +2658,47 @@ async function adminLoadSignalements() {
       return;
     }
     const MOTIFS = { faux:'Faux', doublon:'Doublon', interdit:'Interdit', autre:'Autre' };
+    const ST_COLOR = { pending:'#f59e0b', resolved:'#22c55e', dismissed:'#94a3b8' };
+    const ST_LBL   = { pending:'En attente', resolved:'Résolu', dismissed:'Ignoré' };
+    const pending  = sigs.filter(s => s.status === 'pending').length;
     c.innerHTML = `
-      <p style="margin-bottom:.75rem;color:var(--text-muted);font-size:.85rem">${sigs.length} signalement${sigs.length > 1 ? 's' : ''}</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+        <span style="font-size:.85rem;color:var(--text-muted)">${sigs.length} signalement${sigs.length > 1 ? 's' : ''} · <strong style="color:#f59e0b">${pending} en attente</strong></span>
+        <button class="btn btn-outline btn-sm" onclick="exportCSV(adminLastSignalements,'signalements.csv')">⬇ CSV</button>
+      </div>
       <div style="overflow-x:auto">
         <table class="admin-table">
-          <thead><tr><th>ID</th><th>Annonce</th><th>Motif</th><th>Signalé par</th><th>Message</th><th>Date</th></tr></thead>
+          <thead><tr><th>ID</th><th>Annonce</th><th>Motif</th><th>Signalé par</th><th>Message</th><th>Statut</th><th>Date</th><th>Actions</th></tr></thead>
           <tbody>${sigs.map(s => `
-            <tr>
+            <tr style="${s.status !== 'pending' ? 'opacity:.55' : ''}">
               <td style="color:var(--text-muted)">#${s.id}</td>
               <td><a href="#" onclick="showPage('detail',${s.property_id});return false" style="color:var(--primary)">${esc(s.property_title || '#' + s.property_id)}</a></td>
               <td><span style="background:#fef3c7;color:#92400e;padding:.15rem .45rem;border-radius:20px;font-size:.78rem;font-weight:700">${esc(MOTIFS[s.motif] || s.motif)}</span></td>
               <td>${esc(s.reporter_name || 'Anonyme')}</td>
-              <td style="max-width:200px;color:var(--text-muted);font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.message || '—')}</td>
+              <td style="max-width:180px;color:var(--text-muted);font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(s.message || '')}">${esc(s.message || '—')}</td>
+              <td><span style="background:${ST_COLOR[s.status] || '#94a3b8'}20;color:${ST_COLOR[s.status] || '#94a3b8'};padding:.15rem .45rem;border-radius:20px;font-size:.78rem;font-weight:700">${ST_LBL[s.status] || s.status}</span></td>
               <td style="color:var(--text-muted);white-space:nowrap">${new Date(s.created_at).toLocaleDateString('fr-DZ')}</td>
+              <td style="display:flex;gap:.3rem">
+                ${s.status === 'pending' ? `
+                <button class="btn btn-outline btn-sm" style="border-color:#22c55e;color:#22c55e;padding:.25rem .45rem;font-size:.78rem;white-space:nowrap" onclick="adminResolveSignalement(${s.id},'resolved')">✔ Résoudre</button>
+                <button class="btn btn-outline btn-sm" style="padding:.25rem .45rem;font-size:.78rem;white-space:nowrap" onclick="adminResolveSignalement(${s.id},'dismissed')">Ignorer</button>` : '—'}
+              </td>
             </tr>`).join('')}
           </tbody>
         </table>
       </div>`;
+    adminLastSignalements = sigs;
   } catch (e) { c.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
+}
+
+let adminLastSignalements = [];
+
+async function adminResolveSignalement(id, status) {
+  try {
+    await api('/admin/signalements/' + id + '/resolve', 'PUT', { status });
+    toast(status === 'resolved' ? '✅ Signalement résolu.' : '👁 Signalement ignoré.');
+    adminLoadSignalements();
+  } catch (e) { toast('❌ ' + e.message); }
 }
 
 async function adminLoadNewsletter() {

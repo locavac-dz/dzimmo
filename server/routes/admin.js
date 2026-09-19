@@ -75,6 +75,19 @@ router.get('/signalements', admin, async (req, res) => {
   res.json(r.rows);
 });
 
+// PUT /api/admin/signalements/:id/resolve
+router.put('/signalements/:id/resolve', admin, async (req, res) => {
+  const { status } = req.body;
+  const VALIDES = ['resolved', 'dismissed'];
+  if (!VALIDES.includes(status)) return res.status(400).json({ error: 'Statut invalide.' });
+  const r = await pool.query(
+    'UPDATE signalements SET status = $1 WHERE id = $2 RETURNING id',
+    [status, req.params.id]
+  );
+  if (!r.rowCount) return res.status(404).json({ error: 'Signalement introuvable.' });
+  res.json({ ok: true });
+});
+
 // GET /api/admin/newsletter
 router.get('/newsletter', admin, async (req, res) => {
   const r = await pool.query('SELECT * FROM newsletter_subscribers ORDER BY created_at DESC');

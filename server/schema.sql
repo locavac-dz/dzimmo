@@ -125,6 +125,7 @@ CREATE TABLE IF NOT EXISTS signalements (
   user_id     INTEGER,
   motif       TEXT,
   message     TEXT,
+  status      TEXT NOT NULL DEFAULT 'pending',
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
