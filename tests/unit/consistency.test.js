@@ -96,6 +96,21 @@ test('la bannière d\'accueil ne contient pas de chiffre d\'annonces en dur', ()
   assert.doesNotMatch(html.match(/data-i18n="hero_sub">([^<]*)</)[1], claim);
 });
 
+test('listes de prix : montants formatés avec séparateurs insécables (sinon inversés en arabe)', () => {
+  // « 50 000 000 » avec de simples espaces s'affichait « 000 000 50 » en écriture de droite à gauche
+  const body = html.match(/function rebuildSelects\(\) \{[\s\S]*?\n\}/)[0];
+  assert.match(body, /#f-min-price option[\s\S]*#f-max-price option[\s\S]*formatPrice\(o\.value\)/);
+  assert.match(html, /function formatPrice\(n\) \{\s*return Number\(n\)\.toLocaleString\('fr-DZ'\);/);
+  assert.match(translations().ar.filter_price_min, /السعر/, 'libellé « prix min » : le mot « prix » doit figurer');
+  assert.match(translations().ar.filter_price_max, /السعر/, 'libellé « prix max » : le mot « prix » doit figurer');
+  // « 30 م²+ » : le signe « + » se place mal en écriture de droite à gauche, on écrit « 30 م² فأكثر »
+  assert.equal(translations().fr.opt_more, '+');
+  assert.match(translations().ar.opt_more, /فأكثر/);
+  assert.match(body, /T\('opt_more'\)/);
+  // les options de fourchettes n'ont plus de texte français en dur
+  assert.match(html, /data-i18n="filter_no_limit">Sans limite/);
+});
+
 test('le site envoie sa langue à l\'API (en-tête X-Lang) sur les appels JSON et l\'envoi de photos', () => {
   const sent = html.match(/'X-Lang': currentLang/g) || [];
   assert.equal(sent.length, 2, 'api() et l\'upload des photos doivent envoyer X-Lang');

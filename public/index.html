@@ -801,7 +801,7 @@
         <div>
           <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem" data-i18n="filter_price_max">Prix max (DZD)</label>
           <select id="f-max-price" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
-            <option value="">Sans limite</option>
+            <option value="" data-i18n="filter_no_limit">Sans limite</option>
             <option value="500000">500 000</option>
             <option value="1000000">1 000 000</option>
             <option value="2000000">2 000 000</option>
@@ -815,7 +815,7 @@
         <div>
           <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem" data-i18n="filter_rooms">Pièces min</label>
           <select id="f-rooms" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
-            <option value="">Toutes</option>
+            <option value="" data-i18n="se_rooms_all">Toutes</option>
             <option value="1">1+</option>
             <option value="2">2+</option>
             <option value="3">3+</option>
@@ -827,7 +827,7 @@
         <div>
           <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem" data-i18n="filter_surf_min">Surface min (m²)</label>
           <select id="f-min-surface" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
-            <option value="">Toutes</option>
+            <option value="" data-i18n="se_rooms_all">Toutes</option>
             <option value="30">30 m²+</option>
             <option value="50">50 m²+</option>
             <option value="70">70 m²+</option>
@@ -1692,7 +1692,7 @@ const TRANSLATIONS = {
     contact_title:'Contactez-nous', contact_sub:'Notre équipe vous répond dans les 24 h ouvrées.',
     filter_wilaya:'Wilaya', filter_mode:'Mode', filter_type:'Type',
     filter_price_min:'Prix min (DZD)', filter_price_max:'Prix max (DZD)', filter_rooms:'Pièces min',
-    filter_surf_min:'Surface min (m²)',
+    filter_surf_min:'Surface min (m²)', filter_no_limit:'Sans limite', opt_more:'+',
     cgu_sub:'Dernière mise à jour : 1er janvier 2026',
     cgu_h1:'1. Objet', cgu_h2:"2. Accès et inscription", cgu_h3:"3. Publication d'annonces",
     cgu_h4:'4. Responsabilité', cgu_h5:'5. Propriété intellectuelle',
@@ -1914,8 +1914,8 @@ const TRANSLATIONS = {
     privacy_title:'سياسة الخصوصية', mentions_title:'الإشعارات القانونية',
     contact_title:'اتصل بنا', contact_sub:'فريقنا يرد خلال 24 ساعة عمل.',
     filter_wilaya:'الولاية', filter_mode:'النوع', filter_type:'نوع العقار',
-    filter_price_min:'الحد الأدنى (د.ج)', filter_price_max:'الحد الأقصى (د.ج)', filter_rooms:'الغرف الدنيا',
-    filter_surf_min:'أدنى مساحة (م²)',
+    filter_price_min:'السعر الأدنى (د.ج)', filter_price_max:'السعر الأقصى (د.ج)', filter_rooms:'الغرف الدنيا',
+    filter_surf_min:'أدنى مساحة (م²)', filter_no_limit:'بدون حد', opt_more:' فأكثر',
     cgu_sub:'آخر تحديث: 1 يناير 2026',
     cgu_h1:'1. الموضوع', cgu_h2:'2. الوصول والتسجيل', cgu_h3:'3. نشر الإعلانات',
     cgu_h4:'4. المسؤولية', cgu_h5:'5. الملكية الفكرية',
@@ -2073,6 +2073,13 @@ function rebuildSelects() {
       WILAYAS.map(w => `<option value="${w}">${wilayaName(w)}</option>`).join('');
     el.value = cur;
   });
+  // Fourchettes « minimum » : unité et « et plus » traduits (« 30 m²+ » / « 30 م² فأكثر », « 3+ » / « 3 فأكثر »)
+  document.querySelectorAll('#f-min-surface option:not([value=""])').forEach(o => { o.textContent = o.value + ' ' + T('u_m2') + T('opt_more'); });
+  document.querySelectorAll('#f-rooms option:not([value=""])').forEach(o => { o.textContent = o.value + T('opt_more'); });
+  // Fourchettes de prix : séparateurs insécables (formatPrice). Avec de simples espaces, l'écriture de droite
+  // à gauche inverse les groupes de chiffres : « 50 000 000 » s'affichait « 000 000 50 » en arabe.
+  document.querySelectorAll('#f-min-price option:not([value=""]), #f-max-price option:not([value=""])')
+    .forEach(o => { o.textContent = formatPrice(o.value); });
 }
 
 // ── Wilayas d'Algérie — 69 wilayas (loi n°26-06 du 4 avril 2026)
