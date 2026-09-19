@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DzImmo — Immobilier en Algérie</title>
   <meta name="description" content="Trouvez ou publiez des annonces immobilières en Algérie : appartements, villas, locaux, terrains à vendre ou à louer.">
+  <!--SEO_HEAD-->
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0C6E4F">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -1996,7 +1997,9 @@ async function init() {
 
   const params = new URLSearchParams(location.search);
   if (params.get('verify') === 'ok') toast('✅ Email vérifié. Bienvenue !');
-  if (params.get('p'))               showPage('detail', Number(params.get('p')));
+  const annonceMatch = location.pathname.match(/^\/annonce\/(\d+)/);
+  if (annonceMatch)                  showPage('detail', Number(annonceMatch[1]));
+  else if (params.get('p'))          showPage('detail', Number(params.get('p')));
   if (window.location.hash.includes('reset_token=')) openModal('login');
   if (navigator.serviceWorker) navigator.serviceWorker.register('/sw.js');
 
@@ -2105,7 +2108,25 @@ async function api(path, method = 'GET', body = null) {
 // ── Navigation ────────────────────────────────────
 const PAGES = ['home','annonces','detail','publier','agences','agency-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats','contrats'];
 
+const DEFAULT_TITLE = 'DzImmo — Immobilier en Algérie';
+
+// Même algorithme que server/seo.js (slugify) pour des URL identiques des deux côtés
+function slugify(s) {
+  return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60).replace(/-+$/, '');
+}
+
+function annonceUrl(id, title) {
+  const slug = slugify(title);
+  return window.location.origin + '/annonce/' + id + (slug ? '-' + slug : '');
+}
+
 function showPage(page, data = null) {
+  // Hors fiche annonce, on quitte l'URL /annonce/… (les filtres d'annonces réécrivent ensuite la query)
+  if (page !== 'detail') {
+    if (location.pathname !== '/') history.replaceState(null, '', '/');
+    document.title = DEFAULT_TITLE;
+  }
   PAGES.forEach(p => {
     const el = document.getElementById('page-' + p);
     if (el) el.classList.add('hidden');
@@ -2350,6 +2371,9 @@ async function loadDetail(id) {
   container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
     const p = await api('/properties/' + id);
+    // URL propre + titre d'onglet (utile au partage et à l'historique)
+    history.replaceState(null, '', new URL(annonceUrl(p.id, p.title)).pathname);
+    document.title = p.title + ' | DzImmo';
     const photos = Array.isArray(p.photos) ? p.photos : [p.image].filter(Boolean);
     const price  = p.mode === 'vente' ? formatPrice(p.price) + ' DZD' : formatPrice(p.price) + ' DZD/mois';
     const feats  = Array.isArray(p.features) ? p.features : [];
@@ -3014,13 +3038,14 @@ document.addEventListener('keydown', e => {
 });
 
 function shareWhatsApp(id, title, price) {
-  const url  = window.location.origin + '/?p=' + id;
+  const url  = annonceUrl(id, title);
   const text = `🏠 ${title} — ${formatPrice(price)} DZD\n${url}`;
   window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(text), '_blank', 'noopener');
 }
 
 function copyPropertyLink(id) {
-  const url = window.location.origin + '/?p=' + id;
+  // Sur la fiche, l'URL courante est déjà l'URL propre /annonce/id-slug
+  const url = location.pathname.startsWith('/annonce/') ? location.origin + location.pathname : annonceUrl(id, '');
   navigator.clipboard.writeText(url).then(() => toast('🔗 Lien copié !')).catch(() => {
     const el = document.createElement('textarea');
     el.value = url; document.body.appendChild(el); el.select();

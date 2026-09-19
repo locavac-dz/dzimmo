@@ -76,6 +76,8 @@ app.get('/sw.js', (_, res) => {
   res.setHeader('Service-Worker-Allowed', '/');
   res.sendFile(path.join(__dirname, '..', 'public', 'sw.js'));
 });
+// SEO : /, /annonce/:id-slug, sitemap.xml, robots.txt (avant les fichiers statiques)
+require('./seo').mount(app);
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.use('/api/auth',       require('./routes/auth'));
