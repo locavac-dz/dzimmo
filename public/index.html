@@ -517,6 +517,63 @@
     }
     #lb-thumbs img.active { opacity: 1; border-color: var(--primary); }
     .detail-gallery img { cursor: zoom-in; }
+
+    /* ── Comparateur ── */
+    #compare-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 800;
+      background: var(--white); border-top: 2px solid var(--primary);
+      padding: .65rem 1.25rem; display: none;
+      align-items: center; gap: 1rem;
+      box-shadow: 0 -4px 20px rgba(0,0,0,.12);
+    }
+    #compare-bar.visible { display: flex; }
+    #compare-bar .cmp-thumb {
+      display: flex; align-items: center; gap: .5rem;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: .35rem .55rem; font-size: .8rem;
+      max-width: 180px;
+    }
+    #compare-bar .cmp-thumb img {
+      width: 40px; height: 32px; object-fit: cover; border-radius: 4px; flex-shrink: 0;
+    }
+    #compare-bar .cmp-thumb span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #compare-bar .cmp-rm {
+      background: none; border: none; font-size: 1rem; cursor: pointer;
+      color: var(--text-muted); flex-shrink: 0; line-height: 1;
+    }
+    #compare-modal {
+      position: fixed; inset: 0; z-index: 9800;
+      background: rgba(0,0,0,.6);
+      display: none; align-items: flex-start; justify-content: center;
+      padding: 1.5rem 1rem; overflow-y: auto;
+    }
+    #compare-modal.open { display: flex; }
+    #compare-modal .cmp-inner {
+      background: var(--white); border-radius: 16px;
+      max-width: 900px; width: 100%; margin: auto;
+      overflow: hidden; box-shadow: var(--shadow);
+    }
+    #compare-modal .cmp-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);
+    }
+    #compare-modal table { width: 100%; border-collapse: collapse; }
+    #compare-modal th, #compare-modal td {
+      padding: .7rem .9rem; border-bottom: 1px solid var(--border);
+      font-size: .87rem; vertical-align: top; text-align: center;
+    }
+    #compare-modal th { background: var(--bg); font-weight: 700; }
+    #compare-modal td:first-child { text-align: left; color: var(--text-muted); font-weight: 600; width: 130px; }
+    #compare-modal .cmp-prop-img { width: 100%; height: 110px; object-fit: cover; border-radius: 8px 8px 0 0; }
+    .card-cmp {
+      position: absolute; top: .5rem; left: .5rem;
+      background: rgba(255,255,255,.88); border: 1.5px solid var(--border);
+      border-radius: 50%; width: 28px; height: 28px;
+      font-size: .9rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .card-cmp.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
     .gallery-more-btn {
       position: absolute; bottom: .5rem; right: .5rem;
       background: rgba(0,0,0,.6); color: #fff;
@@ -536,6 +593,25 @@
   <img id="lb-img" src="" alt="Photo du bien">
   <button class="lb-nav" id="lb-next" onclick="lbGo(1)" aria-label="Photo suivante">&#8250;</button>
   <div id="lb-thumbs"></div>
+</div>
+
+<!-- ═══════════════════ COMPARATEUR ═══════════════════ -->
+<div id="compare-bar">
+  <div id="compare-thumbs" style="display:flex;gap:.5rem;flex:1;flex-wrap:wrap"></div>
+  <button class="btn btn-primary" style="white-space:nowrap;flex-shrink:0" onclick="openCompare()">⚖ Comparer</button>
+  <button class="btn btn-outline btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="clearCompare()">✕ Vider</button>
+</div>
+
+<div id="compare-modal" onclick="cmpBackdrop(event)">
+  <div class="cmp-inner">
+    <div class="cmp-head">
+      <strong style="font-size:1rem">⚖ Comparateur de biens</strong>
+      <button class="btn btn-outline btn-sm" onclick="closeCompare()">✕ Fermer</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table id="compare-table"></table>
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════════════ HEADER ═══════════════════ -->
@@ -2055,20 +2131,24 @@ function renderGrid(container, props) {
 }
 
 function cardHTML(p) {
+  window._propCache[p.id] = p;
   const price = p.mode === 'vente'
     ? formatPrice(p.price) + ' DZD'
     : formatPrice(p.price) + ' DZD/mois';
   const meta = [
-    p.rooms     ? p.rooms + ' pièce' + (p.rooms > 1 ? 's' : '') : null,
+    p.rooms      ? p.rooms + ' pièce' + (p.rooms > 1 ? 's' : '') : null,
     p.surface_m2 ? p.surface_m2 + ' m²' : null,
-    p.baths     ? p.baths + ' SDB' : null,
+    p.baths      ? p.baths + ' SDB' : null,
   ].filter(Boolean).join(' · ');
+  const isCmp = _compareList.some(x => x.id === p.id);
   return `
   <div class="card-wrapper" onclick="showPage('detail', ${p.id})">
     <div class="card">
       <img class="card-img" src="${p.image || 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70'}" alt="${esc(p.title)}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70'">
       ${p.verified ? '<span class="verified-badge">✓ Vérifié</span>' : ''}
       ${token ? `<button class="card-fav" onclick="event.stopPropagation();toggleFav(${p.id},this)" title="Favori">🤍</button>` : ''}
+      <button class="card-cmp${isCmp ? ' active' : ''}" data-id="${p.id}"
+              onclick="event.stopPropagation();toggleCompare(${p.id})" title="Comparer">⚖</button>
       <div class="card-body">
         <span class="card-mode mode-${p.mode}">${MODES[p.mode] || p.mode}</span>
         <div class="card-title">${esc(p.title)}</div>
@@ -2596,6 +2676,98 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft')  { e.preventDefault(); lbGo(-1); }
   if (e.key === 'ArrowRight') { e.preventDefault(); lbGo(1); }
   if (e.key === 'Escape')     closeLightbox();
+});
+
+// ── Comparateur ────────────────────────────────────
+const _compareList = [];  // max 3 objets {id, title, price, image, ...}
+window._propCache = {};   // id → objet bien (peuplé par renderGrid/cardHTML)
+
+function toggleCompare(id) {
+  const p = window._propCache[id];
+  if (!p) return;
+  const idx = _compareList.findIndex(x => x.id === id);
+  if (idx !== -1) {
+    _compareList.splice(idx, 1);
+  } else {
+    if (_compareList.length >= 3) { toast('Vous pouvez comparer 3 biens maximum.'); return; }
+    _compareList.push(p);
+  }
+  updateCompareBar();
+  // mise à jour visuelle du bouton
+  const btn = document.querySelector(`.card-cmp[data-id="${id}"]`);
+  if (btn) btn.classList.toggle('active', _compareList.some(x => x.id === id));
+}
+
+function clearCompare() {
+  _compareList.length = 0;
+  updateCompareBar();
+  document.querySelectorAll('.card-cmp.active').forEach(b => b.classList.remove('active'));
+}
+
+function updateCompareBar() {
+  const bar = document.getElementById('compare-bar');
+  const tc  = document.getElementById('compare-thumbs');
+  if (!_compareList.length) { bar.classList.remove('visible'); return; }
+  bar.classList.add('visible');
+  tc.innerHTML = _compareList.map(p => `
+    <div class="cmp-thumb">
+      <img src="${esc(p.image||'')}" alt="" onerror="this.style.display='none'">
+      <span>${esc(p.title)}</span>
+      <button class="cmp-rm" onclick="toggleCompare(${p.id})" title="Retirer">✕</button>
+    </div>`).join('');
+}
+
+function openCompare() {
+  if (_compareList.length < 2) { toast('Sélectionnez au moins 2 biens à comparer.'); return; }
+  const ROWS = [
+    ['Prix',     p => (p.mode === 'vente' ? formatPrice(p.price) + ' DZD' : formatPrice(p.price) + ' DZD/mois')],
+    ['Type',     p => TYPES[p.type_bien] || p.type_bien],
+    ['Mode',     p => MODES[p.mode] || p.mode],
+    ['Wilaya',   p => p.wilaya || '—'],
+    ['Commune',  p => p.commune || '—'],
+    ['Surface',  p => p.surface_m2 ? p.surface_m2 + ' m²' : '—'],
+    ['Pièces',   p => p.rooms || '—'],
+    ['SDB',      p => p.baths || '—'],
+    ['Étage',    p => p.floor !== null && p.floor !== undefined ? p.floor : '—'],
+    ['Vues',     p => p.views || 0],
+    ['Publié',   p => new Date(p.created_at).toLocaleDateString('fr-DZ')],
+    ['Vérifié',  p => p.verified ? '✅' : '—'],
+  ];
+  const cols = _compareList;
+  const tbl  = document.getElementById('compare-table');
+  tbl.innerHTML = `
+    <thead>
+      <tr>
+        <th></th>
+        ${cols.map(p => `<th>
+          <img class="cmp-prop-img" src="${esc(p.image||'')}" alt="" onerror="this.style.display='none'">
+          <div style="font-size:.83rem;font-weight:700;margin:.35rem 0 .15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(p.title)}">${esc(p.title)}</div>
+          <button class="btn btn-primary btn-sm" style="font-size:.77rem" onclick="showPage('detail',${p.id});closeCompare()">Voir →</button>
+        </th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+      ${ROWS.map(([label, fn]) => `
+        <tr>
+          <td>${label}</td>
+          ${cols.map(p => `<td>${fn(p)}</td>`).join('')}
+        </tr>`).join('')}
+    </tbody>`;
+  document.getElementById('compare-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCompare() {
+  document.getElementById('compare-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function cmpBackdrop(e) {
+  if (e.target === document.getElementById('compare-modal')) closeCompare();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('compare-modal').classList.contains('open')) closeCompare();
 });
 
 function shareWhatsApp(id, title, price) {
