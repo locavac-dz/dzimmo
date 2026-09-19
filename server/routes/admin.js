@@ -3,14 +3,29 @@ const db     = require('../db');
 const admin  = require('../middleware/admin');
 const moderation = require('../moderation');
 const { pool, toId } = require('../db');
+const { paginate, likePattern } = require('../pagination');
 
-// GET /api/admin/users
+// Recherche admin : texte (ILIKE sur les colonnes données) ou numéro d'annonce / de compte (« 42 » ou « #42 »)
+function searchCondition(q, columns, params) {
+  const like = likePattern(q);
+  if (!like) return null;
+  params.push(like);
+  const parts = columns.map(c => `${c} ILIKE $${params.length}`);
+  const id = /^#?\d{1,10}$/.test(String(q).trim()) ? toId(String(q).trim().replace('#', '')) : null;
+  if (id) { params.push(id); parts.push(`id = $${params.length}`); }
+  return '(' + parts.join(' OR ') + ')';
+}
+
+// Listes paginées : ?page=1&per_page=25 (100 max), réponse { items, total, page, pages, per_page }, plus récents d'abord.
+
+// GET /api/admin/users?q=
 router.get('/users', admin, async (req, res) => {
+  const params = [];
+  const cond = searchCondition(req.query.q, ['name', 'email'], params);
   // Colonnes listées : le hash du mot de passe ne quitte jamais la base
-  const r = await pool.query(
-    `SELECT id, name, email, phone, is_agent, is_admin, email_verified, banned, created_at
-       FROM users ORDER BY id`);
-  res.json(r.rows);
+  res.json(await paginate(pool, {
+    columns: 'id, name, email, phone, is_agent, is_admin, email_verified, banned, created_at',
+    from: 'users', where: cond ? 'WHERE ' + cond : '', params, orderBy: 'id DESC', query: req.query }));
 });
 
 // PUT /api/admin/users/:id/ban
@@ -20,32 +35,38 @@ router.put('/users/:id/ban', admin, async (req, res) => {
   res.json({ ok: true });
 });
 
-// GET /api/admin/properties
+// GET /api/admin/properties?status=&q=
 router.get('/properties', admin, async (req, res) => {
   const { status } = req.query;
-  res.json(await db.properties.find(status ? { status: String(status) } : {}));
+  const params = [], conds = [];
+  if (status) { params.push(String(status)); conds.push(`status = $${params.length}`); }
+  const cond = searchCondition(req.query.q, ['title', 'wilaya'], params);
+  if (cond) conds.push(cond);
+  res.json(await paginate(pool, {
+    columns: 'id, title, wilaya, mode, type_bien, price, status, verified, owner_id, created_at',
+    from: 'properties', where: conds.length ? 'WHERE ' + conds.join(' AND ') : '', params, orderBy: 'id DESC', query: req.query }));
 });
 
-// GET /api/admin/moderation?status=pending|rejected — file de modération (les plus anciennes d'abord)
+// GET /api/admin/moderation?status=pending|rejected — file de modération (les plus anciennes d'abord), 10 fiches par page
 router.get('/moderation', admin, async (req, res) => {
   const status = req.query.status === 'rejected' ? 'rejected' : 'pending';
-  const r = await pool.query(
-    `SELECT p.id, p.title, p.description, p.mode, p.type_bien, p.price, p.surface_m2, p.rooms,
+  const list = await paginate(pool, { defaut: 10, query: req.query, params: [status],
+    where: 'WHERE p.status = $1', countFrom: 'properties p',
+    orderBy: `p.created_at ${status === 'pending' ? 'ASC' : 'DESC'}, p.id`,
+    columns: `p.id, p.title, p.description, p.mode, p.type_bien, p.price, p.surface_m2, p.rooms,
             p.wilaya, p.commune, p.address, p.image, p.photos, p.status, p.created_at,
             p.moderation_reason, p.moderated_at, p.published_at,
             u.id AS owner_id, u.name AS owner_name, u.email AS owner_email, u.phone AS owner_phone,
             u.email_verified AS owner_verified, u.created_at AS owner_since,
             (SELECT COUNT(*)::int FROM properties x WHERE x.owner_id = p.owner_id AND x.status = 'active') AS owner_active,
-            a.name AS agency_name
-       FROM properties p
+            a.name AS agency_name`,
+    from: `properties p
        LEFT JOIN users u    ON u.id = p.owner_id
-       LEFT JOIN agencies a ON a.id = p.agency_id
-      WHERE p.status = $1
-      ORDER BY p.created_at ${status === 'pending' ? 'ASC' : 'DESC'}`, [status]);
+       LEFT JOIN agencies a ON a.id = p.agency_id` });
   const counts = await pool.query(
     `SELECT COUNT(*) FILTER (WHERE status = 'pending')::int AS pending,
             COUNT(*) FILTER (WHERE status = 'rejected')::int AS rejected FROM properties`);
-  res.json({ items: r.rows, counts: counts.rows[0], enabled: moderation.enabled() });
+  res.json({ ...list, counts: counts.rows[0], enabled: moderation.enabled() });
 });
 
 // PUT /api/admin/properties/:id/moderate — { decision: 'approve' | 'reject', reason }
@@ -103,9 +124,12 @@ router.delete('/properties/:id', admin, async (req, res) => {
   res.json({ ok: true });
 });
 
-// GET /api/admin/agencies
+// GET /api/admin/agencies?q=
 router.get('/agencies', admin, async (req, res) => {
-  res.json(await db.agencies.find());
+  const params = [];
+  const cond = searchCondition(req.query.q, ['name', 'wilaya'], params);
+  res.json(await paginate(pool, {
+    columns: '*', from: 'agencies', where: cond ? 'WHERE ' + cond : '', params, orderBy: 'id DESC', query: req.query }));
 });
 
 // PUT /api/admin/agencies/:id/verify
@@ -114,16 +138,21 @@ router.put('/agencies/:id/verify', admin, async (req, res) => {
   res.json({ ok: true });
 });
 
-// GET /api/admin/signalements
+// GET /api/admin/signalements?status=pending|resolved|dismissed — `pending` = nombre en attente, tous filtres confondus
 router.get('/signalements', admin, async (req, res) => {
-  const r = await pool.query(`
-    SELECT s.*, p.title AS property_title, u.name AS reporter_name
-    FROM signalements s
-    LEFT JOIN properties p ON p.id = s.property_id
-    LEFT JOIN users u ON u.id = s.user_id
-    ORDER BY s.created_at DESC
-  `);
-  res.json(r.rows);
+  const filtre = ['pending', 'resolved', 'dismissed'].includes(req.query.status) ? req.query.status : null;
+  const [list, pending] = await Promise.all([
+    paginate(pool, {
+      columns: 's.*, p.title AS property_title, u.name AS reporter_name',
+      from: `signalements s
+        LEFT JOIN properties p ON p.id = s.property_id
+        LEFT JOIN users u ON u.id = s.user_id`,
+      countFrom: 'signalements s',
+      where: filtre ? 'WHERE s.status = $1' : '', params: filtre ? [filtre] : [],
+      orderBy: 's.created_at DESC, s.id DESC', query: req.query }),
+    db.pool.query(`SELECT COUNT(*)::int AS n FROM signalements WHERE status = 'pending'`),
+  ]);
+  res.json({ ...list, pending: pending.rows[0].n });
 });
 
 // PUT /api/admin/signalements/:id/resolve
@@ -141,8 +170,8 @@ router.put('/signalements/:id/resolve', admin, async (req, res) => {
 
 // GET /api/admin/newsletter
 router.get('/newsletter', admin, async (req, res) => {
-  const r = await pool.query('SELECT * FROM newsletter_subscribers ORDER BY created_at DESC');
-  res.json(r.rows);
+  res.json(await paginate(pool, {
+    columns: '*', from: 'newsletter_subscribers', orderBy: 'created_at DESC, id DESC', query: req.query }));
 });
 
 module.exports = router;

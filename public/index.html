@@ -3306,6 +3306,65 @@ async function loadAdmin() {
   refreshModerationBadge();
 }
 
+// ── Listes d'administration paginées (25 par page ; recherche et export CSV portent sur toutes les pages) ──
+const _adminQ = { users: '', properties: '', agencies: '' };   // recherche en cours par liste
+const _adminPage = {};                                          // page affichée par liste (rechargement après une action)
+let _adminSigStatus = '';                                       // filtre de la liste des signalements
+
+// « ?a=1&b=x » à partir des seuls paramètres renseignés
+function adminQuery(params) {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v !== '' && v != null) q.set(k, v);
+  const str = q.toString();
+  return str ? '?' + str : '';
+}
+
+// Barre de pagination ; callFor(n) renvoie l'appel JavaScript qui charge la page n
+function adminPager(r, callFor) {
+  if (r.pages <= 1) return '';
+  const btn = (label, page, off) =>
+    `<button class="btn btn-outline btn-sm" ${off ? 'disabled' : ''} onclick="${callFor(page)}">${label}</button>`;
+  return `<div style="display:flex;gap:.6rem;align-items:center;justify-content:center;margin-top:1rem;flex-wrap:wrap">
+    ${btn('« 1', 1, r.page <= 1)}${btn('‹ Précédente', r.page - 1, r.page <= 1)}
+    <span style="font-size:.85rem;color:var(--text-muted)">Page ${r.page} / ${r.pages}</span>
+    ${btn('Suivante ›', r.page + 1, r.page >= r.pages)}${btn(r.pages + ' »', r.pages, r.page >= r.pages)}
+  </div>`;
+}
+
+// Champ de recherche d'une liste ; valider recharge la première page
+function adminSearchBox(list, fn) {
+  return `<form onsubmit="_adminQ.${list}=this.q.value.trim();${fn}(1);return false" style="display:flex;gap:.35rem">
+    <input name="q" value="${esc(_adminQ[list])}" placeholder="Rechercher…" maxlength="100"
+      style="padding:.35rem .65rem;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;background:var(--bg);color:var(--text);min-width:0;width:11rem">
+    <button class="btn btn-outline btn-sm" type="submit" title="Rechercher">🔍</button>
+  </form>`;
+}
+
+// Toutes les lignes d'une liste (pages de 100), pour l'export CSV
+async function adminFetchAll(path, params = {}) {
+  const rows = [];
+  let page = 1, pages = 1;
+  do {
+    const r = await api('/admin/' + path + adminQuery({ ...params, per_page: 100, page }));
+    rows.push(...r.items);
+    pages = r.pages;
+  } while (++page <= pages);
+  return rows;
+}
+
+async function adminExport(path, params, filename, toRow) {
+  toast('⏳ Export en cours…');
+  try { exportCSV((await adminFetchAll(path, params)).map(toRow), filename); }
+  catch (e) { toast('❌ ' + e.message); }
+}
+const adminExportUsers = () => adminExport('users', { q: _adminQ.users }, 'utilisateurs.csv', u => u);
+const adminExportProps = () => adminExport('properties',
+  { q: _adminQ.properties, status: document.getElementById('admin-prop-status')?.value },
+  'annonces.csv', p => ({ id: p.id, titre: p.title, wilaya: p.wilaya, prix: p.price, mode: p.mode, type: p.type_bien, statut: p.status, verifie: p.verified }));
+const adminExportSignalements = () => adminExport('signalements', { status: _adminSigStatus }, 'signalements.csv', x => x);
+
+const adminNoResult = '<p style="padding:1rem;color:var(--text-muted);text-align:center">Aucun résultat.</p>';
+
 // ── Modération des annonces ──────────────────────────────────────────────────
 const MOD_REASONS = [
   'Photos absentes ou de mauvaise qualité',
@@ -3328,6 +3387,7 @@ const MOD_REASONS_AR = {
 const modReason = r => (currentLang === 'ar' && r
   ? String(r).split(' — ').map((x, i) => (i === 0 && MOD_REASONS_AR[x]) || x).join(' — ') : r);
 let _modStatus = 'pending';
+let _modPage = 1;
 
 function setModerationBadge(n) {
   const b = document.getElementById('mod-badge');
@@ -3337,15 +3397,17 @@ function setModerationBadge(n) {
 }
 
 async function refreshModerationBadge() {
-  try { setModerationBadge((await api('/admin/moderation')).counts.pending); } catch { /* badge facultatif */ }
+  try { setModerationBadge((await api('/admin/moderation?per_page=1')).counts.pending); } catch { /* badge facultatif */ }
 }
 
-async function adminLoadModeration(status = _modStatus) {
+async function adminLoadModeration(status = _modStatus, page = 1) {
   _modStatus = status;
   const c = document.getElementById('admin-content');
   c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
-    const { items, counts, enabled } = await api('/admin/moderation?status=' + status);
+    const list = await api('/admin/moderation' + adminQuery({ status, page }));
+    const { items, counts, enabled } = list;
+    _modPage = list.page;
     setModerationBadge(counts.pending);
     window._modPhotos = {};
     const card = p => {
@@ -3391,7 +3453,8 @@ async function adminLoadModeration(status = _modStatus) {
         ${enabled ? '' : '<span style="font-size:.82rem;color:#92400e;background:#fef3c7;border-radius:8px;padding:.3rem .6rem">Modération désactivée (MODERATION=off) : les nouvelles annonces sont publiées directement.</span>'}
       </div>
       ${items.length ? items.map(card).join('')
-        : `<div class="empty-state"><div class="icon">${status === 'pending' ? '🎉' : '📭'}</div><h3>${status === 'pending' ? 'Rien à valider' : 'Aucune annonce refusée'}</h3></div>`}`;
+        : `<div class="empty-state"><div class="icon">${status === 'pending' ? '🎉' : '📭'}</div><h3>${status === 'pending' ? 'Rien à valider' : 'Aucune annonce refusée'}</h3></div>`}
+      ${adminPager(list, n => `adminLoadModeration('${status}',${n})`)}`;
   } catch (e) { c.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
 }
 
@@ -3405,7 +3468,7 @@ async function adminModerate(id, decision) {
   try {
     await api('/admin/properties/' + id + '/moderate', 'PUT', { decision, reason });
     toast(decision === 'approve' ? '✅ Annonce publiée.' : '❌ Annonce refusée, le propriétaire est prévenu.');
-    adminLoadModeration();
+    adminLoadModeration(undefined, _modPage);
   } catch (e) { toast('❌ ' + e.message); }
 }
 
@@ -3427,16 +3490,20 @@ async function adminLoadResume() {
   } catch (e) { c.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
 }
 
-async function adminLoadUsers() {
+async function adminLoadUsers(page = 1) {
   const c = document.getElementById('admin-content');
   c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
-    const users = await api('/admin/users');
-    window._adminUsers = users;
+    const r = await api('/admin/users' + adminQuery({ q: _adminQ.users, page }));
+    const users = r.items;
+    _adminPage.users = r.page;
     c.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
-        <span style="color:var(--text-muted);font-size:.85rem">${users.length} utilisateur${users.length > 1 ? 's' : ''}</span>
-        <button class="btn btn-outline btn-sm" onclick="exportCSV(window._adminUsers,'utilisateurs.csv')">⬇ CSV</button>
+        <span style="color:var(--text-muted);font-size:.85rem">${r.total} utilisateur${r.total > 1 ? 's' : ''}</span>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          ${adminSearchBox('users', 'adminLoadUsers')}
+          <button class="btn btn-outline btn-sm" onclick="adminExportUsers()">⬇ CSV</button>
+        </div>
       </div>
       <div style="overflow-x:auto">
         <table class="admin-table">
@@ -3457,7 +3524,9 @@ async function adminLoadUsers() {
             </tr>`).join('')}
           </tbody>
         </table>
-      </div>`;
+      </div>
+      ${users.length ? '' : adminNoResult}
+      ${adminPager(r, n => `adminLoadUsers(${n})`)}`;
   } catch (e) { c.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
 }
 
@@ -3465,16 +3534,18 @@ async function adminBanUser(id, ban) {
   try {
     await api('/admin/users/' + id + '/ban', 'PUT', { banned: ban });
     toast(ban ? '🚫 Utilisateur banni.' : '✔ Utilisateur débanni.');
-    adminLoadUsers();
+    adminLoadUsers(_adminPage.users);
   } catch (e) { toast('❌ ' + e.message); }
 }
 
-async function adminLoadProperties() {
+async function adminLoadProperties(page = 1) {
   const statusFilter = document.getElementById('admin-prop-status')?.value || '';
   const c = document.getElementById('admin-content');
   c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
-    const props = await api('/admin/properties' + (statusFilter ? '?status=' + statusFilter : ''));
+    const r = await api('/admin/properties' + adminQuery({ status: statusFilter, q: _adminQ.properties, page }));
+    const props = r.items;
+    _adminPage.properties = r.page;
     const STATUTS = { active:'Actif', sold:'Vendu', rented:'Loué', archived:'Archivé', pending:'En attente', rejected:'Refusé' };
     const COLORS  = { active:'#0C6E4F', sold:'#3b82f6', rented:'#f59e0b', archived:'#94a3b8', pending:'#d97706', rejected:'#dc2626' };
     c.innerHTML = `
@@ -3485,8 +3556,9 @@ async function adminLoadProperties() {
           <option value="rented">Loué</option><option value="archived">Archivé</option>
           <option value="pending">En attente</option><option value="rejected">Refusé</option>
         </select>
-        <span style="font-size:.85rem;color:var(--text-muted)">${props.length} annonce${props.length > 1 ? 's' : ''}</span>
-        <button class="btn btn-outline btn-sm" onclick="exportCSV(window._adminProps,'annonces.csv')">⬇ CSV</button>
+        <span style="font-size:.85rem;color:var(--text-muted)">${r.total} annonce${r.total > 1 ? 's' : ''}</span>
+        ${adminSearchBox('properties', 'adminLoadProperties')}
+        <button class="btn btn-outline btn-sm" onclick="adminExportProps()">⬇ CSV</button>
       </div>
       <div style="overflow-x:auto">
         <table class="admin-table">
@@ -3511,8 +3583,9 @@ async function adminLoadProperties() {
             </tr>`).join('')}
           </tbody>
         </table>
-      </div>`;
-    window._adminProps = props.map(p => ({ id:p.id, titre:p.title, wilaya:p.wilaya, prix:p.price, mode:p.mode, type:p.type_bien, statut:p.status, verifie:p.verified }));
+      </div>
+      ${props.length ? '' : adminNoResult}
+      ${adminPager(r, n => `adminLoadProperties(${n})`)}`;
     if (statusFilter) document.getElementById('admin-prop-status').value = statusFilter;
   } catch (e) { c.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
 }
@@ -3522,7 +3595,7 @@ async function adminSetStatus(id, status, sel) {
   try {
     await api('/admin/properties/' + id + '/status', 'PUT', { status });
     toast('✅ Statut mis à jour.');
-    adminLoadProperties();
+    adminLoadProperties(_adminPage.properties);
   } catch (e) { toast('❌ ' + e.message); sel.value = ''; }
 }
 
@@ -3530,7 +3603,7 @@ async function adminVerifyProperty(id) {
   try {
     await api('/admin/properties/' + id + '/verify', 'PUT');
     toast('✅ Annonce vérifiée.');
-    adminLoadProperties();
+    adminLoadProperties(_adminPage.properties);
   } catch (e) { toast('❌ ' + e.message); }
 }
 
@@ -3539,17 +3612,22 @@ async function adminDeleteProperty(id, title) {
   try {
     await api('/admin/properties/' + id, 'DELETE');
     toast('🗑 Annonce supprimée.');
-    adminLoadProperties();
+    adminLoadProperties(_adminPage.properties);
   } catch (e) { toast('❌ ' + e.message); }
 }
 
-async function adminLoadAgencies() {
+async function adminLoadAgencies(page = 1) {
   const c = document.getElementById('admin-content');
   c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
-    const agencies = await api('/admin/agencies');
+    const r = await api('/admin/agencies' + adminQuery({ q: _adminQ.agencies, page }));
+    const agencies = r.items;
+    _adminPage.agencies = r.page;
     c.innerHTML = `
-      <p style="margin-bottom:.75rem;color:var(--text-muted);font-size:.85rem">${agencies.length} agence${agencies.length > 1 ? 's' : ''}</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+        <span style="color:var(--text-muted);font-size:.85rem">${r.total} agence${r.total > 1 ? 's' : ''}</span>
+        ${adminSearchBox('agencies', 'adminLoadAgencies')}
+      </div>
       <div style="overflow-x:auto">
         <table class="admin-table">
           <thead><tr><th>ID</th><th>Nom</th><th>Wilaya</th><th>Téléphone</th><th>Vérifié</th><th>Actions</th></tr></thead>
@@ -3568,7 +3646,9 @@ async function adminLoadAgencies() {
             </tr>`).join('')}
           </tbody>
         </table>
-      </div>`;
+      </div>
+      ${agencies.length ? '' : adminNoResult}
+      ${adminPager(r, n => `adminLoadAgencies(${n})`)}`;
   } catch (e) { c.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
 }
 
@@ -3576,27 +3656,34 @@ async function adminVerifyAgency(id) {
   try {
     await api('/admin/agencies/' + id + '/verify', 'PUT');
     toast('✅ Agence vérifiée.');
-    adminLoadAgencies();
+    adminLoadAgencies(_adminPage.agencies);
   } catch (e) { toast('❌ ' + e.message); }
 }
 
-async function adminLoadSignalements() {
+async function adminLoadSignalements(page = 1) {
   const c = document.getElementById('admin-content');
   c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
-    const sigs = await api('/admin/signalements');
-    if (!sigs.length) {
+    const r = await api('/admin/signalements' + adminQuery({ status: _adminSigStatus, page }));
+    const sigs = r.items;
+    _adminPage.signalements = r.page;
+    if (!sigs.length && !_adminSigStatus) {
       c.innerHTML = '<div class="empty-state"><div class="icon">✅</div><h3>Aucun signalement</h3><p>Tout est propre !</p></div>';
       return;
     }
     const MOTIFS = { faux:'Faux', doublon:'Doublon', interdit:'Interdit', autre:'Autre' };
     const ST_COLOR = { pending:'#f59e0b', resolved:'#22c55e', dismissed:'#94a3b8' };
     const ST_LBL   = { pending:'En attente', resolved:'Résolu', dismissed:'Ignoré' };
-    const pending  = sigs.filter(s => s.status === 'pending').length;
     c.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
-        <span style="font-size:.85rem;color:var(--text-muted)">${sigs.length} signalement${sigs.length > 1 ? 's' : ''} · <strong style="color:#f59e0b">${pending} en attente</strong></span>
-        <button class="btn btn-outline btn-sm" onclick="exportCSV(adminLastSignalements,'signalements.csv')">⬇ CSV</button>
+        <span style="font-size:.85rem;color:var(--text-muted)">${r.total} signalement${r.total > 1 ? 's' : ''} · <strong style="color:#f59e0b">${r.pending} en attente</strong></span>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <select style="padding:.35rem .65rem;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;background:var(--bg);color:var(--text)" onchange="_adminSigStatus=this.value;adminLoadSignalements(1)">
+            ${[['', 'Tous'], ['pending', 'En attente'], ['resolved', 'Résolus'], ['dismissed', 'Ignorés']]
+              .map(([v, l]) => `<option value="${v}" ${v === _adminSigStatus ? 'selected' : ''}>${l}</option>`).join('')}
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="adminExportSignalements()">⬇ CSV</button>
+        </div>
       </div>
       <div style="overflow-x:auto">
         <table class="admin-table">
@@ -3618,28 +3705,28 @@ async function adminLoadSignalements() {
             </tr>`).join('')}
           </tbody>
         </table>
-      </div>`;
-    adminLastSignalements = sigs;
+      </div>
+      ${sigs.length ? '' : adminNoResult}
+      ${adminPager(r, n => `adminLoadSignalements(${n})`)}`;
   } catch (e) { c.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
 }
-
-let adminLastSignalements = [];
 
 async function adminResolveSignalement(id, status) {
   try {
     await api('/admin/signalements/' + id + '/resolve', 'PUT', { status });
     toast(status === 'resolved' ? '✅ Signalement résolu.' : '👁 Signalement ignoré.');
-    adminLoadSignalements();
+    adminLoadSignalements(_adminPage.signalements);
   } catch (e) { toast('❌ ' + e.message); }
 }
 
-async function adminLoadNewsletter() {
+async function adminLoadNewsletter(page = 1) {
   const c = document.getElementById('admin-content');
   c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
-    const subs = await api('/admin/newsletter');
+    const r = await api('/admin/newsletter' + adminQuery({ page }));
+    const subs = r.items;
     c.innerHTML = `
-      <p style="margin-bottom:1rem;font-size:1.1rem;font-weight:800;color:var(--primary)">${subs.length} abonné${subs.length > 1 ? 's' : ''}</p>
+      <p style="margin-bottom:1rem;font-size:1.1rem;font-weight:800;color:var(--primary)">${r.total} abonné${r.total > 1 ? 's' : ''}</p>
       <div style="overflow-x:auto">
         <table class="admin-table">
           <thead><tr><th>Email</th><th>Inscrit le</th></tr></thead>
@@ -3650,7 +3737,9 @@ async function adminLoadNewsletter() {
             </tr>`).join('')}
           </tbody>
         </table>
-      </div>`;
+      </div>
+      ${subs.length ? '' : adminNoResult}
+      ${adminPager(r, n => `adminLoadNewsletter(${n})`)}`;
   } catch (e) { c.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
 }
 
