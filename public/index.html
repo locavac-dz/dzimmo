@@ -861,6 +861,7 @@
     </div>
     <div class="grid" id="annonces-grid"><div class="loading"><div class="spinner"></div></div></div>
     <div id="annonces-pagination"></div>
+    <!--SEO_LANDING-->
   </div>
 </div>
 
@@ -1471,6 +1472,7 @@
       <a href="#" onclick="filterType('terrain')" data-i18n="ft_terrains">Terrains</a>
       <a href="#" onclick="filterType('local_commercial')" data-i18n="ft_locals">Locaux commerciaux</a>
     </div>
+    <!--SEO_NAV-->
     <div class="footer-col">
       <h4 data-i18n="ft_legal">Légal</h4>
       <a href="#" onclick="showPage('cgu')" data-i18n="ft_cgu">CGU</a>
@@ -1572,6 +1574,11 @@ const TRANSLATIONS = {
     ft_legal:'Légal', ft_cgu:'CGU', ft_privacy:'Politique de confidentialité',
     ft_mentions:'Mentions légales', ft_contact:'Contact',
     ft_stats:'📊 Statistiques plateforme', ft_contrats:'📄 Modèles de contrats',
+    ft_explore:'Explorer',
+    seo_t_appartement:'Appartements', seo_t_villa:'Villas', seo_t_maison:'Maisons', seo_t_bureau:'Bureaux',
+    seo_t_local_commercial:'Locaux commerciaux', seo_t_terrain:'Terrains', seo_t_ferme:'Fermes', seo_t_entrepot:'Entrepôts',
+    seo_t_all:'Biens immobiliers', seo_m_vente:'à vendre', seo_m_location_longue:'à louer',
+    seo_m_location_courte:'en location saisonnière', seo_in:'à',
     mc_title:'Modèles de contrats', mc_sub:'Bail, quittance, état des lieux… Remplissez le formulaire, vérifiez l\'aperçu, puis imprimez en PDF ou téléchargez au format Word.',
     mc_disclaimer:'Modèles indicatifs, inspirés des usages et du Code civil algérien (louage). Ils ne remplacent pas le conseil d\'un notaire ou d\'un avocat : pour un bail de longue durée ou un acte soumis à la forme authentique, adressez-vous à un notaire. Pensez à faire enregistrer le bail auprès de la recette des impôts. Aucune donnée saisie n\'est envoyée au serveur ni conservée.',
     mc_use:'Utiliser ce modèle', mc_all:'← Tous les modèles', mc_doc_lang:'Langue du document',
@@ -1741,6 +1748,11 @@ const TRANSLATIONS = {
     ft_legal:'قانوني', ft_cgu:'شروط الاستخدام', ft_privacy:'سياسة الخصوصية',
     ft_mentions:'الإشعارات القانونية', ft_contact:'اتصل بنا',
     ft_stats:'📊 إحصائيات المنصة', ft_contrats:'📄 نماذج العقود',
+    ft_explore:'استكشف',
+    seo_t_appartement:'شقق', seo_t_villa:'فيلات', seo_t_maison:'منازل', seo_t_bureau:'مكاتب',
+    seo_t_local_commercial:'محلات تجارية', seo_t_terrain:'أراضٍ', seo_t_ferme:'مزارع', seo_t_entrepot:'مستودعات',
+    seo_t_all:'عقارات', seo_m_vente:'للبيع', seo_m_location_longue:'للإيجار',
+    seo_m_location_courte:'للإيجار الموسمي', seo_in:'في',
     mc_title:'نماذج العقود', mc_sub:'عقد إيجار، وصل إيجار، محضر معاينة… املأ النموذج، راجع المعاينة ثم اطبعه بصيغة PDF أو حمّله بصيغة Word.',
     mc_disclaimer:'نماذج استرشادية مستوحاة من الأعراف ومن القانون المدني الجزائري (أحكام الإيجار). وهي لا تغني عن استشارة موثّق أو محامٍ: بالنسبة لعقد الإيجار الطويل الأمد أو أي عقد يستلزم الشكل الرسمي، توجّه إلى موثّق. تذكّر تسجيل العقد لدى مصالح الضرائب. لا يتم إرسال أي بيانات مُدخَلة إلى الخادم ولا حفظها.',
     mc_use:'استعمال هذا النموذج', mc_all:'→ جميع النماذج', mc_doc_lang:'لغة الوثيقة',
@@ -1915,6 +1927,7 @@ function applyLang(lang) {
   else if (currentPage === 'annonces') loadAnnonces();
   else if (currentPage === 'stats') loadStatsPage();
   else if (currentPage === 'contrats' && window.MC) MC.refresh();
+  relabelSeo();
 }
 
 function rebuildSelects() {
@@ -1997,6 +2010,14 @@ async function init() {
 
   const params = new URLSearchParams(location.search);
   if (params.get('verify') === 'ok') toast('✅ Email vérifié. Bienvenue !');
+  const landing = parseLandingPath(location.pathname);
+  if (landing) {
+    document.getElementById('f-mode').value   = landing.mode;
+    document.getElementById('f-type').value   = landing.type;
+    document.getElementById('f-wilaya').value = landing.wilaya;
+    showPage('annonces');
+    loadAnnonces(1);
+  }
   const annonceMatch = location.pathname.match(/^\/annonce\/(\d+)/);
   if (annonceMatch)                  showPage('detail', Number(annonceMatch[1]));
   else if (params.get('p'))          showPage('detail', Number(params.get('p')));
@@ -2119,6 +2140,44 @@ function slugify(s) {
 function annonceUrl(id, title) {
   const slug = slugify(title);
   return window.location.origin + '/annonce/' + id + (slug ? '-' + slug : '');
+}
+
+// ── Pages de recherche indexables : /vente/appartements/oran (voir server/seo.js) ──
+const SEO_MODES = { 'vente': 'vente', 'location': 'location_longue', 'location-saisonniere': 'location_courte' };
+const SEO_TYPES = { 'appartements': 'appartement', 'villas': 'villa', 'maisons': 'maison', 'bureaux': 'bureau',
+  'locaux-commerciaux': 'local_commercial', 'terrains': 'terrain', 'fermes': 'ferme', 'entrepots': 'entrepot' };
+const invertMap = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [v, k]));
+
+// /vente/appartements/oran -> { mode, type, wilaya } ; null si ce n'est pas une page de recherche
+function parseLandingPath(pathname) {
+  const seg = pathname.split('/').filter(Boolean).map(decodeURIComponent);
+  if (!seg.length || !Object.hasOwn(SEO_MODES, seg[0]) || seg.length > 3) return null;
+  const f = { mode: SEO_MODES[seg[0]], type: '', wilaya: '' };
+  for (const x of seg.slice(1)) {
+    const w = WILAYAS.find(n => slugify(n) === x);
+    if (Object.hasOwn(SEO_TYPES, x) && !f.type) f.type = SEO_TYPES[x];
+    else if (w && !f.wilaya) f.wilaya = w;
+    else return null;
+  }
+  return f;
+}
+
+function landingPath(mode, type, wilaya) {
+  return '/' + [invertMap(SEO_MODES)[mode], type && invertMap(SEO_TYPES)[type], wilaya && slugify(wilaya)]
+    .filter(Boolean).join('/');
+}
+
+// Libellé traduit (FR / AR) : « Appartements à vendre à Oran » / « شقق للبيع في وهران »
+function seoLabel(mode, type, wilaya) {
+  return T(type ? 'seo_t_' + type : 'seo_t_all') + ' ' + T('seo_m_' + mode) + (wilaya ? ' ' + T('seo_in') + ' ' + wilaya : '');
+}
+
+// Les liens et titres rendus par le serveur (data-seo-*) suivent la langue choisie
+function relabelSeo() {
+  document.querySelectorAll('[data-seo-m]').forEach(el => {
+    const d = el.dataset;
+    el.textContent = seoLabel(d.seoM, d.seoT, d.seoW) + (d.seoC ? ` (${d.seoC})` : '');
+  });
 }
 
 function showPage(page, data = null) {
@@ -2278,7 +2337,15 @@ async function loadAnnonces(page = 1) {
     if (v) urlParams.set(id, v);
   });
   if (page > 1) urlParams.set('p', page);
-  history.replaceState(null, '', '?' + urlParams.toString());
+  // Seuls mode / type / wilaya (tri par défaut, page 1) : URL indexable /vente/appartements/oran
+  const landingOnly = get('f-mode') && page === 1 && (!get('f-sort') || get('f-sort') === 'date_desc')
+    && !['f-min-price', 'f-max-price', 'f-rooms', 'f-min-surface', 'f-q'].some(id => get(id));
+  if (landingOnly) {
+    history.replaceState(null, '', landingPath(get('f-mode'), get('f-type'), get('f-wilaya')));
+    document.title = seoLabel(get('f-mode'), get('f-type'), get('f-wilaya')) + ' | DzImmo';
+  } else {
+    history.replaceState(null, '', '/?' + urlParams.toString());
+  }
 
   try {
     const resp = await api('/properties?' + params);
