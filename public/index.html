@@ -1116,6 +1116,52 @@
   <div id="map-container" style="height:calc(100vh - 130px);min-height:420px;width:100%"></div>
 </div>
 
+<!-- ═══════════════════ SIMULATEUR RENTABILITÉ ═══════════════════ -->
+<div id="page-sim-rentabilite" class="hidden">
+  <div style="max-width:600px;margin:0 auto;padding:2rem 1rem 3rem">
+    <button class="btn btn-outline btn-sm" style="margin-bottom:1.5rem" onclick="showPage('home')" data-i18n="btn_back">← Retour</button>
+    <h1 style="font-size:1.6rem;font-weight:900;margin-bottom:.4rem" data-i18n="sr_title">Rentabilité locative</h1>
+    <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:1.75rem" data-i18n="sr_sub">Calculez le rendement net et le cash-flow de votre investissement locatif.</p>
+
+    <div class="card" style="padding:1.5rem;margin-bottom:1rem">
+      <h3 style="font-size:.95rem;font-weight:700;margin:0 0 1rem;color:var(--text-muted)" data-i18n="sr_sec_achat">🏠 Acquisition</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:.85rem">
+        <div class="full" style="grid-column:1/-1">
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="sr_lbl_prix">Prix d'achat (DZD) *</label>
+          <input id="sr-prix" type="number" min="0" placeholder="ex : 12 000 000" oninput="calcRentabilite()" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="sr_lbl_frais">Frais d'acquisition (%)</label>
+          <input id="sr-frais" type="number" min="0" max="30" step="0.5" value="7" oninput="calcRentabilite()" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="sr_lbl_credit">Mensualité crédit (DZD)</label>
+          <input id="sr-credit" type="number" min="0" placeholder="0 si comptant" oninput="calcRentabilite()" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
+        </div>
+      </div>
+
+      <h3 style="font-size:.95rem;font-weight:700;margin:1.25rem 0 1rem;color:var(--text-muted)" data-i18n="sr_sec_revenus">💰 Revenus &amp; charges</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem">
+        <div class="full" style="grid-column:1/-1">
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="sr_lbl_loyer">Loyer mensuel (DZD) *</label>
+          <input id="sr-loyer" type="number" min="0" placeholder="ex : 60 000" oninput="calcRentabilite()" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="sr_lbl_charges">Charges annuelles (DZD)</label>
+          <input id="sr-charges" type="number" min="0" placeholder="syndic, entretien…" value="0" oninput="calcRentabilite()" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="sr_lbl_vacance">Vacance locative (%)</label>
+          <input id="sr-vacance" type="number" min="0" max="100" step="1" value="5" oninput="calcRentabilite()" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text)">
+        </div>
+      </div>
+    </div>
+
+    <div id="sr-res" style="display:none"></div>
+    <p style="font-size:.78rem;color:var(--text-muted);margin-top:1rem;text-align:center" data-i18n="sr_disclaimer">Simulation indicative. Consultez un conseiller pour une analyse personnalisée.</p>
+  </div>
+</div>
+
 <!-- ═══════════════════ FOOTER ═══════════════════ -->
 <footer>
   <div class="footer-inner">
@@ -1149,6 +1195,7 @@
       <a href="#" onclick="showPage('sim-estimation')" data-i18n="ft_sim_estim">Estimation immobilière</a>
       <a href="#" onclick="showPage('sim-notaire')" data-i18n="ft_sim_notaire">Frais de notaire</a>
       <a href="#" onclick="showPage('sim-credit')" data-i18n="ft_sim_credit">Simulation de crédit</a>
+      <a href="#" onclick="showPage('sim-rentabilite')" data-i18n="ft_sim_rent">Rentabilité locative</a>
     </div>
   </div>
   <div class="footer-bottom" data-i18n="ft_copy">© 2026 DzImmo · Algérie · Tous droits réservés</div>
@@ -1353,6 +1400,19 @@ const TRANSLATIONS = {
     sc_res_mensualite:'Mensualité', sc_res_par_mois:'par mois',
     sc_montant_emprunte:'Montant emprunté', sc_interets:'Intérêts totaux', sc_total:'Coût total',
     sc_disclaimer:'Simulation indicative. Contactez votre banque pour une offre personnalisée.',
+    ft_sim_rent:'Rentabilité locative',
+    sr_title:'Rentabilité locative', sr_sub:'Calculez le rendement net et le cash-flow de votre investissement locatif.',
+    sr_sec_achat:'🏠 Acquisition', sr_sec_revenus:'💰 Revenus & charges',
+    sr_lbl_prix:"Prix d'achat (DZD) *", sr_lbl_frais:"Frais d'acquisition (%)",
+    sr_lbl_credit:'Mensualité crédit (DZD)', sr_lbl_loyer:'Loyer mensuel (DZD) *',
+    sr_lbl_charges:'Charges annuelles (DZD)', sr_lbl_vacance:'Vacance locative (%)',
+    sr_cout_total:"Coût total d'acquisition", sr_loyer_brut:'Loyer annuel brut',
+    sr_rdt_brut:'Rendement brut', sr_rdt_net:'Rendement net',
+    sr_revenu_net:'Revenu locatif net / an', sr_cashflow:'Cash-flow mensuel net',
+    sr_recuperation:'Délai de récupération',
+    sr_note_excellent:'Excellent investissement', sr_note_bon:'Bon investissement',
+    sr_note_moyen:'Investissement moyen', sr_note_faible:'Rendement faible',
+    sr_disclaimer:'Simulation indicative. Consultez un conseiller pour une analyse personnalisée.',
   },
   ar: {
     nav_home:'الرئيسية', nav_annonces:'الإعلانات', nav_agences:'الوكالات', nav_carte:'الخريطة',
@@ -1492,6 +1552,19 @@ const TRANSLATIONS = {
     sc_res_mensualite:'القسط الشهري', sc_res_par_mois:'في الشهر',
     sc_montant_emprunte:'مبلغ القرض', sc_interets:'إجمالي الفوائد', sc_total:'التكلفة الإجمالية',
     sc_disclaimer:'محاكاة استرشادية. تواصل مع بنكك للحصول على عرض شخصي.',
+    ft_sim_rent:'مردودية الإيجار',
+    sr_title:'مردودية الإيجار', sr_sub:'احسب صافي المردودية والتدفق النقدي لاستثمارك العقاري.',
+    sr_sec_achat:'🏠 الاقتناء', sr_sec_revenus:'💰 الدخل والمصاريف',
+    sr_lbl_prix:'سعر الشراء (د.ج) *', sr_lbl_frais:'رسوم الاقتناء (%)',
+    sr_lbl_credit:'قسط القرض الشهري (د.ج)', sr_lbl_loyer:'الإيجار الشهري (د.ج) *',
+    sr_lbl_charges:'المصاريف السنوية (د.ج)', sr_lbl_vacance:'نسبة الشغور (%)',
+    sr_cout_total:'التكلفة الإجمالية للاقتناء', sr_loyer_brut:'الإيجار السنوي الإجمالي',
+    sr_rdt_brut:'المردودية الإجمالية', sr_rdt_net:'المردودية الصافية',
+    sr_revenu_net:'الدخل الإيجاري الصافي / سنة', sr_cashflow:'التدفق النقدي الشهري الصافي',
+    sr_recuperation:'مدة استرداد رأس المال',
+    sr_note_excellent:'استثمار ممتاز', sr_note_bon:'استثمار جيد',
+    sr_note_moyen:'استثمار متوسط', sr_note_faible:'مردودية ضعيفة',
+    sr_disclaimer:'محاكاة استرشادية. استشر مستشاراً لتحليل شخصي.',
   }
 };
 
@@ -1667,7 +1740,7 @@ async function api(path, method = 'GET', body = null) {
 }
 
 // ── Navigation ────────────────────────────────────
-const PAGES = ['home','annonces','detail','publier','agences','dashboard','messages','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','carte'];
+const PAGES = ['home','annonces','detail','publier','agences','dashboard','messages','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte'];
 
 function showPage(page, data = null) {
   PAGES.forEach(p => {
@@ -2068,6 +2141,70 @@ function calcCredit() {
       ${td(T('sc_interets'), fmtDZD(interets))}
       <tr style="border-top:2px solid var(--border)">${td(T('sc_total'), fmtDZD(total), true)}</tr>
     </table>`;
+  res.style.display = 'block';
+}
+
+function calcRentabilite() {
+  const prix    = parseFloat(document.getElementById('sr-prix')?.value)    || 0;
+  const frais   = parseFloat(document.getElementById('sr-frais')?.value)   ?? 7;
+  const credit  = parseFloat(document.getElementById('sr-credit')?.value)  || 0;
+  const loyer   = parseFloat(document.getElementById('sr-loyer')?.value)   || 0;
+  const charges = parseFloat(document.getElementById('sr-charges')?.value) || 0;
+  const vacance = parseFloat(document.getElementById('sr-vacance')?.value) ?? 5;
+  const res     = document.getElementById('sr-res');
+  if (!prix || !loyer) { res.style.display = 'none'; return; }
+
+  const coutTotal     = prix * (1 + frais / 100);
+  const loyerBrut     = loyer * 12;
+  const loyerEffectif = loyerBrut * (1 - vacance / 100);
+  const revenuNet     = loyerEffectif - charges;
+  const rdtBrut       = (loyerBrut / coutTotal) * 100;
+  const rdtNet        = (revenuNet  / coutTotal) * 100;
+  const cashflow      = revenuNet / 12 - credit;
+  const recuperation  = revenuNet > 0 ? coutTotal / revenuNet : null;
+
+  // Notation couleur selon rendement net
+  const [noteKey, noteColor] =
+    rdtNet >= 7 ? ['sr_note_excellent', '#22c55e'] :
+    rdtNet >= 5 ? ['sr_note_bon',       '#f59e0b'] :
+    rdtNet >= 3 ? ['sr_note_moyen',     '#f97316'] :
+                  ['sr_note_faible',    '#ef4444'];
+
+  const tdRow = (label, value, bold, color) =>
+    `<tr>
+       <td style="padding:.38rem 0;color:var(--text-secondary);font-size:.88rem">${label}</td>
+       <td style="text-align:right;font-weight:${bold?'900':'600'};${color?`color:${color}`:''}">
+         ${value}
+       </td>
+     </tr>`;
+
+  const pct = n => n.toFixed(2).replace('.', ',') + ' %';
+
+  res.innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(34,197,94,.09),rgba(34,197,94,.03));border:1.5px solid rgba(34,197,94,.35);border-radius:10px;padding:1.25rem;margin-bottom:1rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+        <div>
+          <div style="font-size:.78rem;color:var(--text-muted);font-weight:600">${T('sr_rdt_net')}</div>
+          <div style="font-size:2.4rem;font-weight:900;color:${noteColor};line-height:1">${pct(rdtNet)}</div>
+        </div>
+        <div style="background:${noteColor}22;border:1.5px solid ${noteColor}66;border-radius:8px;padding:.4rem .8rem;font-size:.82rem;font-weight:700;color:${noteColor}">
+          ${T(noteKey)}
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;border-top:1.5px solid var(--border)">
+        ${tdRow(T('sr_cout_total'),    fmtDZD(coutTotal))}
+        ${tdRow(T('sr_loyer_brut'),    fmtDZD(loyerBrut))}
+        ${tdRow(T('sr_rdt_brut'),      pct(rdtBrut))}
+        ${tdRow(T('sr_revenu_net'),    fmtDZD(revenuNet))}
+        <tr style="border-top:2px solid var(--border)">
+          ${tdRow(T('sr_rdt_net'),     pct(rdtNet), true, noteColor).replace('<tr>','').replace('</tr>','')}
+        </tr>
+        <tr style="border-top:2px solid var(--border)">
+          ${tdRow(T('sr_cashflow'), `<span style="color:${cashflow>=0?'#22c55e':'#ef4444'}">${fmtDZD(cashflow)}</span>`, true).replace('<tr>','').replace('</tr>','')}
+        </tr>
+        ${recuperation ? tdRow(T('sr_recuperation'), recuperation.toFixed(1).replace('.',',') + ' ans') : ''}
+      </table>
+    </div>`;
   res.style.display = 'block';
 }
 
