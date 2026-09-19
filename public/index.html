@@ -7,6 +7,14 @@
   <meta name="description" content="Trouvez ou publiez des annonces immobilières en Algérie : appartements, villas, locaux, terrains à vendre ou à louer.">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0C6E4F">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css">
+  <style>
+    .leaflet-container { font-family: 'Segoe UI', Arial, sans-serif; }
+    .leaflet-popup-content { margin: 10px 12px; }
+    .map-marker-icon { border: none !important; background: transparent !important; }
+  </style>
   <style>
     :root {
       --primary: #0C6E4F;
@@ -446,6 +454,7 @@
       <a class="nav-link active" data-page="home" onclick="showPage('home')" data-i18n="nav_home">Accueil</a>
       <a class="nav-link" data-page="annonces" onclick="showPage('annonces')" data-i18n="nav_annonces">Annonces</a>
       <a class="nav-link" data-page="agences" onclick="showPage('agences')" data-i18n="nav_agences">Agences</a>
+      <a class="nav-link" data-page="carte" onclick="showPage('carte')" data-i18n="nav_carte">Carte</a>
     </nav>
     <div class="header-actions">
       <div class="lang-toggle">
@@ -1075,6 +1084,36 @@
   </div>
 </div>
 
+<!-- ═══════════════════ CARTE INTERACTIVE ════════ -->
+<div id="page-carte" class="hidden">
+  <!-- barre de filtres -->
+  <div style="background:var(--white);border-bottom:1px solid var(--border);padding:.6rem 1rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;position:sticky;top:62px;z-index:50">
+    <span style="font-size:.95rem;font-weight:700;color:var(--primary);white-space:nowrap">🗺️ <span data-i18n="nav_carte">Carte</span></span>
+    <select id="map-wilaya" onchange="loadMapMarkers()" style="flex:1;min-width:140px;padding:.38rem .6rem;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;background:var(--bg);color:var(--text)">
+      <option value="" data-i18n="s_all_wilayas">Toutes les wilayas</option>
+    </select>
+    <select id="map-mode" onchange="loadMapMarkers()" style="min-width:130px;padding:.38rem .6rem;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;background:var(--bg);color:var(--text)">
+      <option value="" data-i18n="s_all_modes">Vente &amp; Location</option>
+      <option value="vente" data-i18n="s_vente">Vente</option>
+      <option value="location_longue" data-i18n="s_loc_longue">Location longue durée</option>
+      <option value="location_courte" data-i18n="s_loc_courte">Location courte durée</option>
+    </select>
+    <select id="map-type" onchange="loadMapMarkers()" style="min-width:150px;padding:.38rem .6rem;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;background:var(--bg);color:var(--text)">
+      <option value="" data-i18n="s_all_types">Tous les types</option>
+      <option value="appartement" data-i18n="s_appart">Appartement</option>
+      <option value="villa" data-i18n="s_villa">Villa</option>
+      <option value="maison" data-i18n="s_maison">Maison</option>
+      <option value="bureau" data-i18n="s_bureau">Bureau</option>
+      <option value="local_commercial" data-i18n="s_local">Local commercial</option>
+      <option value="terrain" data-i18n="s_terrain">Terrain</option>
+      <option value="ferme" data-i18n="s_ferme">Ferme</option>
+      <option value="entrepot" data-i18n="s_entrepot">Entrepôt</option>
+    </select>
+    <span id="map-count" style="font-size:.8rem;color:var(--text-muted);white-space:nowrap;margin-left:auto"></span>
+  </div>
+  <div id="map-container" style="height:calc(100vh - 130px);min-height:420px;width:100%"></div>
+</div>
+
 <!-- ═══════════════════ FOOTER ═══════════════════ -->
 <footer>
   <div class="footer-inner">
@@ -1175,7 +1214,7 @@ let currentLang = localStorage.getItem('dz_lang') || 'fr';
 
 const TRANSLATIONS = {
   fr: {
-    nav_home:'Accueil', nav_annonces:'Annonces', nav_agences:'Agences',
+    nav_home:'Accueil', nav_annonces:'Annonces', nav_agences:'Agences', nav_carte:'Carte',
     btn_publier:'+ Publier', btn_login:'Connexion', btn_register:"S'inscrire",
     hero_title:'Trouvez votre bien immobilier en Algérie',
     hero_sub:'Plus de 50 000 annonces · Appartements, villas, terrains, locaux',
@@ -1306,7 +1345,7 @@ const TRANSLATIONS = {
     sc_disclaimer:'Simulation indicative. Contactez votre banque pour une offre personnalisée.',
   },
   ar: {
-    nav_home:'الرئيسية', nav_annonces:'الإعلانات', nav_agences:'الوكالات',
+    nav_home:'الرئيسية', nav_annonces:'الإعلانات', nav_agences:'الوكالات', nav_carte:'الخريطة',
     btn_publier:'+ نشر', btn_login:'تسجيل الدخول', btn_register:'إنشاء حساب',
     hero_title:'ابحث عن عقارك في الجزائر',
     hero_sub:'أكثر من 50,000 إعلان · شقق، فلل، أراضي، محلات',
@@ -1610,7 +1649,7 @@ async function api(path, method = 'GET', body = null) {
 }
 
 // ── Navigation ────────────────────────────────────
-const PAGES = ['home','annonces','detail','publier','agences','dashboard','messages','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit'];
+const PAGES = ['home','annonces','detail','publier','agences','dashboard','messages','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','carte'];
 
 function showPage(page, data = null) {
   PAGES.forEach(p => {
@@ -1632,6 +1671,7 @@ function showPage(page, data = null) {
   if (page === 'messages')        loadMessages();
   if (page === 'detail' && data)  loadDetail(data);
   if (page === 'sim-estimation')  initSeWilayaSelect();
+  if (page === 'carte')           initMap();
 }
 
 function goBack() { showPage(currentPage === 'detail' ? 'annonces' : 'home'); }
@@ -2386,6 +2426,111 @@ function showError(id, msg) {
 // ── Démarrage ──────────────────────────────────────
 applyLang(currentLang);
 init();
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script>
+// ── Carte interactive ─────────────────────────────
+let mapInstance = null;
+let mapCluster  = null;
+
+function initMap() {
+  // Peupler la liste des wilayas si vide
+  const sel = document.getElementById('map-wilaya');
+  if (sel.options.length <= 1) {
+    WILAYAS.forEach(w => {
+      const o = document.createElement('option');
+      o.value = w; o.textContent = w; sel.appendChild(o);
+    });
+  }
+
+  if (!mapInstance) {
+    mapInstance = L.map('map-container', {
+      center: [28.0, 2.5],
+      zoom: 5,
+      zoomControl: true,
+    });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19,
+    }).addTo(mapInstance);
+    mapCluster = L.markerClusterGroup({ chunkedLoading: true, maxClusterRadius: 60 });
+    mapInstance.addLayer(mapCluster);
+  }
+
+  setTimeout(() => { mapInstance.invalidateSize(); loadMapMarkers(); }, 120);
+}
+
+async function loadMapMarkers() {
+  if (!mapInstance) return;
+  const wilaya = document.getElementById('map-wilaya').value;
+  const mode   = document.getElementById('map-mode').value;
+  const type   = document.getElementById('map-type').value;
+
+  const params = new URLSearchParams();
+  if (wilaya) params.set('wilaya', wilaya);
+  if (mode)   params.set('mode', mode);
+  if (type)   params.set('type_bien', type);
+
+  const countEl = document.getElementById('map-count');
+  countEl.textContent = T('loading');
+
+  try {
+    const props     = await api('/properties?' + params);
+    const withCoords = props.filter(p => p.lat && p.lng);
+    const sans       = props.length - withCoords.length;
+    countEl.textContent = `${props.length} annonce${props.length !== 1 ? 's' : ''}` +
+      (sans ? ` · ${sans} sans position` : '');
+
+    mapCluster.clearLayers();
+    if (!withCoords.length) return;
+
+    const markers = withCoords.map(p => {
+      const isVente = p.mode === 'vente';
+      const color   = isVente ? '#0C6E4F' : '#f59e0b';
+      const emoji   = isVente ? '🏷' : '🔑';
+      const icon = L.divIcon({
+        className: 'map-marker-icon',
+        html: `<div style="background:${color};color:#fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:2px solid #fff">${emoji}</div>`,
+        iconSize:   [34, 34],
+        iconAnchor: [17, 17],
+        popupAnchor:[0, -20],
+      });
+
+      const price = isVente
+        ? formatPrice(p.price) + ' DZD'
+        : formatPrice(p.price) + ' DZD/mois';
+
+      const img = p.image || 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=400&q=70';
+      const popup = `
+        <div style="width:220px">
+          <img src="${img}" onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=400&q=70'"
+               style="width:100%;height:115px;object-fit:cover;border-radius:7px;display:block;margin-bottom:8px">
+          <div style="font-weight:700;font-size:.88rem;margin-bottom:3px;line-height:1.3">${esc(p.title)}</div>
+          <div style="font-size:.78rem;color:#64748b;margin-bottom:5px">📍 ${esc(p.commune || p.wilaya)}, ${esc(p.wilaya)}</div>
+          <div style="font-size:.95rem;font-weight:700;color:${color};margin-bottom:8px">${price}</div>
+          <button onclick="showPage('detail',${p.id})"
+                  style="background:${color};color:#fff;border:none;border-radius:7px;padding:6px 0;font-size:.82rem;font-weight:600;cursor:pointer;width:100%;font-family:inherit">
+            Voir l'annonce →
+          </button>
+        </div>`;
+
+      return L.marker([p.lat, p.lng], { icon }).bindPopup(popup, { maxWidth: 250 });
+    });
+
+    mapCluster.addLayers(markers);
+
+    // Adapter la vue aux marqueurs (bounds calculés depuis les coordonnées API)
+    if (withCoords.length) {
+      const bounds = L.latLngBounds(withCoords.map(p => [p.lat, p.lng]));
+      mapInstance.fitBounds(bounds.pad(wilaya ? 0.15 : 0.08));
+    }
+  } catch (e) {
+    countEl.textContent = 'Erreur de chargement';
+    console.error('[carte]', e.message);
+  }
+}
 </script>
 </body>
 </html>
