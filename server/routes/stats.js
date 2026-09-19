@@ -20,7 +20,17 @@ router.get('/', admin, async (req, res) => {
 });
 
 // GET /api/stats/public — statistiques publiques de la plateforme (sans auth)
+// Cache mémoire de 60 s (par processus) : évite de relancer les agrégats SQL à chaque appel
+const PUBLIC_STATS_TTL_MS = 60 * 1000;
+let publicStatsCache = { data: null, expires: 0 };
+
 router.get('/public', async (req, res) => {
+  const now = Date.now();
+  res.set('Cache-Control', 'public, max-age=60');
+  if (publicStatsCache.data && now < publicStatsCache.expires) {
+    return res.json(publicStatsCache.data);
+  }
+
   const { pool } = db;
   const [global, topWilayas, topTypes] = await Promise.all([
     pool.query(`
@@ -45,7 +55,7 @@ router.get('/public', async (req, res) => {
        GROUP BY type_bien ORDER BY count DESC LIMIT 6`),
   ]);
   const g = global.rows[0];
-  res.json({
+  const data = {
     active:      parseInt(g.active),
     sold:        parseInt(g.sold),
     rented:      parseInt(g.rented),
@@ -57,7 +67,9 @@ router.get('/public', async (req, res) => {
     agencies:    parseInt(g.agencies),
     top_wilayas: topWilayas.rows,
     top_types:   topTypes.rows,
-  });
+  };
+  publicStatsCache = { data, expires: now + PUBLIC_STATS_TTL_MS };
+  res.json(data);
 });
 
 // GET /api/stats/me — statistiques du propriétaire connecté

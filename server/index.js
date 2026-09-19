@@ -48,6 +48,16 @@ const uploadLimiter = rateLimit({
 });
 app.use('/api/upload', uploadLimiter);
 
+const publicStatsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de requêtes. Réessayez dans une minute.' },
+  skip: () => process.env.NODE_ENV === 'test',
+});
+app.use('/api/stats/public', publicStatsLimiter);
+
 app.use(express.json());
 
 // Service Worker sans cache pour détecter les mises à jour
