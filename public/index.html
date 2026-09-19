@@ -1340,6 +1340,11 @@
   </div>
 </div>
 
+<!-- ═══════════════════ PAGE MODÈLES DE CONTRATS ═══════════════════ -->
+<div id="page-contrats" class="hidden">
+  <div id="mc-root" style="max-width:1100px;margin:0 auto;padding:2rem 1rem 3rem"></div>
+</div>
+
 <!-- ═══════════════════ PAGE STATISTIQUES ═══════════════════ -->
 <div id="page-stats" class="hidden">
   <div id="main" style="max-width:880px;margin:0 auto;padding:2rem 1rem 3rem">
@@ -1472,6 +1477,7 @@
       <a href="#" onclick="showPage('mentions')" data-i18n="ft_mentions">Mentions légales</a>
       <a href="#" onclick="showPage('contact')" data-i18n="ft_contact">Contact</a>
       <a href="#" onclick="showPage('stats')" data-i18n="ft_stats">📊 Statistiques plateforme</a>
+      <a href="#" onclick="showPage('contrats')" data-i18n="ft_contrats">📄 Modèles de contrats</a>
     </div>
     <div class="footer-col">
       <h4 data-i18n="ft_sim">Nos simulateurs</h4>
@@ -1564,7 +1570,11 @@ const TRANSLATIONS = {
     ft_terrains:'Terrains', ft_locals:'Locaux commerciaux',
     ft_legal:'Légal', ft_cgu:'CGU', ft_privacy:'Politique de confidentialité',
     ft_mentions:'Mentions légales', ft_contact:'Contact',
-    ft_stats:'📊 Statistiques plateforme',
+    ft_stats:'📊 Statistiques plateforme', ft_contrats:'📄 Modèles de contrats',
+    mc_title:'Modèles de contrats', mc_sub:'Bail, quittance, état des lieux… Remplissez le formulaire, vérifiez l\'aperçu, puis imprimez en PDF ou téléchargez au format Word.',
+    mc_disclaimer:'Modèles indicatifs, inspirés des usages et du Code civil algérien (louage). Ils ne remplacent pas le conseil d\'un notaire ou d\'un avocat : pour un bail de longue durée ou un acte soumis à la forme authentique, adressez-vous à un notaire. Pensez à faire enregistrer le bail auprès de la recette des impôts. Aucune donnée saisie n\'est envoyée au serveur ni conservée.',
+    mc_use:'Utiliser ce modèle', mc_all:'← Tous les modèles', mc_doc_lang:'Langue du document',
+    mc_print:'Imprimer / PDF', mc_word:'Word', mc_reset:'Réinitialiser',
     st_title:'📊 DzImmo en chiffres', st_sub:'Statistiques en temps réel de la plateforme',
     st_active:'Annonces actives', st_sold:'Biens vendus', st_rented:'Biens loués',
     st_users:'Utilisateurs', st_agencies:'Agences', st_views:'Vues totales',
@@ -1729,7 +1739,11 @@ const TRANSLATIONS = {
     ft_terrains:'أراضي', ft_locals:'محلات تجارية',
     ft_legal:'قانوني', ft_cgu:'شروط الاستخدام', ft_privacy:'سياسة الخصوصية',
     ft_mentions:'الإشعارات القانونية', ft_contact:'اتصل بنا',
-    ft_stats:'📊 إحصائيات المنصة',
+    ft_stats:'📊 إحصائيات المنصة', ft_contrats:'📄 نماذج العقود',
+    mc_title:'نماذج العقود', mc_sub:'عقد إيجار، وصل إيجار، محضر معاينة… املأ النموذج، راجع المعاينة ثم اطبعه بصيغة PDF أو حمّله بصيغة Word.',
+    mc_disclaimer:'نماذج استرشادية مستوحاة من الأعراف ومن القانون المدني الجزائري (أحكام الإيجار). وهي لا تغني عن استشارة موثّق أو محامٍ: بالنسبة لعقد الإيجار الطويل الأمد أو أي عقد يستلزم الشكل الرسمي، توجّه إلى موثّق. تذكّر تسجيل العقد لدى مصالح الضرائب. لا يتم إرسال أي بيانات مُدخَلة إلى الخادم ولا حفظها.',
+    mc_use:'استعمال هذا النموذج', mc_all:'→ جميع النماذج', mc_doc_lang:'لغة الوثيقة',
+    mc_print:'طباعة / PDF', mc_word:'Word', mc_reset:'إعادة التعيين',
     st_title:'📊 DzImmo بالأرقام', st_sub:'إحصائيات المنصة في الوقت الحقيقي',
     st_active:'الإعلانات النشطة', st_sold:'العقارات المباعة', st_rented:'العقارات المؤجرة',
     st_users:'المستخدمون', st_agencies:'الوكالات', st_views:'إجمالي المشاهدات',
@@ -1899,6 +1913,7 @@ function applyLang(lang) {
   if (currentPage === 'home') loadHomeProperties();
   else if (currentPage === 'annonces') loadAnnonces();
   else if (currentPage === 'stats') loadStatsPage();
+  else if (currentPage === 'contrats' && window.MC) MC.refresh();
 }
 
 function rebuildSelects() {
@@ -2088,7 +2103,7 @@ async function api(path, method = 'GET', body = null) {
 }
 
 // ── Navigation ────────────────────────────────────
-const PAGES = ['home','annonces','detail','publier','agences','agency-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats'];
+const PAGES = ['home','annonces','detail','publier','agences','agency-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats','contrats'];
 
 function showPage(page, data = null) {
   PAGES.forEach(p => {
@@ -2114,6 +2129,7 @@ function showPage(page, data = null) {
   if (page === 'sim-estimation')  initSeWilayaSelect();
   if (page === 'carte')           initMap();
   if (page === 'stats')           loadStatsPage();
+  if (page === 'contrats' && window.MC) MC.open();
 }
 
 function goBack() { showPage(currentPage === 'detail' ? 'annonces' : 'home'); }
@@ -3942,6 +3958,7 @@ applyLang(currentLang);
 init();
 </script>
 
+<script src="/contrats.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
 <script>
