@@ -76,6 +76,15 @@ test('toutes les clés T(\'…\') utilisées dans le JavaScript existent en fran
       assert.ok((prefix + v) in T[lang], `${prefix}${v} manquante (${lang})`);
 });
 
+test('la bannière d\'accueil ne contient pas de chiffre d\'annonces en dur', () => {
+  // « Plus de 50 000 annonces » était faux (7 annonces) : pas de volume annoncé dans un texte statique
+  const T = translations();
+  const claim = /\d[\d\s.,]*\s*(annonces|إعلان)/i;
+  assert.doesNotMatch(T.fr.hero_sub, claim);
+  assert.doesNotMatch(T.ar.hero_sub, claim);
+  assert.doesNotMatch(html.match(/data-i18n="hero_sub">([^<]*)</)[1], claim);
+});
+
 test('la liste des wilayas du serveur est identique à celle du front', () => {
   const server = require(path.join(ROOT, 'server', 'wilayas'));
   const literal = html.match(/const WILAYAS = \[([\s\S]*?)\];/)[1];
