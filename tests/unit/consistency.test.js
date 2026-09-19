@@ -103,6 +103,12 @@ test('listes de prix : montants formatés avec séparateurs insécables (sinon i
   assert.match(html, /function formatPrice\(n\) \{\s*return Number\(n\)\.toLocaleString\('fr-DZ'\);/);
   assert.match(translations().ar.filter_price_min, /السعر/, 'libellé « prix min » : le mot « prix » doit figurer');
   assert.match(translations().ar.filter_price_max, /السعر/, 'libellé « prix max » : le mot « prix » doit figurer');
+  // Même piège dans les exemples de champs : plus aucun montant à espaces ordinaires (dictionnaire arabe, gabarits JS)
+  const T = translations();
+  const spaced = /\d \d{3}/;
+  assert.deepEqual(Object.entries(T.ar).filter(([, v]) => spaced.test(v)).map(([k]) => k), [], 'valeurs arabes avec un montant à espaces ordinaires');
+  assert.doesNotMatch(inlineScripts().join('\n'), /replace\('\{v\}', '[^']*\d \d{3}/, 'exemple de montant à espaces ordinaires : utiliser formatPrice()');
+  assert.match(html, /replace\('\{v\}', formatPrice\(25000000\)\)/, 'exemple du montant de l\'offre (fiche)');
   // « 30 م²+ » : le signe « + » se place mal en écriture de droite à gauche, on écrit « 30 م² فأكثر »
   assert.equal(translations().fr.opt_more, '+');
   assert.match(translations().ar.opt_more, /فأكثر/);

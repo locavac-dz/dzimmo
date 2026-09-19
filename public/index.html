@@ -2678,7 +2678,7 @@ function renderDetail(p) {
               </div>
               <div id="offer-field-${p.id}" class="hidden">
                 <label>${T('det_offer_amount')}</label>
-                <input type="number" id="coffer-${p.id}" placeholder="ex: 25000000">
+                <input type="number" id="coffer-${p.id}" placeholder="${T('ph_example').replace('{v}', formatPrice(25000000))}">
               </div>
               <label>${T('det_msg')}</label>
               <textarea id="cmsg-${p.id}" placeholder="${T('det_msg_ph')}"></textarea>
@@ -3932,8 +3932,8 @@ async function dashTab(tab) {
                 <option value="entrepot">${T('s_entrepot')}</option>
               </select></div>
             <div class="form-group"><label>${T('alert_min_surf')}</label><input id="al-surf" type="number" min="0" placeholder="${T('ph_example').replace('{v}', '80')}" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
-            <div class="form-group"><label>${T('alert_min_price')}</label><input id="al-min-price" type="number" min="0" placeholder="${T('ph_example').replace('{v}', '5 000 000')}" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
-            <div class="form-group"><label>${T('alert_max_price')}</label><input id="al-max-price" type="number" min="0" placeholder="${T('ph_example').replace('{v}', '20 000 000')}" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
+            <div class="form-group"><label>${T('alert_min_price')}</label><input id="al-min-price" type="number" min="0" placeholder="${T('ph_example').replace('{v}', formatPrice(5000000))}" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
+            <div class="form-group"><label>${T('alert_max_price')}</label><input id="al-max-price" type="number" min="0" placeholder="${T('ph_example').replace('{v}', formatPrice(20000000))}" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
           </div>
           <div style="display:flex;gap:.6rem;margin-top:.75rem">
             <button class="btn btn-primary btn-sm" onclick="saveAlert()">${T('alert_save')}</button>
