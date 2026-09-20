@@ -101,6 +101,7 @@ const uploadLimiter = rateLimit({
 });
 app.use('/api/upload', uploadLimiter);
 app.use('/api/verification', uploadLimiter);   // justificatifs : mêmes limites que les photos
+app.use('/api/import', uploadLimiter);         // import CSV : même fenêtre que les photos
 
 // Clics « Appeler / WhatsApp » et liens de confirmation d'annonce (jeton de l'email) : publics, donc limités par adresse IP
 const clickLimiter = rateLimit({
@@ -175,6 +176,7 @@ app.use('/api/admin',      require('./routes/admin'));
 app.use('/api/verification', require('./routes/verification'));
 app.use('/api/newsletter', require('./routes/newsletter'));
 app.use('/api/alerts',    require('./routes/alerts'));
+app.use('/api/import',    require('./routes/import'));
 
 app.get('/api/health', (_, res) => res.json({ ok: true, message: 'DzImmo API opérationnelle 🇩🇿' }));
 

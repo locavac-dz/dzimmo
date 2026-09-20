@@ -130,6 +130,13 @@ const AR = {
   'Le message ne peut pas dépasser 2000 caractères.': 'لا يمكن أن تتجاوز الرسالة 2000 حرف.',
   'Vous ne pouvez pas vous envoyer un message.': 'لا يمكنك إرسال رسالة إلى نفسك.',
 
+  // Import CSV
+  'Fichier CSV requis.': 'ملف CSV مطلوب.',
+  'Fichier CSV vide ou invalide.': 'ملف CSV فارغ أو غير صالح.',
+  'CSV trop volumineux (2 Mo maximum).': 'ملف CSV كبير جداً (2 ميغابايت كحد أقصى).',
+  'Colonnes requises manquantes.': 'الأعمدة الإلزامية مفقودة.',
+  'Prix invalide.': 'السعر غير صالح.',
+
   // Envoi de photos
   'Aucun fichier reçu.': 'لم يتم استلام أي ملف.',
   "Erreur lors du traitement de l'image.": 'خطأ أثناء معالجة الصورة.',

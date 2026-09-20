@@ -133,7 +133,7 @@ test('listes de prix : montants formatés avec séparateurs insécables (sinon i
 
 test('le site envoie sa langue à l\'API (en-tête X-Lang) sur les appels JSON, l\'envoi de photos et de justificatifs', () => {
   const sent = html.match(/'X-Lang': currentLang/g) || [];
-  assert.equal(sent.length, 3, 'api(), l\'upload des photos et l\'envoi des justificatifs doivent envoyer X-Lang');
+  assert.equal(sent.length, 4, 'api(), l\'upload des photos, l\'envoi des justificatifs et l\'import CSV doivent envoyer X-Lang');
 });
 
 test('la liste des wilayas du serveur est identique à celle du front', () => {

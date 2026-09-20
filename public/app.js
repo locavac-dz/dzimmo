@@ -344,6 +344,9 @@ const TRANSLATIONS = {
     sr_note_excellent:'Excellent investissement', sr_note_bon:'Bon investissement',
     sr_note_moyen:'Investissement moyen', sr_note_faible:'Rendement faible',
     sr_disclaimer:'Simulation indicative. Consultez un conseiller pour une analyse personnalisée.',
+    pub_photos_req:'Au moins une photo est requise avant de publier.',
+    imp_btn:'📥 Importer en CSV', imp_dl_tpl:'📄 Télécharger le modèle CSV',
+    imp_result_ok:'{n} annonce(s) importée(s) en modération.', imp_result_err:'{e} erreur(s).',
   },
   ar: {
     nav_home:'الرئيسية', nav_annonces:'الإعلانات', nav_agences:'الوكالات', nav_carte:'الخريطة', menu_label:'القائمة',
@@ -680,6 +683,9 @@ const TRANSLATIONS = {
     sr_note_excellent:'استثمار ممتاز', sr_note_bon:'استثمار جيد',
     sr_note_moyen:'استثمار متوسط', sr_note_faible:'مردودية ضعيفة',
     sr_disclaimer:'محاكاة استرشادية. استشر مستشاراً لتحليل شخصي.',
+    pub_photos_req:'مطلوبة صورة واحدة على الأقل قبل النشر.',
+    imp_btn:'📥 استيراد بملف CSV', imp_dl_tpl:'📄 تحميل نموذج CSV',
+    imp_result_ok:'{n} إعلان مُرسَل للمراجعة.', imp_result_err:'{e} خطأ.',
   }
 };
 
@@ -2842,6 +2848,48 @@ async function ownerArchive(id) {
   } catch (e) { toast(e.message || T('dash_error')); }
 }
 
+// ── Import CSV ───────────────────────────────────────────────────────────────
+function triggerImportCSV() {
+  let inp = document.getElementById('csv-import-input');
+  if (!inp) {
+    inp = document.createElement('input');
+    inp.type = 'file'; inp.id = 'csv-import-input';
+    inp.accept = '.csv,text/csv,text/plain'; inp.style.display = 'none';
+    inp.addEventListener('change', () => importCSV(inp));
+    document.body.appendChild(inp);
+  }
+  inp.value = ''; inp.click();
+}
+
+async function importCSV(input) {
+  if (!input.files || !input.files.length) return;
+  const c = document.getElementById('dash-tab-content');
+  if (c) c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const fd = new FormData();
+  fd.append('file', input.files[0]);
+  try {
+    const res = await fetch(API + '/import', { method: 'POST',
+      headers: { Authorization: 'Bearer ' + token, 'X-Lang': currentLang }, body: fd });
+    const d = await res.json();
+    if (!res.ok) { toast('❌ ' + (d.error || T('dash_error'))); dashTab('mes-annonces'); return; }
+    let msg = T('imp_result_ok').replace('{n}', d.created);
+    if (d.errors.length) msg += ' ' + T('imp_result_err').replace('{e}', d.errors.length);
+    toast('✅ ' + msg, d.errors.length ? 8000 : 4000);
+    if (c && d.errors.length) {
+      const rows = d.errors.slice(0, 10).map(e =>
+        `<tr><td style="padding:.25rem .6rem;color:#b45309">Ligne ${e.line}</td><td style="padding:.25rem .6rem">${esc(e.error)}</td></tr>`).join('');
+      c.innerHTML = `<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:10px;padding:1rem;margin-bottom:1rem">
+        <div style="font-weight:700;margin-bottom:.5rem">⚠️ ${esc(msg)}</div>
+        <table style="font-size:.82rem;width:100%;border-collapse:collapse">${rows}</table>
+        ${d.errors.length > 10 ? `<div style="font-size:.8rem;margin-top:.4rem;color:var(--text-muted)">… et ${d.errors.length - 10} autre(s)</div>` : ''}
+      </div>`;
+      setTimeout(() => dashTab('mes-annonces'), 8000);
+    } else {
+      dashTab('mes-annonces');
+    }
+  } catch (e) { toast('❌ ' + (e.message || T('dash_error'))); dashTab('mes-annonces'); }
+}
+
 // ── Vérification de l'annonceur ──────────────────────────────────────────────
 // « professionnel » (agence vérifiée ou registre de commerce contrôlé) l'emporte sur « identité »
 function advKind(p) {
@@ -2959,7 +3007,14 @@ async function dashTab(tab) {
 
   if (tab === 'mes-annonces') {
     const data = await api('/properties/user/' + currentUser.id);
-    if (!data.length) { c.innerHTML = '<div class="empty-state"><div class="icon">🏠</div><h3>' + T('dash_none') + '</h3><p>' + T('dash_first') + '</p><button class="btn btn-primary" style="margin-top:1rem" onclick="showPage(\'publier\')">' + T('btn_publier') + '</button></div>'; return; }
+    if (!data.length) {
+      c.innerHTML = '<div class="empty-state"><div class="icon">🏠</div><h3>' + T('dash_none') + '</h3><p>' + T('dash_first') + '</p>'
+        + '<div style="display:flex;gap:.75rem;justify-content:center;margin-top:1rem;flex-wrap:wrap">'
+        + '<button class="btn btn-primary" onclick="showPage(\'publier\')">' + T('btn_publier') + '</button>'
+        + '<button class="btn btn-outline" onclick="triggerImportCSV()">' + T('imp_btn') + '</button>'
+        + '</div></div>';
+      return;
+    }
 
     const SCOLOR = { active:'#0C6E4F', sold:'#3b82f6', rented:'#f59e0b', archived:'#94a3b8', pending:'#d97706', rejected:'#dc2626', expired:'#b45309' };
     const SLBL   = Object.fromEntries(['active','sold','rented','archived','pending','rejected','expired'].map(k => [k, T('dash_st_' + k)]));
@@ -2968,7 +3023,11 @@ async function dashTab(tab) {
     const day = d => new Date(d).toLocaleDateString('fr-DZ');
     const FLAGGED = ['price_low', 'price_high', 'duplicate_other'];
 
-    c.innerHTML = `<div style="display:flex;flex-direction:column;gap:.7rem">
+    c.innerHTML = `<div style="display:flex;justify-content:flex-end;gap:.6rem;margin-bottom:.75rem;flex-wrap:wrap">
+      <a href="/api/import/template" style="font-size:.82rem;color:var(--primary);text-decoration:none;line-height:2">${T('imp_dl_tpl')}</a>
+      <button class="btn btn-outline btn-sm" onclick="triggerImportCSV()">${T('imp_btn')}</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.7rem">
       ${data.map(p => `
         <div style="background:var(--white);border-radius:12px;border:1px solid var(--border);overflow:hidden;display:flex;box-shadow:var(--shadow)">
           <img src="${esc(thumbUrl(p.image, 480) || '')}" loading="lazy" style="width:96px;min-height:80px;object-fit:cover;flex-shrink:0;background:var(--border)" onerror="this.style.background='var(--border)'">
@@ -3232,6 +3291,10 @@ async function submitProperty() {
 
   if (!title || !price || !wilaya) {
     errEl.textContent = 'Veuillez remplir tous les champs obligatoires.';
+    errEl.classList.remove('hidden'); return;
+  }
+  if (!uploadedPhotos.length) {
+    errEl.textContent = T('pub_photos_req');
     errEl.classList.remove('hidden'); return;
   }
 
