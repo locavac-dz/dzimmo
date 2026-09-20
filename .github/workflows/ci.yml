@@ -1,0 +1,51 @@
+# Tests automatiques : à chaque push et pull request, sur une base PostgreSQL 17 jetable.
+# Les tests créent leur propre schéma (tests/helpers/server.js) : aucune donnée à préparer.
+name: Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+# Une seule exécution par branche : une nouvelle poussée annule la précédente
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: dzimmo
+          POSTGRES_PASSWORD: dzimmo
+          POSTGRES_DB: dzimmo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dzimmo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://dzimmo:dzimmo@localhost:5432/dzimmo
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test

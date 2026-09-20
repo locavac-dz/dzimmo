@@ -47,6 +47,18 @@ Windows : `demarrer.bat`
 - `public/` — front SPA ; `public/uploads/` est ignoré par Git
 - `backups/` — sauvegardes locales, hors Git
 - `dzimmo.json` — configuration locale, hors Git
+- `DEPLOIEMENT.md` — mise en production (PostgreSQL, pm2, Nginx, sauvegardes)
+- `.github/workflows/ci.yml` — tests à chaque poussée (PostgreSQL 17 en service)
+
+## Production
+
+- pm2 tourne en mode cluster : rien ne doit dépendre de la mémoire d'un seul processus. Les tâches planifiées
+  (`server/cron.js`) ne démarrent que dans l'instance 0 (`NODE_APP_INSTANCE`) ; les notifications temps réel
+  (`server/ws.js`) passent d'un worker à l'autre par PostgreSQL `LISTEN / NOTIFY`.
+- `server/config-check.js` contrôle la configuration au démarrage (production) : un réglage dont l'absence est
+  dangereux y reçoit une règle, en plus de figurer dans `.env.example`.
+- Un chemin inconnu renvoie une vraie 404 (`public/404.html`, bilingue), l'API inconnue un JSON 404 : pas de repli
+  de la SPA en 200. Toute nouvelle page servie par le site doit avoir sa route explicite (`server/seo.js` ou `app.js`).
 
 ## Règles métier
 
