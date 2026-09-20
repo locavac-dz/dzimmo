@@ -249,6 +249,7 @@ async function connect() {
   await initSchema();
   const migrate = require('./migrate');
   await migrate(pool);
+  await require('./search').sync(pool);   // lexique français ↔ arabe de la recherche (recalcule les textes s'il a changé)
   await seed();
   console.log('🐘 PostgreSQL connecté');
 }
