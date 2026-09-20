@@ -65,6 +65,15 @@ test('GOOGLE_CLIENT_ID : facultatif ; s\'il est défini, il doit avoir la forme 
   assert.deepEqual(check({ GOOGLE_CLIENT_ID: 'mon-identifiant' }).errors, [], 'jamais bloquant : le site fonctionne sans Google');
 });
 
+test('délais de reconfirmation : facultatifs ; une valeur invalide (que server/expiry.js ignore) est signalée sans jamais bloquer', () => {
+  for (const name of ['LISTING_CONFIRM_DAYS', 'LISTING_EXPIRE_GRACE_DAYS']) {
+    for (const ok of [undefined, '', ' ', '1', '30', '365', ' 14 ']) assert.deepEqual(check({ [name]: ok }).warnings, [], `${name}=${JSON.stringify(ok)}`);
+    for (const bad of ['0', '366', '-5', '1e2', '1.5', 'abc', '30 jours', '0030x'])
+      assert.match(check({ [name]: bad }).warnings.join(), new RegExp(name), `${name}=${bad}`);
+    assert.deepEqual(check({ [name]: 'abc' }).errors, []);
+  }
+});
+
 test('erreurs et avertissements s\'accumulent, chacun expliqué en français', () => {
   const { errors, warnings } = checkConfig({ NODE_ENV: 'production' });
   assert.equal(errors.length, 3, 'secret, base, APP_URL');

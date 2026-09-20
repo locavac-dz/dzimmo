@@ -85,6 +85,21 @@ Windows : `demarrer.bat`
 - Montants en **DZD**
 - Conformité RGPD + loi algérienne 18-07
 
+## Confiance et qualité des annonces
+
+- **Reconfirmation** (`server/expiry.js`, tâche cron 03:30) : après `LISTING_CONFIRM_DAYS` (30) jours sans confirmation, rappel
+  (email + notification) avec un lien à jeton ; après `LISTING_EXPIRE_GRACE_DAYS` (14) jours de plus, l'annonce est archivée avec
+  `expired_at` (≠ archivage volontaire, qui n'est pas renouvelable). Une confirmation = création, modification par le propriétaire,
+  « toujours disponible », renouvellement, approbation par un modérateur. Le jeton (`POST /:id/confirm`) est un HMAC de l'id et de
+  `last_confirmed_at` : à usage unique, sans connexion. Toute requête d'expiration se réécrit en SQL (réservation atomique, pas d'état en mémoire).
+- **Qualité** (`server/quality.js`, table `listing_quality`) : doublon du même annonceur (avertissement), texte identique à l'annonce
+  d'un autre membre et prix au m² très éloigné de la médiane (signaux **bloquants** : l'annonce passe en modération même pour un compte
+  de confiance). Ne jamais exposer l'id d'une annonce d'un autre membre à un annonceur (`warningsFor`). Les empreintes des annonces
+  existantes sont calculées au démarrage (`backfill`).
+- **Clics Appeler / WhatsApp** (`server/clicks.js`, table `contact_clicks`) : compteurs par annonce, jour et canal, **sans adresse IP
+  ni identifiant de visiteur** (le dédoublonnage de 10 min est en mémoire) ; visibles de l'annonceur seul ; `POST /:id/click` répond
+  toujours 204 (ne révèle rien sur l'annonce).
+
 ## Consignes
 
 - Ne jamais committer `.env`, `.env.production` ni `dzimmo.json`.

@@ -36,6 +36,15 @@ function checkConfig(env = process.env) {
   if (env.GOOGLE_CLIENT_ID !== undefined && env.GOOGLE_CLIENT_ID !== '' && !/^[\w-]+\.apps\.googleusercontent\.com$/.test(gid))
     warnings.push("GOOGLE_CLIENT_ID n'a pas la forme d'un identifiant client Google (« …apps.googleusercontent.com ») : la connexion Google ne fonctionnera pas.");
 
+  // Délais de reconfirmation des annonces (server/expiry.js) : une valeur invalide est ignorée au profit du défaut, autant le dire
+  for (const [name, def] of [['LISTING_CONFIRM_DAYS', 30], ['LISTING_EXPIRE_GRACE_DAYS', 14]]) {
+    const raw = env[name];
+    if (raw === undefined || String(raw).trim() === '') continue;
+    const v = String(raw).trim();
+    if (!/^\d{1,3}$/.test(v) || Number(v) < 1 || Number(v) > 365)
+      warnings.push(`${name} doit être un nombre entier de jours entre 1 et 365 (« ${v} » ignoré : ${def} jours utilisés).`);
+  }
+
   if (!env.EMAIL_HOST) warnings.push('EMAIL_HOST est absent : aucun email (confirmation, mot de passe oublié, alertes) ne sera envoyé.');
   if ((env.MODERATION || 'on').toLowerCase() === 'off') warnings.push('MODERATION=off : les annonces sont publiées sans validation.');
 

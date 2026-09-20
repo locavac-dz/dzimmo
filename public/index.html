@@ -2754,7 +2754,7 @@ function nearMe() {
     loadAnnonces();
   }, () => {
     btn.disabled = false; btn.textContent = T('near_me');
-    toast('Impossible d\'accéder à votre position.', 'error');
+    toast('Impossible d\'accéder à votre position.');
   }, { timeout: 8000 });
 }
 
@@ -4441,7 +4441,7 @@ async function ownerDelete(id) {
   try {
     await api('/properties/' + id, 'DELETE');
     dashTab('mes-annonces');
-  } catch (e) { toast(e.message || T('dash_error'), 'error'); }
+  } catch (e) { toast(e.message || T('dash_error')); }
 }
 
 // « Toujours disponible » / renouvellement d'une annonce retirée faute de confirmation
@@ -4459,7 +4459,7 @@ async function ownerArchive(id) {
     await api('/properties/' + id, 'PUT', { status: 'archived' });
     toast(T('dash_archived'));
     dashTab('mes-annonces');
-  } catch (e) { toast(e.message || T('dash_error'), 'error'); }
+  } catch (e) { toast(e.message || T('dash_error')); }
 }
 
 // ── Vérification de l'annonceur ──────────────────────────────────────────────
