@@ -102,6 +102,9 @@ const uploadLimiter = rateLimit({
 app.use('/api/upload', uploadLimiter);
 app.use('/api/verification', uploadLimiter);   // justificatifs : mêmes limites que les photos
 
+// Liens de confirmation d'annonce (jeton de l'email) : publics, donc limités par adresse IP
+app.use('/api/properties/:id/confirm', authLimiter);
+
 const publicStatsLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 30,

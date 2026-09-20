@@ -24,6 +24,8 @@ const SAMPLES = {
   buildAdminPending:       { ownerName: 'Karim', propertyTitle: 'Villa X', url: 'https://dzimmo.dz/' },
   buildVerificationDecision:      { name: 'Karim', kind: 'identity', approved: false, reason: 'Document expiré — Carte périmée en 2024', url: 'https://dzimmo.dz/' },
   buildAdminVerificationPending:  { ownerName: 'Karim', kind: 'business', url: 'https://dzimmo.dz/' },
+  buildExpiryReminder:            { name: 'Karim', propertyTitle: 'Villa X', days: 30, graceDays: 14, confirmUrl: 'https://dzimmo.dz/annonce/1-villa?renew=abc' },
+  buildListingExpired:            { name: 'Karim', propertyTitle: 'Villa X', renewUrl: 'https://dzimmo.dz/annonce/1-villa?renew=abc' },
 };
 
 test('chaque gabarit d\'email existe et est couvert par un jeu de données', () => {

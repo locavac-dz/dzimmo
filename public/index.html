@@ -278,6 +278,13 @@
     .google-btn { display: flex; justify-content: center; min-height: 44px; }
     .google-terms { text-align: center; margin: .6rem 0 0; }
     .google-terms a { color: var(--primary); text-decoration: underline; }
+    /* Reconfirmation d'annonce (lien de l'email) */
+    .renew-banner {
+      background: #fffbeb; color: #78350f; border: 1.5px solid #f59e0b; border-radius: 12px;
+      padding: 1rem 1.15rem; margin-bottom: 1.25rem;
+    }
+    .renew-banner strong { display: block; font-size: 1.02rem; margin-bottom: .6rem; }
+    .renew-banner .renew-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
     .field-hint { font-size: .76rem; color: var(--text-muted); margin-top: .3rem; line-height: 1.5; }
     /* Badge « annonceur vérifié » (identité ou professionnel) */
     .adv-badge {
@@ -1828,6 +1835,13 @@ const TRANSLATIONS = {
     dash_tab_annonces:'Mes annonces', dash_tab_contacts:'Demandes reçues',
     dash_tab_favoris:'Favoris', dash_tab_alertes:'Alertes email', dash_tab_profil:'Profil',
     dash_tab_verif:'Vérification',
+    dash_st_expired:'Retirée (non confirmée)',
+    dash_confirmed:'Disponibilité confirmée le {date}', dash_expires:'⚠ À reconfirmer avant le {date}',
+    dash_expired_note:'Retirée faute de confirmation : renouvelez-la si le bien est toujours disponible.',
+    dash_still:'✓ Toujours disponible', dash_renew:'🔄 Renouveler', dash_renewed:'Merci ! Votre annonce est confirmée.',
+    det_confirmed:'Disponibilité confirmée le',
+    rn_title:"L'annonce est-elle toujours disponible ?", rn_yes:'✓ Oui, toujours disponible', rn_no:'Non, elle est vendue / louée',
+    rn_done:'Merci ! Votre annonce reste en ligne.', rn_closed:'Annonce retirée : elle est marquée comme vendue / louée.',
     g_terms:'En continuant avec Google, vous acceptez les <a href="#" data-p="cgu" onclick="return goLegal(this)">CGU</a> et la <a href="#" data-p="confidentialite" onclick="return goLegal(this)">politique de confidentialité</a>.',
     g_created:'Compte créé avec Google. Bienvenue, {name} !', g_connected:'Connecté avec Google : {name}',
     m_phone_hint:"Ce numéro est affiché sur vos annonces (boutons Appeler et WhatsApp). Depuis l'étranger : commencez par + et l'indicatif du pays (ex. <bdi dir=\"ltr\">+33 6 12 34 56 78</bdi>).",
@@ -2080,6 +2094,13 @@ const TRANSLATIONS = {
     dash_tab_annonces:'إعلاناتي', dash_tab_contacts:'الطلبات المستلمة',
     dash_tab_favoris:'المفضلة', dash_tab_alertes:'تنبيهات البريد', dash_tab_profil:'الملف الشخصي',
     dash_tab_verif:'التوثيق',
+    dash_st_expired:'مسحوب (غير مؤكَّد)',
+    dash_confirmed:'تم تأكيد التوفر في {date}', dash_expires:'⚠ يجب تأكيده قبل {date}',
+    dash_expired_note:'تم سحبه لعدم التأكيد: جدِّده إذا كان العقار ما زال متاحاً.',
+    dash_still:'✓ ما زال متاحاً', dash_renew:'🔄 تجديد', dash_renewed:'شكراً! تم تأكيد إعلانك.',
+    det_confirmed:'تم تأكيد التوفر في',
+    rn_title:'هل ما زال الإعلان متاحاً؟', rn_yes:'✓ نعم، ما زال متاحاً', rn_no:'لا، تم بيعه / تأجيره',
+    rn_done:'شكراً! يبقى إعلانك منشوراً.', rn_closed:'تم سحب الإعلان: سُجِّل على أنه مباع / مؤجَّر.',
     g_terms:'بالمتابعة عبر Google فإنك توافق على <a href="#" data-p="cgu" onclick="return goLegal(this)">شروط الاستخدام</a> و<a href="#" data-p="confidentialite" onclick="return goLegal(this)">سياسة الخصوصية</a>.',
     g_created:'تم إنشاء الحساب عبر Google. مرحباً {name}!', g_connected:'تم تسجيل الدخول عبر Google: {name}',
     m_phone_hint:'يظهر هذا الرقم على إعلاناتك (زرّا الاتصال والواتساب). من الخارج: ابدأ بـ + ثم رمز البلد (مثال: <bdi dir="ltr">+33 6 12 34 56 78</bdi>).',
@@ -2399,6 +2420,8 @@ async function init() {
     loadAnnonces(1);
   }
   const annonceMatch = location.pathname.match(/^\/annonce\/(\d+)/);
+  // Lien de l'email de rappel (?renew=jeton) : mémorisé avant que la fiche ne réécrive l'adresse
+  if (annonceMatch && params.get('renew')) { window._renewToken = params.get('renew'); window._renewFor = Number(annonceMatch[1]); }
   if (annonceMatch)                  showPage('detail', Number(annonceMatch[1]));
   else if (params.get('p'))          showPage('detail', Number(params.get('p')));
   if (window.location.hash.includes('reset_token=')) openModal('login');
@@ -2885,6 +2908,25 @@ async function loadDetail(id) {
   } catch (e) { container.innerHTML = `<p style="color:red;padding:2rem">${e.message}</p>`; }
 }
 
+// Bandeau de reconfirmation : l'annonceur arrive depuis l'email de rappel, sans avoir à se connecter
+function renewBannerHTML(p) {
+  if (!window._renewToken || window._renewFor !== p.id || !['active', 'archived'].includes(p.status)) return '';
+  return `<div class="renew-banner" id="renew-banner"><strong>${T('rn_title')}</strong>
+    <div class="renew-actions">
+      <button class="btn btn-primary" onclick="confirmListing(${p.id}, 'available')">${T('rn_yes')}</button>
+      <button class="btn btn-outline" onclick="confirmListing(${p.id}, 'closed')">${T('rn_no')}</button>
+    </div></div>`;
+}
+
+async function confirmListing(id, action) {
+  try {
+    await api('/properties/' + id + '/confirm', 'POST', { token: window._renewToken, action });
+    window._renewToken = null;
+    toast(T(action === 'available' ? 'rn_done' : 'rn_closed'));
+    loadDetail(id);
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
 // Rendu de la fiche (rejoué sans nouvel appel API quand la langue change : pas de vue comptée en double)
 function renderDetail(p) {
   const container = document.getElementById('detail-content');
@@ -2906,6 +2948,7 @@ function renderDetail(p) {
     const photosJSON = JSON.stringify(photos).replace(/</g,'\\u003c').replace(/>/g,'\\u003e');
 
     container.innerHTML = `
+      ${renewBannerHTML(p)}
       ${modBanner}
       <div class="detail-gallery">
         <div style="position:relative">
@@ -2986,7 +3029,8 @@ function renderDetail(p) {
             `}
             <div style="margin-top:1rem;font-size:.8rem;color:var(--text-muted);text-align:center">
               👁 ${p.views || 0} ${unit(p.views || 0, 'u_view')} ·
-              ${T('det_published')} ${new Date(p.created_at).toLocaleDateString('fr-DZ')}
+              ${T('det_published')} ${new Date(p.created_at).toLocaleDateString('fr-DZ')}${p.status === 'active' && p.last_confirmed_at
+                ? `<br>✔ ${T('det_confirmed')} ${new Date(p.last_confirmed_at).toLocaleDateString('fr-DZ')}` : ''}
             </div>
             <div style="display:flex;gap:.5rem;margin-top:.75rem">
               <button class="btn btn-outline btn-sm" style="flex:1;display:flex;align-items:center;justify-content:center;gap:.4rem" onclick="shareWhatsApp(${p.id}, ${JSON.stringify(p.title)}, ${p.price})">
@@ -4362,6 +4406,15 @@ async function ownerDelete(id) {
   } catch (e) { toast(e.message || T('dash_error'), 'error'); }
 }
 
+// « Toujours disponible » / renouvellement d'une annonce retirée faute de confirmation
+async function ownerRenew(id) {
+  try {
+    await api('/properties/' + id + '/renew', 'POST');
+    toast(T('dash_renewed'));
+    dashTab('mes-annonces');
+  } catch (e) { toast(e.message || T('dash_error')); }
+}
+
 async function ownerArchive(id) {
   if (!confirm(T('dash_archive_confirm'))) return;
   try {
@@ -4489,8 +4542,11 @@ async function dashTab(tab) {
     const data = await api('/properties/user/' + currentUser.id);
     if (!data.length) { c.innerHTML = '<div class="empty-state"><div class="icon">🏠</div><h3>' + T('dash_none') + '</h3><p>' + T('dash_first') + '</p><button class="btn btn-primary" style="margin-top:1rem" onclick="showPage(\'publier\')">' + T('btn_publier') + '</button></div>'; return; }
 
-    const SCOLOR = { active:'#0C6E4F', sold:'#3b82f6', rented:'#f59e0b', archived:'#94a3b8', pending:'#d97706', rejected:'#dc2626' };
-    const SLBL   = Object.fromEntries(['active','sold','rented','archived','pending','rejected'].map(k => [k, T('dash_st_' + k)]));
+    const SCOLOR = { active:'#0C6E4F', sold:'#3b82f6', rented:'#f59e0b', archived:'#94a3b8', pending:'#d97706', rejected:'#dc2626', expired:'#b45309' };
+    const SLBL   = Object.fromEntries(['active','sold','rented','archived','pending','rejected','expired'].map(k => [k, T('dash_st_' + k)]));
+    // « Retirée » : archivée automatiquement faute de confirmation (l'annonceur peut la renouveler)
+    const stOf = p => (p.status === 'archived' && p.expired_at) ? 'expired' : p.status;
+    const day = d => new Date(d).toLocaleDateString('fr-DZ');
 
     c.innerHTML = `<div style="display:flex;flex-direction:column;gap:.7rem">
       ${data.map(p => `
@@ -4499,12 +4555,15 @@ async function dashTab(tab) {
           <div style="flex:1;padding:.8rem 1rem;min-width:0">
             <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.3rem">
               <span class="card-mode mode-${p.mode}" style="font-size:.71rem;padding:.1rem .4rem">${MODES[p.mode]||p.mode}</span>
-              <span style="background:${SCOLOR[p.status]||'#94a3b8'}20;color:${SCOLOR[p.status]||'#94a3b8'};padding:.1rem .42rem;border-radius:20px;font-size:.71rem;font-weight:700">${SLBL[p.status]||p.status}</span>
+              <span style="background:${SCOLOR[stOf(p)]||'#94a3b8'}20;color:${SCOLOR[stOf(p)]||'#94a3b8'};padding:.1rem .42rem;border-radius:20px;font-size:.71rem;font-weight:700">${SLBL[stOf(p)]||stOf(p)}</span>
               ${p.verified?'<span style="background:#0C6E4F20;color:#0C6E4F;padding:.1rem .42rem;border-radius:20px;font-size:.71rem;font-weight:700">✓</span>':''}
             </div>
             <div style="font-weight:700;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(p.title)}">${esc(p.title)}</div>
             <div style="font-size:.79rem;color:var(--text-muted)">📍 ${esc(wilayaName(p.wilaya))} · <strong style="color:var(--primary)">${priceText(p)}</strong></div>
             ${p.status === 'rejected' && p.moderation_reason ? `<div style="font-size:.79rem;color:#dc2626;margin-top:.25rem">${T('dash_reason')} ${esc(modReason(p.moderation_reason))}</div>` : ''}
+            ${p.status === 'active' && p.last_confirmed_at ? `<div style="font-size:.76rem;margin-top:.3rem;color:${p.expires_at ? '#b45309' : 'var(--text-muted)'};font-weight:${p.expires_at ? 700 : 400}">${p.expires_at
+              ? T('dash_expires').replace('{date}', day(p.expires_at)) : T('dash_confirmed').replace('{date}', day(p.last_confirmed_at))}</div>` : ''}
+            ${stOf(p) === 'expired' ? `<div style="font-size:.78rem;color:#b45309;margin-top:.3rem">${T('dash_expired_note')}</div>` : ''}
             <div style="display:flex;gap:1.1rem;margin-top:.4rem;flex-wrap:wrap">
               <span style="font-size:.79rem;color:var(--text-muted)">👁 <strong>${p.views||0}</strong> ${unit(p.views||0, 'u_view')}</span>
               <span style="font-size:.79rem;color:var(--text-muted)">📩 <strong>${p.contact_count||0}</strong> ${unit(p.contact_count||0, 'u_req')}</span>
@@ -4514,6 +4573,8 @@ async function dashTab(tab) {
           <div style="padding:.8rem .65rem;display:flex;flex-direction:column;gap:.35rem;justify-content:center;flex-shrink:0">
             <button class="btn btn-primary btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap" onclick="showPage('detail',${p.id})">${T('dash_view')}</button>
             ${p.status === 'rejected' ? `<button class="btn btn-outline btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap;border-color:#dc2626;color:#dc2626" onclick="ownerDelete(${p.id})">${T('dash_delete')}</button>` : ''}
+            ${p.status==='active'?`<button class="btn ${p.expires_at ? 'btn-primary' : 'btn-outline'} btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap" onclick="ownerRenew(${p.id})">${T('dash_still')}</button>`:''}
+            ${stOf(p)==='expired'?`<button class="btn btn-primary btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap" onclick="ownerRenew(${p.id})">${T('dash_renew')}</button>`:''}
             ${p.status==='active'?`<button class="btn btn-outline btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap;border-color:#94a3b8;color:#64748b" onclick="ownerArchive(${p.id})">${T('dash_archive')}</button>`:''}
           </div>
         </div>`).join('')}

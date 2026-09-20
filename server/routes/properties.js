@@ -5,6 +5,7 @@ const optionalAuth = require('../middleware/optionalAuth');
 const moderation   = require('../moderation');
 const { likePattern } = require('../pagination');
 const { isRevoked } = require('../sessions');
+const expiry  = require('../expiry');
 
 const MODES_VALIDES    = ['vente', 'location_longue', 'location_courte'];
 const TYPES_VALIDES    = ['appartement','villa','maison','bureau','local_commercial','terrain','ferme','entrepot'];
@@ -303,6 +304,10 @@ router.put('/:id', auth, async (req, res) => {
     }
   }
 
+  // Une modification par son propriétaire vaut confirmation de disponibilité ; remettre l'annonce en ligne annule son expiration
+  if (property.owner_id === req.user.id) { changes.last_confirmed_at = new Date(); changes.expiry_notified_at = null; }
+  if (changes.status === 'active') changes.expired_at = null;
+
   await db.properties.update({ id: property.id }, changes);
   if (resubmitted) {
     const owner = await db.users.findById(property.owner_id);
@@ -318,6 +323,29 @@ router.put('/:id', auth, async (req, res) => {
   }
 
   res.json({ ok: true, status: changes.status || property.status });
+});
+
+// POST /api/properties/:id/renew — « toujours disponible » (annonce active) ou renouvellement (annonce retirée faute de confirmation)
+router.post('/:id/renew', auth, async (req, res) => {
+  const property = await db.properties.findById(req.params.id);
+  if (!property) return res.status(404).json({ error: 'Annonce introuvable.' });
+  if (property.owner_id !== req.user.id) return res.status(403).json({ error: 'Accès refusé.' });
+  const r = await expiry.renew(property.id);
+  if (!r) return res.status(409).json({ error: 'Cette annonce ne peut pas être renouvelée.' });
+  res.json({ ok: true, status: r.status, last_confirmed_at: r.last_confirmed_at });
+});
+
+// POST /api/properties/:id/confirm — lien de l'email de rappel, sans connexion : { token, action: 'available' | 'closed' }
+// Le jeton dépend de la dernière confirmation : il ne sert qu'une fois. Réponse identique pour un jeton faux et une annonce inconnue.
+router.post('/:id/confirm', async (req, res) => {
+  const { token, action } = req.body || {};
+  if (!['available', 'closed'].includes(action)) return res.status(400).json({ error: 'Action invalide.' });
+  const property = await db.properties.findById(req.params.id);
+  if (!property || !expiry.validToken(property.id, property.last_confirmed_at, token))
+    return res.status(400).json({ error: 'Ce lien de confirmation est invalide ou a expiré.' });
+  const r = action === 'available' ? await expiry.renew(property.id) : await expiry.close(property.id, property.mode);
+  if (!r) return res.status(409).json({ error: 'Cette annonce ne peut pas être renouvelée.' });
+  res.json({ ok: true, status: r.status });
 });
 
 // GET /api/properties/:id/price-history
@@ -421,12 +449,21 @@ router.get('/user/:id', optionalAuth, async (req, res) => {
   const uid = Number(req.params.id);
   // Le propriétaire (et les admins) voient aussi ses annonces en attente / refusées ; le public, seulement les publiées
   const self = req.user && (req.user.is_admin || req.user.id === uid);
-  const visible = self ? "p.status != 'archived'" : "p.status IN ('active','sold','rented')";
+  // L'annonceur voit aussi les annonces retirées automatiquement (pour les renouveler), pas celles qu'il a archivées lui-même
+  const visible = self ? "(p.status != 'archived' OR p.expired_at IS NOT NULL)" : "p.status IN ('active','sold','rented')";
+  const params = [uid];
+  let ownerOnly = '';   // colonnes réservées à l'annonceur : échéance du rappel
+  if (self) {
+    params.push(expiry.graceDays());
+    ownerOnly = `,
+       CASE WHEN p.status = 'active' AND p.expiry_notified_at IS NOT NULL
+            THEN p.expiry_notified_at + make_interval(days => $2) END                                                 AS expires_at`;
+  }
   const r = await pool.query(
     `SELECT p.*,
        u.name  AS owner_name,  u.phone  AS owner_phone,  u.avatar AS owner_avatar,
        a.name  AS agency_name, a.logo   AS agency_logo,  a.phone  AS agency_phone,
-       COUNT(c.id)::int AS contact_count
+       COUNT(c.id)::int AS contact_count${ownerOnly}
      FROM properties p
      LEFT JOIN users    u ON u.id = p.owner_id
      LEFT JOIN agencies a ON a.id = p.agency_id
@@ -434,7 +471,7 @@ router.get('/user/:id', optionalAuth, async (req, res) => {
      WHERE p.owner_id = $1 AND ${visible}
      GROUP BY p.id, u.id, a.id
      ORDER BY p.created_at DESC`,
-    [uid]
+    params
   );
   res.json(r.rows);
 });

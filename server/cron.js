@@ -28,5 +28,15 @@ cron.schedule('0 4 * * 0', async () => {
   }
 });
 
+// Reconfirmation des annonces : rappels aux annonceurs, retrait des annonces restées sans réponse (voir server/expiry.js)
+cron.schedule('30 3 * * *', async () => {
+  try {
+    const r = await require('./expiry').run();
+    if (r.reminded || r.expired) console.log(`[cron] annonces : ${r.reminded} rappel(s), ${r.expired} retrait(s).`);
+  } catch (e) {
+    console.error('[cron] Erreur expiration des annonces :', e.message);
+  }
+});
+
 // Envoi des alertes email — toutes les heures
 cron.schedule('0 * * * *', () => sendSearchAlerts());

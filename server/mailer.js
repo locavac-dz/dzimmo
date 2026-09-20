@@ -314,6 +314,40 @@ function buildAdminVerificationPending(lang, { ownerName, kind, url }) {
   };
 }
 
+// Rappel : l'annonce est-elle toujours disponible ? (lien « en un clic » sans connexion)
+function buildExpiryReminder(lang, { name, propertyTitle, days, graceDays, confirmUrl }) {
+  return {
+    subject: pick(lang, `⏰ Votre annonce est-elle toujours disponible ? — ${propertyTitle}`, `⏰ هل ما زال إعلانك متاحاً؟ — ${propertyTitle}`),
+    html: wrap(`
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Votre annonce est-elle toujours disponible ?', 'هل ما زال إعلانك متاحاً؟')}</h2>
+      <p>${ui(lang).hello} <strong>${esc(name)}</strong>${pick(lang, ',', '،')}</p>
+      <p>${pick(lang,
+        `Vous n'avez pas confirmé l'annonce <strong>${esc(propertyTitle)}</strong> depuis plus de ${Number(days)} jours. Pour que les visiteurs puissent lui faire confiance, dites-nous si le bien est toujours disponible.`,
+        `مضى أكثر من ${Number(days)} يوماً دون أن تؤكد الإعلان <strong>${esc(propertyTitle)}</strong>. لكي يثق به الزوار، أخبرنا إن كان العقار ما زال متاحاً.`)}</p>
+      <p>${pick(lang,
+        `Sans réponse d'ici ${Number(graceDays)} jours, l'annonce sera retirée du site ; vous pourrez la renouveler à tout moment.`,
+        `إذا لم تصلنا إجابة خلال ${Number(graceDays)} يوماً فسيُسحب الإعلان من الموقع، ويمكنك تجديده في أي وقت.`)}</p>
+      ${button(confirmUrl, pick(lang, 'Répondre en un clic', 'الرد بنقرة واحدة'), lang, true)}
+    `, lang),
+  };
+}
+
+// L'annonce a été retirée faute de confirmation : elle n'est pas supprimée, l'annonceur peut la renouveler
+function buildListingExpired(lang, { name, propertyTitle, renewUrl }) {
+  return {
+    subject: pick(lang, `📦 Votre annonce a été retirée — ${propertyTitle}`, `📦 تم سحب إعلانك — ${propertyTitle}`),
+    html: wrap(`
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Votre annonce a été retirée', 'تم سحب إعلانك')}</h2>
+      <p>${ui(lang).hello} <strong>${esc(name)}</strong>${pick(lang, ',', '،')}</p>
+      <p>${pick(lang,
+        `Faute de confirmation, l'annonce <strong>${esc(propertyTitle)}</strong> n'est plus visible sur le site. Elle n'est pas supprimée.`,
+        `لعدم التأكيد، لم يعد الإعلان <strong>${esc(propertyTitle)}</strong> ظاهراً على الموقع. لم يُحذف.`)}</p>
+      <p>${pick(lang, 'Si le bien est toujours disponible, remettez-la en ligne en un clic.', 'إذا كان العقار ما زال متاحاً فأعد نشره بنقرة واحدة.')}</p>
+      ${button(renewUrl, pick(lang, 'Renouveler mon annonce', 'تجديد إعلاني'), lang, true)}
+    `, lang),
+  };
+}
+
 // ── Envoi ────────────────────────────────────────────────────────────────────
 // Chaque fonction reçoit `lang` (langue du destinataire) ; sans lang : français.
 const send = (to, built) => sendMail({ to, ...built });
@@ -327,6 +361,8 @@ const mailSearchAlert = d => send(d.email, buildSearchAlert(d.lang, d));
 const mailModerationDecision = d => send(d.to, buildModerationDecision(d.lang, d));
 const mailAdminPending = d => send(d.to, buildAdminPending(d.lang, d));
 const mailVerificationDecision = d => send(d.to, buildVerificationDecision(d.lang, d));
+const mailExpiryReminder = d => send(d.to, buildExpiryReminder(d.lang, d));
+const mailListingExpired = d => send(d.to, buildListingExpired(d.lang, d));
 const mailAdminVerificationPending = d => send(d.to, buildAdminVerificationPending(d.lang, d));
 
 module.exports = {
@@ -334,8 +370,9 @@ module.exports = {
   mailWelcome, mailVerifyEmail, mailPasswordReset,
   mailContactRequest, mailNewMessage, mailSearchAlert,
   mailModerationDecision, mailAdminPending, mailVerificationDecision, mailAdminVerificationPending,
+  mailExpiryReminder, mailListingExpired,
   // gabarits purs (tests)
   build: { buildWelcome, buildVerifyEmail, buildPasswordReset, buildContactRequest, buildNewMessage,
            buildSearchAlert, buildModerationDecision, buildAdminPending,
-           buildVerificationDecision, buildAdminVerificationPending },
+           buildVerificationDecision, buildAdminVerificationPending, buildExpiryReminder, buildListingExpired },
 };

@@ -87,6 +87,8 @@ router.put('/properties/:id/moderate', admin, async (req, res) => {
     `UPDATE properties
         SET status = $1,
             published_at = CASE WHEN $1 = 'active' THEN COALESCE(published_at, NOW()) ELSE published_at END,
+            last_confirmed_at = CASE WHEN $1 = 'active' THEN NOW() ELSE last_confirmed_at END,
+            expiry_notified_at = CASE WHEN $1 = 'active' THEN NULL ELSE expiry_notified_at END,
             moderation_reason = $2, moderated_at = NOW(), moderated_by = $3
       WHERE id = $4`,
     [status, approve ? null : motif.slice(0, 500), req.user.id, property.id]);

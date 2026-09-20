@@ -12,6 +12,11 @@ const AR = {
   'Erreur interne du serveur.': 'خطأ داخلي في الخادم.',
   'Route introuvable.': 'المسار غير موجود.',
 
+  // Expiration des annonces
+  'Ce lien de confirmation est invalide ou a expiré.': 'رابط التأكيد غير صالح أو منتهي الصلاحية.',
+  'Cette annonce ne peut pas être renouvelée.': 'لا يمكن تجديد هذا الإعلان.',
+  'Action invalide.': 'إجراء غير صالح.',
+
   // Connexion avec Google
   'Connexion Google indisponible.': 'الدخول عبر Google غير متاح.',
   'Jeton Google invalide.': 'رمز Google غير صالح.',
