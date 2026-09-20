@@ -100,6 +100,26 @@ Windows : `demarrer.bat`
   ni identifiant de visiteur** (le dédoublonnage de 10 min est en mémoire) ; visibles de l'annonceur seul ; `POST /:id/click` répond
   toujours 204 (ne révèle rien sur l'annonce).
 
+## Vitrine des agences et des promoteurs
+
+- **Profil** (`server/agency.js`, table `agencies`) : `kind` (`agence` | `promoteur`), logo, couverture, slogan, services, zones, horaires,
+  réseaux. Tout passe par `cleanProfile` : les images ne viennent que de `/uploads/…` (notre envoi), les liens sont limités à http(s),
+  les réseaux sociaux à leur domaine. Ne jamais accepter une adresse arbitraire pour un `src` ou un `href`. `verified` ne se règle que
+  par la vérification `business` (jamais par le corps de la requête) ; la note d'une vitrine est la moyenne des avis de ses annonces.
+- **Annuaire** (`GET /api/agencies`, paginé `{ items, total, page, pages, per_page, kinds }`) : vérifiés d'abord, puis les plus actifs.
+  Un propriétaire suspendu disparaît de l'annuaire et de sa fiche. La fiche n'expose jamais l'identifiant du compte (`is_mine` suffit).
+- **Rattachement des annonces** : `agency_id` et `project_id` d'une annonce doivent être ceux de son auteur (`affiliation()` dans
+  `server/routes/properties.js`), sinon on publierait sous le nom, le logo et le numéro d'une autre agence. Les annonces d'une vitrine se
+  lisent par `GET /api/properties?agency_id=` / `?project_id=`.
+- **Programmes neufs** (`server/projects.js`, table `projects`) : réservés aux promoteurs **vérifiés** (le registre de commerce contrôlé
+  tient lieu de modération) ; prix « à partir de », lots disponibles et vendus se calculent depuis les annonces rattachées, jamais saisis.
+  Vérification retirée ou compte suspendu : le programme disparaît du site sans être supprimé (le propriétaire le voit toujours).
+- **Pages** : `/agences`, `/promoteurs`, `/programmes`, `/agence/12-nom`, `/promoteur/7-nom`, `/programme/5-nom` sont servies par `server/seo.js`
+  (métadonnées, JSON-LD, redirection canonique, vraie 404, sitemap) ; toute nouvelle page a sa route explicite. Le front est dans
+  `public/pro.js`, chargé **avant** le script principal (un lien direct appelle `showPage` dès `init`).
+- **Front** : toute donnée affichée passe par `esc()` ; aucune donnée de la page dans un attribut `onclick` (utiliser `data-*` et `this.dataset`,
+  test `tests/unit/pro-front.test.js`). Les onglets du tableau de bord sont repérés par position : ajouter un bouton = ajouter sa clé dans `dashTab`.
+
 ## Consignes
 
 - Ne jamais committer `.env`, `.env.production` ni `dzimmo.json`.

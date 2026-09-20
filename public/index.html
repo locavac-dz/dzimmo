@@ -286,6 +286,182 @@
     .renew-banner strong { display: block; font-size: 1.02rem; margin-bottom: .6rem; }
     .renew-banner .renew-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
     .q-list { margin: .5rem 0 0; padding-inline-start: 1.2rem; text-align: start; font-size: .88rem; }
+    /* ── Vitrine des agences et des promoteurs (pro.js) ── */
+    .pro-hero { margin: 1rem 0 1.25rem; }
+    .pro-hero h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: .3rem; }
+    .pro-hero p { color: var(--text-muted); max-width: 60ch; }
+    .pro-tabs { display: flex; gap: .4rem; overflow-x: auto; padding-bottom: .3rem; margin-bottom: 1rem; scrollbar-width: thin; }
+    .pro-tabs button, .pro-seg button {
+      background: var(--white); color: var(--text-secondary); border: 1px solid var(--border); border-radius: 20px;
+      padding: .4rem .95rem; font-size: .88rem; font-weight: 600; white-space: nowrap;
+    }
+    .pro-tabs button small { opacity: .7; margin-inline-start: .2rem; }
+    .pro-tabs button.active, .pro-seg button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .pro-filters { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin-bottom: .8rem; }
+    .pro-filters input[type=search], .pro-filters select, .pro-filterbar select {
+      padding: .55rem .8rem; border: 1px solid var(--border); border-radius: 10px; background: var(--white); color: var(--text); font-size: .9rem; min-width: 0;
+    }
+    .pro-filters input[type=search] { flex: 1 1 200px; }
+    .pro-check { display: inline-flex; align-items: center; gap: .4rem; font-size: .88rem; color: var(--text-secondary); cursor: pointer; }
+    .pro-count { font-size: .85rem; color: var(--text-muted); margin-bottom: .8rem; }
+    .pro-more { text-align: center; margin: 1.4rem 0 .5rem; }
+    .pro-grid { grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
+    .pro-card {
+      position: relative; display: block; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius);
+      overflow: hidden; box-shadow: var(--shadow); transition: transform .18s, box-shadow .18s; color: inherit;
+    }
+    .pro-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+    .pro-cover { display: block; width: 100%; height: 118px; object-fit: cover; background: #e2e8f0; }
+    .pro-cover-none { background: linear-gradient(135deg, #0a3d2b, #0C6E4F); }
+    .pro-logo { width: 64px; height: 64px; border-radius: 14px; object-fit: contain; background: #fff; border: 3px solid var(--white); box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+    .pro-logo-init { display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.6rem; color: #fff; background: var(--primary); }
+    .pro-logo-card { position: absolute; inset-inline-start: 1rem; top: 86px; }
+    .pro-logo-lg { width: 96px; height: 96px; border-radius: 18px; flex: none; font-size: 2.3rem; }
+    .pro-logo-mini { width: 28px; height: 28px; border-radius: 8px; border-width: 1px; box-shadow: none; font-size: .9rem; flex: none; }
+    .pro-card-body { padding: 2.1rem 1rem 1rem; }
+    .pro-card-name { font-weight: 800; font-size: 1.05rem; line-height: 1.3; }
+    .pro-badges { display: flex; flex-wrap: wrap; gap: .35rem; margin: .4rem 0; }
+    .pro-badge { font-size: .72rem; font-weight: 700; padding: .12rem .55rem; border-radius: 20px; background: var(--bg); color: var(--text-secondary); border: 1px solid var(--border); }
+    .pro-badge-ok { background: var(--primary); border-color: var(--primary); color: #fff; cursor: help; }
+    .pro-ok { color: var(--primary); font-weight: 800; cursor: help; }
+    .pro-tagline { font-size: .86rem; color: var(--text-secondary); line-height: 1.45; margin-bottom: .4rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .pro-meta { font-size: .85rem; color: var(--text-muted); display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .8rem; }
+    .pro-rate { display: inline-flex; align-items: center; gap: .25rem; }
+    .pro-stars { color: #f59e0b; letter-spacing: 1px; }
+    .pro-stars .off { color: var(--border); }
+    .pro-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .55rem; }
+    .pro-chip { font-size: .76rem; padding: .18rem .6rem; border-radius: 20px; background: var(--primary-light); color: var(--adv-fg); font-weight: 600; border: 1px solid transparent; }
+    .pro-chip-toggle, .pro-chip-x { cursor: pointer; font-family: inherit; }
+    .pro-chip-toggle { background: var(--white); border-color: var(--border); color: var(--text-secondary); }
+    .pro-chip-toggle.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .pro-chip-x:hover { border-color: var(--red); color: var(--red); }
+    .pro-counts { margin-top: .7rem; padding-top: .6rem; border-top: 1px dashed var(--border); font-size: .84rem; color: var(--text-secondary); }
+    .pro-counts:empty { display: none; }
+    /* Programmes neufs */
+    .pg-card-top { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: .45rem; }
+    .pg-card .pro-card-body { padding-top: 1rem; }
+    .pg-card .pro-cover { height: 170px; }
+    .pg-status { font-size: .72rem; font-weight: 800; padding: .15rem .6rem; border-radius: 20px; color: #fff; }
+    .pg-sur_plan { background: #7c3aed; } .pg-en_construction { background: #d97706; } .pg-livre { background: var(--primary); }
+    .pg-when { font-size: .82rem; color: var(--text-muted); }
+    .pg-price { margin-top: .5rem; font-size: .9rem; color: var(--text-secondary); }
+    .pg-price b { color: var(--primary); font-size: 1.05rem; }
+    .pg-by { display: flex; align-items: center; gap: .5rem; margin-top: .7rem; font-size: .84rem; color: var(--text-secondary); }
+    .pg-by-lg { display: flex; align-items: center; gap: .8rem; margin-bottom: 1rem; }
+    .pg-by-lg .pro-logo-mini { width: 48px; height: 48px; border-radius: 12px; font-size: 1.3rem; }
+    .pg-by-name { font-weight: 800; color: var(--text); }
+    .pg-by-name:hover { color: var(--primary); }
+    .pg-lot-chip { display: inline-block; margin: .6rem 0 0; }
+    .pg-gallery { display: grid; gap: .5rem; grid-template-columns: 1fr; border-radius: var(--radius); overflow: hidden; margin-bottom: 1.2rem; }
+    .pg-gallery img, .pg-nophoto { width: 100%; height: 100%; object-fit: cover; min-height: 220px; max-height: 420px; cursor: zoom-in; }
+    .pg-gallery.multi { grid-template-columns: 2fr 1fr; grid-template-rows: 210px 210px; }
+    .pg-gallery.multi img { min-height: 0; max-height: none; }
+    .pg-gallery.multi img:first-child { grid-row: 1 / span 2; }
+    .pg-gallery.multi img:nth-child(2):last-child { grid-row: 1 / span 2; }
+    .pg-head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; flex-wrap: wrap; margin-bottom: 1rem; }
+    .pg-head h1 { font-size: 1.6rem; font-weight: 800; margin: .1rem 0 .3rem; }
+    .pg-progress { height: 8px; border-radius: 8px; background: var(--border); overflow: hidden; margin-bottom: 1.4rem; }
+    .pg-progress > div { height: 100%; background: var(--primary); }
+    .pg-cols { display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; align-items: start; }
+    .pg-promoter { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem; box-shadow: var(--shadow); }
+    /* Fiche d'un professionnel */
+    .pro-page { max-width: 1040px; margin: 0 auto; }
+    .pro-head { background: var(--white); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }
+    .pro-head-cover { width: 100%; height: 190px; object-fit: cover; display: block; }
+    .pro-head-body { display: flex; gap: 1.2rem; align-items: flex-end; padding: 0 1.5rem 1.3rem; margin-top: -48px; }
+    .pro-head-text { min-width: 0; padding-top: 3.2rem; }
+    .pro-head-text h1 { font-size: 1.6rem; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+    .pro-tagline-lg { color: var(--text-secondary); margin: .2rem 0 .5rem; }
+    .pro-actions { display: flex; flex-wrap: wrap; gap: .55rem; margin: 1rem 0; }
+    .pro-actions.stack { flex-direction: column; margin: 0; }
+    .pro-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; padding: .6rem 1.1rem; }
+    .pro-link { display: inline-flex; align-items: center; gap: .35rem; padding: .55rem .9rem; border: 1px solid var(--border); border-radius: 10px; background: var(--white); font-size: .9rem; font-weight: 600; }
+    .pro-link:hover { border-color: var(--primary); color: var(--primary); }
+    .pro-unverified { background: #fffbeb; color: #78350f; border: 1px solid #fde68a; border-radius: 10px; padding: .6rem .9rem; font-size: .86rem; margin-bottom: 1rem; }
+    .pro-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .8rem; margin-bottom: 1.2rem; }
+    .pro-tile { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: .9rem 1rem; text-align: center; }
+    .pro-tile .v { font-size: 1.5rem; font-weight: 800; color: var(--primary); line-height: 1.2; overflow-wrap: anywhere; }
+    .pro-tile .l { font-size: .8rem; color: var(--text-muted); margin-top: .2rem; }
+    .pro-anchors { display: flex; gap: 1.2rem; flex-wrap: wrap; border-bottom: 1px solid var(--border); margin-bottom: 1.4rem; }
+    .pro-anchors a { padding: .6rem 0; font-weight: 700; font-size: .92rem; color: var(--text-secondary); border-bottom: 2px solid transparent; }
+    .pro-anchors a:hover { color: var(--primary); border-color: var(--primary); }
+    .pro-section { margin-bottom: 2.2rem; scroll-margin-top: 80px; }
+    .pro-section h2 { font-size: 1.15rem; font-weight: 800; margin-bottom: .9rem; }
+    .pro-section h2 small { color: var(--text-muted); font-weight: 600; margin-inline-start: .3rem; }
+    .pro-desc { white-space: pre-line; line-height: 1.7; color: var(--text-secondary); overflow-wrap: anywhere; }
+    .pro-facts { display: grid; grid-template-columns: max-content 1fr; gap: .7rem 1.2rem; margin-top: 1rem; font-size: .92rem; }
+    .pro-facts dt { font-weight: 700; color: var(--text-muted); }
+    .pro-facts dd { margin: 0; overflow-wrap: anywhere; }
+    .pro-facts dd .pro-chips { margin-top: 0; }
+    .pro-maplink { color: var(--primary); font-weight: 600; }
+    .pro-filterbar { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin-bottom: 1rem; }
+    .pro-seg { display: flex; gap: .35rem; flex-wrap: wrap; }
+    .pro-reviews { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .pro-review { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; }
+    .pro-review-top { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .4rem; }
+    .pro-review-date { margin-inline-start: auto; font-size: .78rem; color: var(--text-muted); }
+    .pro-review p { font-size: .9rem; color: var(--text-secondary); line-height: 1.55; overflow-wrap: anywhere; }
+    .pro-review-on { display: inline-block; margin-top: .5rem; font-size: .8rem; color: var(--primary); font-weight: 600; }
+    .owner-link { color: inherit; } .owner-link:hover { color: var(--primary); text-decoration: underline; }
+    /* Tableau de bord : « Ma vitrine » */
+    .vt-wrap { max-width: 860px; }
+    .vt-card, .vt-intro, .vt-status { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow); margin-bottom: 1rem; }
+    .vt-card h3, .vt-intro h3 { font-size: 1.05rem; font-weight: 800; margin-bottom: .9rem; }
+    .vt-card-head { display: flex; align-items: center; justify-content: space-between; gap: .8rem; margin-bottom: .6rem; }
+    .vt-card-head h3 { margin: 0; }
+    .vt-intro p { color: var(--text-secondary); margin-bottom: .6rem; }
+    .vt-intro ul { padding-inline-start: 1.2rem; color: var(--text-secondary); line-height: 1.8; }
+    .vt-status { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    .vt-status > div { flex: 1 1 260px; min-width: 0; }
+    .vt-status-title { font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .vt-meter { height: 8px; background: var(--border); border-radius: 8px; overflow: hidden; margin: .6rem 0 .3rem; }
+    .vt-meter > div { height: 100%; background: var(--primary); }
+    .vt-meter-label { font-size: .82rem; color: var(--text-muted); }
+    .vt-ok { color: var(--adv-fg); font-weight: 600; margin-bottom: 1rem; font-size: .9rem; }
+    .vt-cta { display: flex; align-items: center; gap: .9rem; flex-wrap: wrap; background: var(--primary-light); border-radius: var(--radius); padding: 1rem 1.2rem; margin-bottom: 1rem; }
+    .vt-cta > div { flex: 1 1 260px; } .vt-cta p { font-size: .86rem; color: var(--text-secondary); margin-top: .2rem; }
+    .vt-note { font-size: .88rem; color: var(--text-muted); margin: .4rem 0 .8rem; }
+    .vt-kinds { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .7rem; margin-bottom: 1rem; }
+    .vt-kind { display: flex; gap: .7rem; align-items: flex-start; padding: .8rem 1rem; border: 2px solid var(--border); border-radius: 12px; cursor: pointer; }
+    .vt-kind.on { border-color: var(--primary); background: var(--primary-light); }
+    .vt-kind small { display: block; color: var(--text-muted); font-size: .8rem; margin-top: .15rem; }
+    .vt-images { display: grid; grid-template-columns: 1fr 2fr; gap: .8rem; margin-bottom: 1rem; }
+    .vt-img { display: flex; gap: .8rem; align-items: center; border: 1px dashed var(--border); border-radius: 12px; padding: .7rem; min-width: 0; }
+    .vt-img img, .vt-img-empty { width: 72px; height: 72px; border-radius: 12px; object-fit: contain; background: var(--bg); flex: none; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
+    .vt-img-wide img, .vt-img-wide .vt-img-empty { width: 120px; object-fit: cover; }
+    .vt-img-cap { display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
+    .vt-img-cap small { color: var(--text-muted); font-size: .76rem; } .vt-img-cap div { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .3rem; }
+    .vt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .9rem; }
+    .vt-grid .full { grid-column: 1 / -1; }
+    .vt-block { margin-top: 1rem; } .vt-label { display: block; font-size: .85rem; font-weight: 700; color: var(--text-muted); margin-bottom: .2rem; }
+    .vt-block select { margin-top: .6rem; padding: .5rem .7rem; border: 1px solid var(--border); border-radius: 10px; background: var(--white); color: var(--text); }
+    .vt-actions { display: flex; gap: .7rem; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-top: 1.3rem; }
+    .pg-row { display: flex; gap: .8rem; align-items: center; padding: .7rem 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
+    .pg-row img, .pg-row .pro-cover-none { width: 72px; height: 56px; border-radius: 8px; object-fit: cover; flex: none; }
+    .pg-row.off { opacity: .75; } .pg-row-main { flex: 1 1 200px; min-width: 0; } .pg-row-meta { font-size: .82rem; color: var(--text-muted); margin-top: .25rem; }
+    .pg-hidden { color: #b45309; font-weight: 700; } .pg-row-actions { display: flex; gap: .4rem; }
+    .pg-form { border-top: 2px solid var(--primary); margin-top: 1rem; padding-top: 1rem; }
+    .pg-form h4 { margin-bottom: .8rem; } .pg-delivery { display: flex; gap: .5rem; } .pg-delivery select { flex: 0 0 80px; }
+    .pg-photos { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .6rem; }
+    .pg-photo { position: relative; width: 90px; height: 70px; } .pg-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+    .pg-photo button { position: absolute; top: 3px; inset-inline-end: 3px; width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,.65); color: #fff; font-size: .7rem; line-height: 1; }
+    @media (max-width: 720px) {
+      .pro-hero h1 { font-size: 1.35rem; }
+      .pro-grid { grid-template-columns: 1fr; }
+      .pro-head-cover { height: 130px; }
+      .pro-head-body { flex-direction: column; align-items: flex-start; gap: .4rem; margin-top: -40px; padding: 0 1.1rem 1.1rem; }
+      .pro-head-text { padding-top: 0; }
+      .pro-head-text h1 { font-size: 1.3rem; }
+      .pro-logo-lg { width: 80px; height: 80px; }
+      .pro-actions .btn, .pro-link { flex: 1 1 calc(50% - .55rem); }
+      .pro-facts { grid-template-columns: 1fr; gap: .2rem; } .pro-facts dd { margin-bottom: .6rem; }
+      .pg-cols { grid-template-columns: 1fr; }
+      .pg-gallery.multi { grid-template-columns: 1fr 1fr; grid-template-rows: 200px 110px; }
+      .pg-gallery.multi img:first-child { grid-column: 1 / -1; grid-row: 1; }
+      .pg-gallery.multi img:nth-child(2):last-child { grid-column: 1 / -1; grid-row: 2; }
+      .vt-images { grid-template-columns: 1fr; }
+      .pro-reviews { grid-template-columns: 1fr; }
+    }
     .field-hint { font-size: .76rem; color: var(--text-muted); margin-top: .3rem; line-height: 1.5; }
     /* Badge « annonceur vérifié » (identité ou professionnel) */
     .adv-badge {
@@ -892,6 +1068,14 @@
     <div style="text-align:center;margin-top:2rem">
       <button class="btn btn-outline" onclick="showPage('annonces')" data-i18n="see_all">Voir toutes les annonces →</button>
     </div>
+    <!-- Professionnels vérifiés à la une (masqué tant qu'il n'y en a aucun) : rempli par loadHomePros() (pro.js) -->
+    <section id="home-pros" class="hidden" style="margin-top:3rem">
+      <div class="section-header">
+        <div class="section-title" data-i18n="home_pros_title">Agences et promoteurs vérifiés</div>
+        <a class="btn btn-outline" href="/agences" onclick="_pro.kind='';return proGo(event,'agences')" data-i18n="home_pros_all">Voir l'annuaire →</a>
+      </div>
+      <div class="grid pro-grid" id="home-pros-grid"></div>
+    </section>
   </div>
 </div>
 
@@ -1030,6 +1214,15 @@
     <div class="form-card">
       <h2><span data-i18n="pub_heading">📋 Publier une annonce</span></h2>
       <div id="pub-error" class="error-msg hidden"></div>
+      <!-- Publier au nom de sa vitrine (agence / promoteur), éventuellement dans un programme : rempli par initPublishAs() (pro.js) -->
+      <div id="pub-as-wrap" class="form-section hidden">
+        <div class="form-section-title" data-i18n="pub_as_title">🏢 Publier au nom de</div>
+        <div class="form-group"><select id="pub-as"></select></div>
+        <div class="form-group hidden" id="pub-project-row" style="margin-top:.6rem">
+          <label data-i18n="pub_project">Programme neuf</label>
+          <select id="pub-project"></select>
+        </div>
+      </div>
       <div id="pub-success" class="success-msg hidden"></div>
       <div class="form-grid">
         <div class="form-group full">
@@ -1142,10 +1335,59 @@
 <!-- ═══════════════════ PAGE AGENCES ═══════════════════ -->
 <div id="page-agences" class="hidden">
   <div id="main">
-    <div class="section-header">
-      <div class="section-title" data-i18n="agencies_title">🏢 Agences immobilières</div>
+    <section class="pro-hero">
+      <h1 data-i18n="pro_dir_title">Agences et promoteurs immobiliers</h1>
+      <p data-i18n="pro_dir_sub">Des professionnels vérifiés, leurs annonces et leurs programmes neufs, partout en Algérie.</p>
+    </section>
+    <nav class="pro-tabs"></nav>
+    <div class="pro-filters">
+      <input id="ag-q" type="search" data-i18n="pro_search_ph" data-i18n-attr="placeholder" placeholder="Nom, commune…" oninput="proFilterChanged()">
+      <select id="ag-wilaya" onchange="proFilterChanged(true)"></select>
+      <select id="ag-sort" onchange="proFilterChanged(true)">
+        <option value="relevance" data-i18n="pro_sort_relevance">Pertinence</option>
+        <option value="listings" data-i18n="pro_sort_listings">Plus d'annonces</option>
+        <option value="rating" data-i18n="pro_sort_rating">Mieux notés</option>
+        <option value="recent" data-i18n="pro_sort_recent">Plus récents</option>
+        <option value="name" data-i18n="pro_sort_name">Nom (A → Z)</option>
+      </select>
+      <label class="pro-check"><input type="checkbox" id="ag-verified" onchange="proFilterChanged(true)"> <span data-i18n="pro_verified_only">Vérifiés uniquement</span></label>
     </div>
-    <div class="grid" id="agences-grid"><div class="loading"><div class="spinner"></div></div></div>
+    <div class="pro-count" id="agences-count"></div>
+    <div class="grid pro-grid" id="agences-grid"><div class="loading"><div class="spinner"></div></div></div>
+    <div class="pro-more" id="agences-more"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PAGE PROGRAMMES NEUFS ═══════════════════ -->
+<div id="page-programmes" class="hidden">
+  <div id="main">
+    <section class="pro-hero">
+      <h1 data-i18n="pg_dir_title">Programmes immobiliers neufs</h1>
+      <p data-i18n="pg_dir_sub">Résidences sur plan, en construction ou livrées, publiées par des promoteurs vérifiés.</p>
+    </section>
+    <nav class="pro-tabs"></nav>
+    <div class="pro-filters">
+      <input id="pg-q" type="search" data-i18n="pro_search_ph" data-i18n-attr="placeholder" placeholder="Nom, commune…" oninput="clearTimeout(_prog.timer);_prog.timer=setTimeout(()=>loadProgrammes(1),300)">
+      <select id="pg-wilaya" onchange="loadProgrammes(1)"></select>
+      <select id="pg-status" onchange="loadProgrammes(1)">
+        <option value="" data-i18n="pg_all_status">Tous les avancements</option>
+        <option value="sur_plan" data-i18n="pg_st_sur_plan">Sur plan</option>
+        <option value="en_construction" data-i18n="pg_st_en_construction">En construction</option>
+        <option value="livre" data-i18n="pg_st_livre">Livré</option>
+      </select>
+    </div>
+    <div id="programmes-agency"></div>
+    <div class="pro-count" id="programmes-count"></div>
+    <div class="grid pro-grid" id="programmes-grid"><div class="loading"><div class="spinner"></div></div></div>
+    <div class="pro-more" id="programmes-more"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PAGE DÉTAIL PROGRAMME ═══════════════════ -->
+<div id="page-programme-detail" class="hidden">
+  <div id="main">
+    <button class="btn btn-outline" style="margin-bottom:1.5rem;padding:.4rem .9rem;font-size:.88rem" onclick="showPage('programmes')" data-i18n="btn_back">← Retour</button>
+    <div id="programme-detail-content"><div class="loading"><div class="spinner"></div></div></div>
   </div>
 </div>
 
@@ -1168,6 +1410,7 @@
       <button class="tab-btn" onclick="dashTab('favoris')" data-i18n="dash_tab_favoris">Favoris</button>
       <button class="tab-btn" onclick="dashTab('alertes')" data-i18n="dash_tab_alertes">Alertes email</button>
       <button class="tab-btn" onclick="dashTab('profil')" data-i18n="dash_tab_profil">Profil</button>
+      <button class="tab-btn" onclick="dashTab('vitrine')" data-i18n="dash_tab_vitrine">Ma vitrine</button>
       <button class="tab-btn" onclick="dashTab('verification')" data-i18n="dash_tab_verif">Vérification</button>
     </div>
     <div id="dash-tab-content"><div class="loading"><div class="spinner"></div></div></div>
@@ -1620,7 +1863,9 @@
     <div class="footer-col">
       <h4 data-i18n="ft_nav">Navigation</h4>
       <a href="#" onclick="showPage('annonces')" data-i18n="ft_all">Toutes les annonces</a>
-      <a href="#" onclick="showPage('agences')" data-i18n="ft_agencies">Les agences</a>
+      <a href="/agences" onclick="_pro.kind='';return proGo(event,'agences')" data-i18n="ft_agencies">Les agences</a>
+      <a href="/promoteurs" onclick="_pro.kind='promoteur';return proGo(event,'agences')" data-i18n="ft_promoters">Les promoteurs</a>
+      <a href="/programmes" onclick="_prog.agency=null;return proGo(event,'programmes')" data-i18n="ft_programmes">Programmes neufs</a>
       <a href="#" onclick="tryPublier()" data-i18n="ft_publish">Publier une annonce</a>
     </div>
     <div class="footer-col">
@@ -1708,6 +1953,9 @@
 
 <!-- Toast -->
 <div id="toast"></div>
+
+<!-- Vitrine des agences et des promoteurs : chargé avant le script principal (les liens directs /agence/… l'appellent dès init) -->
+<script src="/pro.js"></script>
 
 <!-- ═══════════════════ JAVASCRIPT ═══════════════════ -->
 <script>
@@ -1836,6 +2084,75 @@ const TRANSLATIONS = {
     dash_tab_annonces:'Mes annonces', dash_tab_contacts:'Demandes reçues',
     dash_tab_favoris:'Favoris', dash_tab_alertes:'Alertes email', dash_tab_profil:'Profil',
     dash_tab_verif:'Vérification',
+    dash_tab_vitrine:'Ma vitrine',
+    ft_promoters:'Les promoteurs', ft_programmes:'Programmes neufs',
+    home_pros_title:'Agences et promoteurs vérifiés', home_pros_all:"Voir l'annuaire →",
+    pro_dir_title:'Agences et promoteurs immobiliers',
+    pro_dir_sub:'Des professionnels vérifiés, leurs annonces et leurs programmes neufs, partout en Algérie.',
+    pro_tab_all:'Tous', pro_tab_agence:'Agences', pro_tab_promoteur:'Promoteurs', pro_tab_prog:'Programmes neufs',
+    pro_title_all:'Agences et promoteurs immobiliers en Algérie', pro_title_promoteur:'Promoteurs immobiliers en Algérie',
+    pro_title_prog:'Programmes immobiliers neufs en Algérie',
+    pro_search_ph:'Nom, commune…', pro_verified_only:'Vérifiés uniquement',
+    pro_sort_relevance:'Pertinence', pro_sort_listings:"Plus d'annonces", pro_sort_rating:'Mieux notés', pro_sort_recent:'Plus récents', pro_sort_name:'Nom (A → Z)',
+    pro_more:'Voir plus', pro_none:'Aucun professionnel ne correspond à votre recherche.',
+    pro_verified:'Vérifié', pro_verified_tip:'Registre de commerce ou agrément contrôlé par DzImmo',
+    kind_agence:'Agence immobilière', kind_promoteur:'Promoteur immobilier',
+    svc_vente:'Vente', svc_location:'Location', svc_location_courte:'Location saisonnière', svc_neuf:'Programmes neufs',
+    svc_gestion:'Gestion locative', svc_estimation:'Estimation gratuite', svc_accompagnement:'Aide au crédit et au notaire',
+    u_prog_one:'programme', u_prog_two:'programmes', u_prog_many:'programmes',
+    u_review_one:'avis', u_review_two:'avis', u_review_many:'avis',
+    u_year_one:'an', u_year_two:'ans', u_year_many:'ans',
+    ag_share:'Partager', ag_link_copied:'Lien copié', ag_edit:'Modifier ma vitrine', ag_website_short:'Site web', ag_founded:'Fondée en {y}',
+    ag_unverified:"Ce professionnel n'a pas encore fait vérifier son registre de commerce ou son agrément.",
+    ag_stat_done:'biens vendus ou loués', ag_stat_exp:"d'expérience", ag_stat_since:'membre depuis',
+    ag_sec_about:'À propos', ag_sec_programmes:'Programmes neufs', ag_sec_listings:'Annonces', ag_sec_reviews:'Avis clients',
+    ag_services:'Services', ag_coverage:"Zones d'intervention", ag_hours:'Horaires', ag_address:'Adresse', ag_map:'Voir sur la carte',
+    ag_all_programmes:'Tous les programmes', ag_filter_all:'Toutes', ag_no_listings:'Aucune annonce pour ce filtre.',
+    ag_review_on:'Avis sur', ag_wa_msg:'Bonjour {name}, je vous contacte depuis DzImmo : {url}',
+    pg_dir_title:'Programmes immobiliers neufs', pg_dir_sub:'Résidences sur plan, en construction ou livrées, publiées par des promoteurs vérifiés.',
+    pg_all_status:'Tous les avancements', pg_st_sur_plan:'Sur plan', pg_st_en_construction:'En construction', pg_st_livre:'Livré',
+    pg_q_short:'T', pg_delivery_at:'Livraison {when}', pg_delivered:'Livré en {y}',
+    pg_from:'À partir de',
+    u_lot_avail_one:'lot disponible', u_lot_avail_two:'lots disponibles', u_lot_avail_many:'lots disponibles',
+    u_lot_sold_one:'lot vendu', u_lot_sold_two:'lots vendus', u_lot_sold_many:'lots vendus',
+    u_lot_total_one:'lot au total', u_lot_total_two:'lots au total', u_lot_total_many:'lots au total',
+    u_pro_one:'professionnel', u_pro_two:'professionnels', u_pro_many:'professionnels',
+    pg_none:'Aucun programme pour le moment.', pg_of:'Programmes de',
+    pg_features:'Équipements', pg_lots:'Lots du programme', pg_no_lots:'Aucun lot en ligne pour le moment.',
+    pg_lot_of:'Lot du programme', pg_title_suffix:'Programme neuf',
+    pg_hidden_note:"Ce programme n'est pas visible du public : il le redevient quand votre registre de commerce est vérifié.",
+    pg_wa_msg:'Bonjour, je souhaite des informations sur le programme « {name} » : {url}',
+    pg_feat_ascenseur:'Ascenseur', pg_feat_parking:'Parking', pg_feat_espaces_verts:'Espaces verts', pg_feat_securite:'Sécurité 24h/24',
+    pg_feat_aire_jeux:'Aire de jeux', pg_feat_commerces:'Commerces', pg_feat_gaz_ville:'Gaz de ville', pg_feat_fibre:'Fibre optique',
+    vt_intro_title:'Vous êtes une agence ou un promoteur ?', vt_intro_text:'Créez votre vitrine : une page à votre nom qui réunit toutes vos annonces.',
+    vt_benefit_1:'Une page publique avec votre logo, vos coordonnées et les avis de vos clients',
+    vt_benefit_2:'Le badge « Vérifié » après contrôle de votre registre de commerce', vt_benefit_3:'Pour les promoteurs : vos programmes neufs et leurs lots',
+    vt_create_title:'Créer ma vitrine', vt_profile:'Ma vitrine', vt_create:'Créer ma vitrine', vt_save:'Enregistrer', vt_saved:'Vitrine enregistrée.', vt_created:'Vitrine créée.',
+    vt_kind_agence_hint:'Vend ou loue pour le compte de propriétaires', vt_kind_promoteur_hint:'Construit et vend ses propres programmes neufs',
+    vt_logo:'Logo', vt_logo_hint:'Carré, fond uni de préférence', vt_cover:'Image de couverture', vt_cover_hint:'Format large (3:1) : votre agence, une réalisation…',
+    vt_upload:'Choisir une image', vt_remove:'Retirer', vt_img_big:'Image trop volumineuse (10 Mo maximum).',
+    vt_name:"Nom de l'agence ou de la société", vt_tagline:'Slogan', vt_tagline_ph:'ex : Votre partenaire immobilier depuis 2010',
+    vt_desc:'Présentation', vt_desc_ph:'Vos spécialités, votre équipe, vos engagements…',
+    vt_wilaya:'Wilaya', vt_commune:'Commune', vt_address:'Adresse', vt_phone:'Téléphone', vt_founded:'Année de création', vt_website:'Site web',
+    vt_hours:'Horaires', vt_hours_ph:'ex : dim–jeu 9h–17h',
+    vt_services:'Services proposés', vt_coverage:"Zones d'intervention (autres wilayas)", vt_coverage_add:'Ajouter une wilaya', vt_coverage_max:'20 wilayas au maximum.',
+    vt_required:'Nom et wilaya obligatoires.', vt_delete:'Supprimer ma vitrine',
+    vt_delete_confirm:'Supprimer votre vitrine ? Vos annonces restent en ligne, vos programmes sont supprimés.', vt_deleted:'Vitrine supprimée.',
+    vt_view:'Voir ma vitrine', vt_complete:'Profil complété à {p} %',
+    vt_todo_logo:'ajoutez un logo', vt_todo_cover:'une image de couverture', vt_todo_tagline:'un slogan', vt_todo_desc:'une présentation détaillée',
+    vt_todo_phone:'un téléphone', vt_todo_web:'un site ou un réseau social', vt_todo_hours:'vos horaires', vt_todo_services:'vos services',
+    vt_todo_zone:"vos zones d'intervention", vt_todo_year:"l'année de création",
+    vt_verified_ok:'Votre registre de commerce est vérifié : le badge « Vérifié » apparaît sur votre vitrine et vos annonces sont publiées sans modération.',
+    vt_verify_title:'Obtenez le badge « Vérifié »',
+    vt_verify_text:"Envoyez votre registre de commerce ou votre agrément : il rassure les visiteurs, vous place en tête de l'annuaire, permet de publier sans modération et de créer des programmes neufs.",
+    vt_verify_btn:'Faire vérifier',
+    pg_mine_title:'Mes programmes neufs', pg_new:'Nouveau programme', pg_edit:'Modifier', pg_name:'Nom du programme', pg_status:'Avancement',
+    pg_units:'Nombre de lots', pg_delivery:'Livraison prévue', pg_photos:'Photos',
+    pg_save:'Enregistrer le programme', pg_saved:'Programme enregistré.', pg_delete_confirm:'Supprimer ce programme ? Ses lots restent en ligne.', pg_deleted:'Programme supprimé.',
+    pg_needs_verif:'Les programmes neufs sont réservés aux promoteurs dont le registre de commerce est vérifié. Faites vérifier votre compte pour en publier.',
+    pg_none_mine:"Aucun programme pour l'instant. Créez-en un, puis rattachez-y vos lots en publiant une annonce.",
+    pg_hidden_short:'masqué (vérification requise)',
+    pub_as_title:'🏢 Publier au nom de', pub_as_self:'Moi-même (particulier)', pub_project:'Programme neuf', pub_project_none:'Aucun (annonce indépendante)',
     dash_st_expired:'Retirée (non confirmée)',
     dash_calls:'Appels', dash_whatsapps:'WhatsApp',
     dash_confirmed:'Disponibilité confirmée le {date}', dash_expires:'⚠ À reconfirmer avant le {date}',
@@ -2103,6 +2420,75 @@ const TRANSLATIONS = {
     dash_tab_annonces:'إعلاناتي', dash_tab_contacts:'الطلبات المستلمة',
     dash_tab_favoris:'المفضلة', dash_tab_alertes:'تنبيهات البريد', dash_tab_profil:'الملف الشخصي',
     dash_tab_verif:'التوثيق',
+    dash_tab_vitrine:'واجهتي',
+    ft_promoters:'المروّجون العقاريون', ft_programmes:'المشاريع الجديدة',
+    home_pros_title:'وكالات ومروّجون عقاريون موثَّقون', home_pros_all:'عرض الدليل ←',
+    pro_dir_title:'الوكالات والمروّجون العقاريون',
+    pro_dir_sub:'مهنيون موثَّقون، وإعلاناتهم ومشاريعهم الجديدة في كامل أنحاء الجزائر.',
+    pro_tab_all:'الكل', pro_tab_agence:'الوكالات', pro_tab_promoteur:'المروّجون', pro_tab_prog:'المشاريع الجديدة',
+    pro_title_all:'الوكالات والمروّجون العقاريون في الجزائر', pro_title_promoteur:'المروّجون العقاريون في الجزائر',
+    pro_title_prog:'مشاريع عقارية جديدة في الجزائر',
+    pro_search_ph:'الاسم، البلدية…', pro_verified_only:'الموثَّقون فقط',
+    pro_sort_relevance:'الأكثر صلة', pro_sort_listings:'الأكثر إعلانات', pro_sort_rating:'الأعلى تقييماً', pro_sort_recent:'الأحدث', pro_sort_name:'الاسم (أ ← ي)',
+    pro_more:'عرض المزيد', pro_none:'لا يوجد مهني يطابق بحثك.',
+    pro_verified:'موثَّق', pro_verified_tip:'تم التحقق من السجل التجاري أو الاعتماد من طرف DzImmo',
+    kind_agence:'وكالة عقارية', kind_promoteur:'مروّج عقاري',
+    svc_vente:'البيع', svc_location:'الإيجار', svc_location_courte:'الإيجار الموسمي', svc_neuf:'المشاريع الجديدة',
+    svc_gestion:'تسيير الإيجارات', svc_estimation:'تقدير مجاني', svc_accompagnement:'المساعدة في القرض والتوثيق',
+    u_prog_one:'مشروع', u_prog_two:'مشروعان', u_prog_many:'مشاريع',
+    u_review_one:'تقييم', u_review_two:'تقييمان', u_review_many:'تقييمات',
+    u_year_one:'سنة', u_year_two:'سنتان', u_year_many:'سنوات',
+    ag_share:'مشاركة', ag_link_copied:'تم نسخ الرابط', ag_edit:'تعديل واجهتي', ag_website_short:'الموقع', ag_founded:'تأسست سنة {y}',
+    ag_unverified:'لم يقم هذا المهني بعد بالتحقق من سجله التجاري أو اعتماده.',
+    ag_stat_done:'عقار مباع أو مؤجَّر', ag_stat_exp:'من الخبرة', ag_stat_since:'عضو منذ',
+    ag_sec_about:'نبذة', ag_sec_programmes:'المشاريع الجديدة', ag_sec_listings:'الإعلانات', ag_sec_reviews:'آراء العملاء',
+    ag_services:'الخدمات', ag_coverage:'مناطق النشاط', ag_hours:'ساعات العمل', ag_address:'العنوان', ag_map:'عرض على الخريطة',
+    ag_all_programmes:'جميع المشاريع', ag_filter_all:'الكل', ag_no_listings:'لا توجد إعلانات لهذا التصفية.',
+    ag_review_on:'تقييم حول', ag_wa_msg:'مرحباً {name}، أتواصل معكم من DzImmo: {url}',
+    pg_dir_title:'مشاريع عقارية جديدة', pg_dir_sub:'إقامات على المخطط أو قيد الإنجاز أو مسلَّمة، ينشرها مروّجون موثَّقون.',
+    pg_all_status:'كل مراحل الإنجاز', pg_st_sur_plan:'على المخطط', pg_st_en_construction:'قيد الإنجاز', pg_st_livre:'مسلَّم',
+    pg_q_short:'ف', pg_delivery_at:'التسليم {when}', pg_delivered:'سُلِّم سنة {y}',
+    pg_from:'ابتداءً من',
+    u_lot_avail_one:'وحدة متاحة', u_lot_avail_two:'وحدتان متاحتان', u_lot_avail_many:'وحدات متاحة',
+    u_lot_sold_one:'وحدة مباعة', u_lot_sold_two:'وحدتان مباعتان', u_lot_sold_many:'وحدات مباعة',
+    u_lot_total_one:'وحدة إجمالاً', u_lot_total_two:'وحدتان إجمالاً', u_lot_total_many:'وحدات إجمالاً',
+    u_pro_one:'مهني', u_pro_two:'مهنيان', u_pro_many:'مهنيون',
+    pg_none:'لا توجد مشاريع حالياً.', pg_of:'مشاريع',
+    pg_features:'المرافق', pg_lots:'وحدات المشروع', pg_no_lots:'لا توجد وحدات معروضة حالياً.',
+    pg_lot_of:'وحدة من مشروع', pg_title_suffix:'مشروع جديد',
+    pg_hidden_note:'هذا المشروع غير ظاهر للعموم: يظهر من جديد بعد التحقق من سجلك التجاري.',
+    pg_wa_msg:'مرحباً، أرغب في معلومات حول المشروع «{name}»: {url}',
+    pg_feat_ascenseur:'مصعد', pg_feat_parking:'موقف سيارات', pg_feat_espaces_verts:'مساحات خضراء', pg_feat_securite:'حراسة 24/24',
+    pg_feat_aire_jeux:'فضاء ألعاب', pg_feat_commerces:'محلات تجارية', pg_feat_gaz_ville:'غاز المدينة', pg_feat_fibre:'الألياف البصرية',
+    vt_intro_title:'هل أنت وكالة عقارية أو مروّج عقاري؟', vt_intro_text:'أنشئ واجهتك: صفحة باسمك تجمع كل إعلاناتك.',
+    vt_benefit_1:'صفحة عامة بشعارك وبيانات الاتصال وآراء عملائك',
+    vt_benefit_2:'شارة «موثَّق» بعد التحقق من سجلك التجاري', vt_benefit_3:'للمروّجين: مشاريعك الجديدة ووحداتها',
+    vt_create_title:'إنشاء واجهتي', vt_profile:'واجهتي', vt_create:'إنشاء واجهتي', vt_save:'حفظ', vt_saved:'تم حفظ الواجهة.', vt_created:'تم إنشاء الواجهة.',
+    vt_kind_agence_hint:'تبيع أو تؤجر لحساب الملاك', vt_kind_promoteur_hint:'تبني وتبيع مشاريعها الجديدة',
+    vt_logo:'الشعار', vt_logo_hint:'مربع، ويفضَّل بخلفية موحَّدة', vt_cover:'صورة الغلاف', vt_cover_hint:'شكل عريض (3:1): وكالتك أو أحد إنجازاتك…',
+    vt_upload:'اختر صورة', vt_remove:'إزالة', vt_img_big:'الصورة كبيرة جداً (10 ميغابايت كحد أقصى).',
+    vt_name:'اسم الوكالة أو الشركة', vt_tagline:'شعار جملة', vt_tagline_ph:'مثال: شريكك العقاري منذ 2010',
+    vt_desc:'التعريف', vt_desc_ph:'تخصصاتك، فريقك، التزاماتك…',
+    vt_wilaya:'الولاية', vt_commune:'البلدية', vt_address:'العنوان', vt_phone:'الهاتف', vt_founded:'سنة التأسيس', vt_website:'الموقع الإلكتروني',
+    vt_hours:'ساعات العمل', vt_hours_ph:'مثال: الأحد–الخميس 9س–17س',
+    vt_services:'الخدمات المقدَّمة', vt_coverage:'مناطق النشاط (ولايات أخرى)', vt_coverage_add:'إضافة ولاية', vt_coverage_max:'20 ولاية كحد أقصى.',
+    vt_required:'الاسم والولاية مطلوبان.', vt_delete:'حذف واجهتي',
+    vt_delete_confirm:'حذف واجهتك؟ تبقى إعلاناتك منشورة وتُحذف مشاريعك.', vt_deleted:'تم حذف الواجهة.',
+    vt_view:'عرض واجهتي', vt_complete:'اكتمل الملف بنسبة {p} %',
+    vt_todo_logo:'أضف شعاراً', vt_todo_cover:'صورة غلاف', vt_todo_tagline:'شعاراً', vt_todo_desc:'تعريفاً مفصَّلاً',
+    vt_todo_phone:'رقم هاتف', vt_todo_web:'موقعاً أو شبكة اجتماعية', vt_todo_hours:'ساعات العمل', vt_todo_services:'خدماتك',
+    vt_todo_zone:'مناطق نشاطك', vt_todo_year:'سنة التأسيس',
+    vt_verified_ok:'تم التحقق من سجلك التجاري: تظهر شارة «موثَّق» على واجهتك وتُنشر إعلاناتك دون مراجعة.',
+    vt_verify_title:'احصل على شارة «موثَّق»',
+    vt_verify_text:'أرسل سجلك التجاري أو اعتمادك: يطمئن الزوار، ويضعك في مقدمة الدليل، ويتيح النشر دون مراجعة وإنشاء مشاريع جديدة.',
+    vt_verify_btn:'طلب التحقق',
+    pg_mine_title:'مشاريعي الجديدة', pg_new:'مشروع جديد', pg_edit:'تعديل', pg_name:'اسم المشروع', pg_status:'مرحلة الإنجاز',
+    pg_units:'عدد الوحدات', pg_delivery:'التسليم المتوقع', pg_photos:'الصور',
+    pg_save:'حفظ المشروع', pg_saved:'تم حفظ المشروع.', pg_delete_confirm:'حذف هذا المشروع؟ تبقى وحداته منشورة.', pg_deleted:'تم حذف المشروع.',
+    pg_needs_verif:'المشاريع الجديدة مخصصة للمروّجين الذين تم التحقق من سجلهم التجاري. وثِّق حسابك لتتمكن من نشرها.',
+    pg_none_mine:'لا توجد مشاريع بعد. أنشئ مشروعاً ثم اربط به وحداتك عند نشر إعلان.',
+    pg_hidden_short:'مخفي (التحقق مطلوب)',
+    pub_as_title:'🏢 النشر باسم', pub_as_self:'أنا (فرد)', pub_project:'مشروع جديد', pub_project_none:'بدون (إعلان مستقل)',
     dash_st_expired:'مسحوب (غير مؤكَّد)',
     dash_calls:'المكالمات', dash_whatsapps:'واتساب',
     dash_confirmed:'تم تأكيد التوفر في {date}', dash_expires:'⚠ يجب تأكيده قبل {date}',
@@ -2277,13 +2663,15 @@ function applyLang(lang) {
   document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
   renderGoogleButtons();
   rebuildSelects();
-  if (currentPage === 'home') loadHomeProperties();
+  if (currentPage === 'home') { loadHomeProperties(); loadHomePros(); }
   else if (currentPage === 'annonces') loadAnnonces();
   else if (currentPage === 'stats') loadStatsPage();
   else if (currentPage === 'contrats' && window.MC) MC.refresh();
   else if (currentPage === 'detail' && window._detailProp) renderDetail(window._detailProp);
   else if (currentPage === 'agences') loadAgences();
   else if (currentPage === 'agency-detail' && window._agencyId) loadAgencyDetail(window._agencyId);
+  else if (currentPage === 'programmes') loadProgrammes();
+  else if (currentPage === 'programme-detail' && window._programmeId) loadProgrammeDetail(window._programmeId);
   else if (currentPage === 'carte' && mapInstance) loadMapMarkers();
   else if (currentPage === 'dashboard' && currentUser) loadDashboard();
   relabelSeo();
@@ -2313,7 +2701,7 @@ function rebuildSelects() {
     el.innerHTML = modeOpts.map(([v,k]) => `<option value="${v}">${T(k)}</option>`).join('');
     el.value = cur;
   });
-  ['s-wilaya','pub-wilaya','f-wilaya','se-wilaya','map-wilaya'].forEach(id => {
+  ['s-wilaya','pub-wilaya','f-wilaya','se-wilaya','map-wilaya','ag-wilaya','pg-wilaya'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     const cur = el.value;
@@ -2425,6 +2813,7 @@ async function init() {
   initGoogle();
   if (token) await loadCurrentUser();
   loadHomeProperties();
+  loadHomePros();
 
   const params = new URLSearchParams(location.search);
   if (params.get('verify') === 'ok') toast('✅ Email vérifié. Bienvenue !');
@@ -2436,6 +2825,13 @@ async function init() {
     showPage('annonces');
     loadAnnonces(1);
   }
+  // Annuaires et fiches de la vitrine : /agences, /promoteurs, /programmes, /agence/12-nom, /promoteur/7-nom, /programme/5-nom
+  const path = location.pathname;
+  const proMatch = path.match(/^\/(?:agence|promoteur)\/(\d+)/), progMatch = path.match(/^\/programme\/(\d+)/);
+  if (path === '/agences' || path === '/promoteurs') { _pro.kind = path === '/promoteurs' ? 'promoteur' : ''; showPage('agences'); }
+  else if (path === '/programmes') showPage('programmes');
+  else if (proMatch)  showPage('agency-detail', Number(proMatch[1]));
+  else if (progMatch) showPage('programme-detail', Number(progMatch[1]));
   const annonceMatch = location.pathname.match(/^\/annonce\/(\d+)/);
   // Lien de l'email de rappel (?renew=jeton) : mémorisé avant que la fiche ne réécrive l'adresse
   if (annonceMatch && params.get('renew')) { window._renewToken = params.get('renew'); window._renewFor = Number(annonceMatch[1]); }
@@ -2603,14 +2999,15 @@ async function api(path, method = 'GET', body = null) {
   try { r = await fetch(API + path, opts); }
   catch { throw new Error(T('err_network')); }
   const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(d.error || T('err_server'));
+  if (!r.ok) throw Object.assign(new Error(d.error || T('err_server')), { status: r.status });   // status : distinguer « introuvable » d'une panne
   return d;
 }
 
 // ── Navigation ────────────────────────────────────
-const PAGES = ['home','annonces','detail','publier','agences','agency-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats','contrats'];
+const PAGES = ['home','annonces','detail','publier','agences','agency-detail','programmes','programme-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats','contrats'];
 
 const DEFAULT_TITLE = 'DzImmo — Immobilier en Algérie';
+const PRO_PAGES = ['agences', 'agency-detail', 'programmes', 'programme-detail'];
 
 // Même algorithme que server/seo.js (slugify) pour des URL identiques des deux côtés
 function slugify(s) {
@@ -2664,9 +3061,10 @@ function relabelSeo() {
 function showPage(page, data = null) {
   toggleMenu(false);
   document.body.classList.remove('qc-on');   // la barre d'appel n'existe que sur une fiche (renderDetail la remet)
-  // Hors fiche annonce, on quitte l'URL /annonce/… (les filtres d'annonces réécrivent ensuite la query)
+  // Hors fiche annonce, on quitte l'URL /annonce/… (les filtres d'annonces réécrivent ensuite la query).
+  // Annuaires, fiches de professionnels et de programmes règlent eux-mêmes leur adresse (/agences, /agence/12-nom…, pro.js).
   if (page !== 'detail') {
-    if (location.pathname !== '/') history.replaceState(null, '', '/');
+    if (location.pathname !== '/' && !PRO_PAGES.includes(page)) history.replaceState(null, '', '/');
     document.title = DEFAULT_TITLE;
   }
   PAGES.forEach(p => {
@@ -2681,9 +3079,12 @@ function showPage(page, data = null) {
   });
   window.scrollTo(0, 0);
 
-  if (page === 'home')            loadHomeProperties();
+  if (page === 'home')            { loadHomeProperties(); loadHomePros(); }
   if (page === 'annonces')        loadAnnonces();
   if (page === 'agences')         loadAgences();
+  if (page === 'programmes')      loadProgrammes();
+  if (page === 'publier')         initPublishAs();
+  if (page === 'programme-detail' && data) { window._programmeId = data; loadProgrammeDetail(data); }
   if (page === 'dashboard')       loadDashboard();
   if (page === 'messages')        loadMessages();
   if (page === 'detail' && data)       loadDetail(data);
@@ -3012,11 +3413,14 @@ function renderDetail(p) {
             <div class="owner-card">
               <div class="owner-avatar">${(p.agency_name || p.owner_name || '?')[0].toUpperCase()}</div>
               <div>
-                <div class="owner-name">${esc(p.agency_name || p.owner_name)}</div>
-                <div class="owner-agency">${T(p.agency_name ? 'det_agency' : 'det_private')}</div>
+                <div class="owner-name">${p.agency_id && p.agency_name
+                  ? `<a class="owner-link" href="${esc(proPath({ id: p.agency_id, kind: p.agency_kind, name: p.agency_name }))}" onclick="return proGo(event,'agency-detail',${Number(p.agency_id)})">${esc(p.agency_name)}</a>`
+                  : esc(p.agency_name || p.owner_name)}</div>
+                <div class="owner-agency">${T(p.agency_name ? (p.agency_kind === 'promoteur' ? 'kind_promoteur' : 'det_agency') : 'det_private')}</div>
                 ${advBadgeHTML(advKind(p))}
               </div>
             </div>
+            ${p.project ? `<a class="pro-chip pg-lot-chip" href="${esc(progPath(p.project))}" onclick="return proGo(event,'programme-detail',${Number(p.project.id)})">🏗 ${T('pg_lot_of')} ${esc(p.project.name)}</a>` : ''}
             ${quickContactHTML(p)}
             ${token ? `
             <form class="contact-form" onsubmit="return submitContact(event, ${p.id}, ${p.owner_id})">
@@ -3410,73 +3814,6 @@ function openChat(propertyId, ownerId) {
   currentChatProperty = propertyId;
   currentChatUser     = ownerId;
   setTimeout(() => loadThread(propertyId, ownerId), 300);
-}
-
-// ── Agences ──────────────────────────────────────
-async function loadAgences() {
-  const grid = document.getElementById('agences-grid');
-  grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  try {
-    const data = await api('/agencies');
-    if (!data.length) {
-      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🏢</div><h3>' + T('ag_none') + '</h3></div>';
-      return;
-    }
-    grid.innerHTML = data.map(a => `
-      <div class="card" style="cursor:pointer" onclick="showPage('agency-detail', ${a.id})">
-        <div style="height:120px;background:linear-gradient(135deg,#0a3d2b,#0C6E4F);display:flex;align-items:center;justify-content:center">
-          ${a.logo ? `<img src="${a.logo}" style="height:80px;width:80px;object-fit:contain;border-radius:8px">` : `<div style="font-size:2.5rem;color:#fff">${a.name[0]}</div>`}
-        </div>
-        <div class="card-body">
-          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">
-            <div class="card-title" style="margin:0">${esc(a.name)}</div>
-            ${a.verified ? '<span style="background:var(--primary);color:#fff;font-size:.7rem;padding:.1rem .4rem;border-radius:4px;font-weight:700">✓</span>' : ''}
-          </div>
-          <div class="card-loc">📍 ${esc(wilayaName(a.wilaya) || '')}</div>
-          <div class="card-meta" style="margin-top:.5rem">
-            ${a.phone ? `<span>📞 ${esc(a.phone)}</span>` : ''}
-            ${a.property_count ? `<span>🏠 ${a.property_count} ${unit(a.property_count, 'st_ad')}</span>` : ''}
-            ${a.rating > 0 ? `<span>⭐ ${a.rating}</span>` : ''}
-          </div>
-        </div>
-      </div>`).join('');
-  } catch (e) { grid.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
-}
-
-// ── Détail agence ─────────────────────────────────
-async function loadAgencyDetail(id) {
-  const c = document.getElementById('agency-detail-content');
-  c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  try {
-    const a = await api('/agencies/' + id);
-    const props = Array.isArray(a.properties) ? a.properties : [];
-    c.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr;gap:1.5rem">
-        <div style="background:var(--surface);border-radius:16px;overflow:hidden;border:1px solid var(--border)">
-          <div style="height:140px;background:linear-gradient(135deg,#0a3d2b,#0C6E4F);display:flex;align-items:center;justify-content:center;gap:1.5rem;padding:1.5rem">
-            ${a.logo
-              ? `<img src="${esc(a.logo)}" style="height:80px;width:80px;object-fit:contain;border-radius:10px;background:#fff;padding:4px">`
-              : `<div style="width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:2rem;color:#fff">${a.name[0]}</div>`}
-            <div style="color:#fff">
-              <div style="font-size:1.35rem;font-weight:800">${esc(a.name)}${a.verified ? ' <span style="background:#fff;color:#0C6E4F;font-size:.7rem;padding:.1rem .45rem;border-radius:4px;font-weight:700;vertical-align:middle">✓</span>' : ''}</div>
-              <div style="opacity:.8;font-size:.9rem;margin-top:.25rem">📍 ${esc(wilayaName(a.wilaya) || '')}</div>
-              ${a.phone ? `<div style="opacity:.8;font-size:.9rem">📞 ${esc(a.phone)}</div>` : ''}
-            </div>
-          </div>
-          <div style="padding:1.25rem 1.5rem;display:flex;gap:2rem;flex-wrap:wrap">
-            ${a.property_count ? `<div style="text-align:center"><div style="font-size:1.4rem;font-weight:800;color:var(--primary)">${a.property_count}</div><div style="font-size:.8rem;color:var(--text-muted)">${unit(a.property_count, 'st_ad')}</div></div>` : ''}
-            ${a.rating > 0 ? `<div style="text-align:center"><div style="font-size:1.4rem;font-weight:800;color:var(--primary)">⭐ ${a.rating}</div><div style="font-size:.8rem;color:var(--text-muted)">${T('ag_rating')}</div></div>` : ''}
-            ${a.website ? `<a href="${esc(a.website)}" target="_blank" rel="noopener" style="color:var(--primary);font-size:.88rem;align-self:center">${T('ag_website')}</a>` : ''}
-          </div>
-          ${a.description ? `<div style="padding:0 1.5rem 1.25rem;font-size:.9rem;color:var(--text-muted)">${esc(a.description)}</div>` : ''}
-        </div>
-        ${props.length ? `
-        <div>
-          <h3 style="font-size:1rem;font-weight:700;margin-bottom:1rem">${T('agency_detail_listings')}</h3>
-          <div class="grid">${props.map(p => cardHTML(p)).join('')}</div>
-        </div>` : ''}
-      </div>`;
-  } catch (e) { c.innerHTML = `<p style="color:red;padding:2rem">${e.message}</p>`; }
 }
 
 // Génère et télécharge un CSV côté client
@@ -4182,11 +4519,12 @@ async function adminLoadAgencies(page = 1) {
       </div>
       <div style="overflow-x:auto">
         <table class="admin-table">
-          <thead><tr><th>ID</th><th>Nom</th><th>Wilaya</th><th>Téléphone</th><th>Vérifié</th><th>Actions</th></tr></thead>
+          <thead><tr><th>ID</th><th>Nom</th><th>Type</th><th>Wilaya</th><th>Téléphone</th><th>Vérifié</th><th>Actions</th></tr></thead>
           <tbody>${agencies.map(a => `
             <tr>
               <td style="color:var(--text-muted)">#${a.id}</td>
               <td><a href="#" onclick="showPage('agency-detail',${a.id});return false" style="color:var(--primary);font-weight:600">${esc(a.name)}</a></td>
+              <td>${a.kind === 'promoteur' ? '🏗 Promoteur' : '🏢 Agence'}</td>
               <td>${esc(a.wilaya || '—')}</td>
               <td>${esc(a.phone || '—')}</td>
               <td>${a.verified ? '✅' : '—'}</td>
@@ -4568,13 +4906,14 @@ async function cancelVerification(id) {
 async function dashTab(tab) {
   currentDashTab = tab;
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
-    b.classList.toggle('active', ['mes-annonces','mes-contacts','favoris','alertes','profil','verification'][i] === tab);
+    b.classList.toggle('active', ['mes-annonces','mes-contacts','favoris','alertes','profil','vitrine','verification'][i] === tab);
   });
   document.querySelector('#page-dashboard .tab-btn.active')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });   // onglet actif visible (mobile)
   const c = document.getElementById('dash-tab-content');
   c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
   if (tab === 'verification') { await dashVerification(c); return; }
+  if (tab === 'vitrine') { await dashVitrine(c); return; }
 
   if (tab === 'mes-annonces') {
     const data = await api('/properties/user/' + currentUser.id);
@@ -4880,6 +5219,7 @@ async function submitProperty() {
       floor:       Number(document.getElementById('pub-floor').value) || null,
       features, photos: photoUrls,
       image: photoUrls[0] || '',
+      ...publishAffiliation(),   // agency_id / project_id : annonce publiée au nom de sa vitrine (pro.js)
     };
     const r = await api('/properties', 'POST', body);
     // Modération : une annonce « pending » n'est pas encore publique, on renvoie vers le tableau de bord

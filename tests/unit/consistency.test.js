@@ -54,8 +54,10 @@ test('toutes les clés data-i18n utilisées dans le HTML existent dans le dictio
 test('toutes les clés T(\'…\') utilisées dans le JavaScript existent en français et en arabe', () => {
   const T = translations();
   const contrats = fs.readFileSync(path.join(ROOT, 'public', 'contrats.js'), 'utf8');
+  const pro = fs.readFileSync(path.join(ROOT, 'public', 'pro.js'), 'utf8');   // vitrine des agences et des promoteurs
   const used = new Set([
     ...inlineScripts().join('\n').matchAll(/\bT\('([a-z0-9_]+)'\)/g),
+    ...pro.matchAll(/\bT\('([a-z0-9_]+)'\)/g),
     ...contrats.matchAll(/\bui\('([a-z0-9_]+)'\)/g),
   ].map(m => m[1]));
   assert.ok(used.size > 100, 'l\'extraction doit trouver les clés utilisées');
@@ -69,6 +71,12 @@ test('toutes les clés T(\'…\') utilisées dans le JavaScript existent en fran
     dash_st_: ['active', 'sold', 'rented', 'archived', 'pending', 'rejected', 'expired'],
     // avertissements de qualité à la publication (table QW de la page)
     q_: ['dup_own', 'dup_other', 'price_low', 'price_high'],
+    // vitrine des professionnels : type, services, avancement et équipements des programmes, visuels, pluriels
+    kind_: ['agence', 'promoteur'], svc_: ['vente', 'location', 'location_courte', 'neuf', 'gestion', 'estimation', 'accompagnement'],
+    pg_st_: ['sur_plan', 'en_construction', 'livre'],
+    pg_feat_: ['ascenseur', 'parking', 'espaces_verts', 'securite', 'aire_jeux', 'commerces', 'gaz_ville', 'fibre'],
+    vt_kind_: ['agence_hint', 'promoteur_hint'], vt_logo: ['', '_hint'], vt_cover: ['', '_hint'],
+    u_prog_: ['one', 'two', 'many'], u_review_: ['one', 'two', 'many'], u_year_: ['one', 'two', 'many'],
     // pluriels : unit(n, base) lit base_one / base_two / base_many
     u_room_: ['one', 'two', 'many'], u_bath_: ['one', 'two', 'many'], u_view_: ['one', 'two', 'many'], st_ad_: ['one', 'two', 'many'],
     u_req_: ['one', 'two', 'many'],
