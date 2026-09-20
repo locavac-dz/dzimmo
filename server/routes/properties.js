@@ -4,6 +4,7 @@ const auth   = require('../middleware/auth');
 const optionalAuth = require('../middleware/optionalAuth');
 const moderation   = require('../moderation');
 const { likePattern } = require('../pagination');
+const { isRevoked } = require('../sessions');
 
 const MODES_VALIDES    = ['vente', 'location_longue', 'location_courte'];
 const TYPES_VALIDES    = ['appartement','villa','maison','bureau','local_commercial','terrain','ferme','entrepot'];
@@ -186,7 +187,12 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
   // En attente / refusée : visible uniquement de son propriétaire et des admins (404 pour les autres)
   const hidden = moderation.HIDDEN_STATUSES.includes(property.status);
-  const staff  = req.user && (req.user.is_admin || req.user.id === property.owner_id);
+  let staff = !!req.user && (req.user.is_admin || req.user.id === property.owner_id);
+  if (hidden && staff) {
+    // Annonce non publique : le compte est relu en base (jeton révoqué, compte suspendu ou rôle retiré = 404)
+    const u = await db.users.findById(req.user.id);
+    staff = !!u && !u.banned && !isRevoked(req.user, u) && (u.is_admin || u.id === property.owner_id);
+  }
   if (hidden && !staff) return res.status(404).json({ error: 'Annonce introuvable.' });
 
   // Incrémenter les vues (pas pour une annonce non publiée)

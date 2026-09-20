@@ -1,16 +1,21 @@
 const jwt = require('jsonwebtoken');
+const db  = require('../db');
+const { isRevoked } = require('../sessions');
 
-module.exports = function adminMiddleware(req, res, next) {
+// Le rôle est relu en base à chaque requête : un administrateur rétrogradé, suspendu ou dont les sessions ont été révoquées
+// perd son accès tout de suite, au lieu de garder pendant 7 jours un jeton qui affirme encore « is_admin ».
+module.exports = async function adminMiddleware(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Token manquant.' });
   }
-  try {
-    const payload = jwt.verify(header.slice(7), process.env.JWT_SECRET);
-    if (!payload.is_admin) return res.status(403).json({ error: 'Accès réservé aux administrateurs.' });
-    req.user = payload;
-    next();
-  } catch {
-    res.status(401).json({ error: 'Token expiré ou invalide.' });
-  }
+  let payload;
+  try { payload = jwt.verify(header.slice(7), process.env.JWT_SECRET); }
+  catch { return res.status(401).json({ error: 'Token expiré ou invalide.' }); }
+  const user = await db.users.findById(payload.id);
+  if (!user || user.banned) return res.status(403).json({ error: 'Compte suspendu.' });
+  if (isRevoked(payload, user)) return res.status(401).json({ error: 'Token expiré ou invalide.' });
+  if (!user.is_admin) return res.status(403).json({ error: 'Accès réservé aux administrateurs.' });
+  req.user = payload;
+  next();
 };

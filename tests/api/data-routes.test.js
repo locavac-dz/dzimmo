@@ -264,11 +264,13 @@ test('profil : modification, aucun champ, réinitialisation du mot de passe, sup
   assert.equal((await s.request('POST', '/api/auth/reset-password', { body: { token, password: 'nouveaumdp1' } })).status, 200);
   assert.equal((await s.request('POST', '/api/auth/reset-password', { body: { token, password: 'autremdp12' } })).status, 400, 'lien à usage unique');
   assert.equal((await s.request('POST', '/api/auth/login', { body: { email: u.email, password: 'motdepasse1' } })).status, 401);
-  assert.equal((await s.request('POST', '/api/auth/login', { body: { email: u.email, password: 'nouveaumdp1' } })).status, 200);
+  const relog = await s.request('POST', '/api/auth/login', { body: { email: u.email, password: 'nouveaumdp1' } });
+  assert.equal(relog.status, 200);
+  const fresh = relog.body.token;   // la réinitialisation révoque les sessions précédentes : on repart de la nouvelle connexion
 
   // suppression du compte : le compte et ses annonces disparaissent
-  await s.request('POST', '/api/properties', { token: u.token, body: { title: 'À supprimer', mode: 'vente', type_bien: 'villa', price: 1, wilaya: 'Oran', photos: [] } });
-  assert.equal((await s.request('DELETE', '/api/auth/me', { token: u.token })).status, 200);
+  await s.request('POST', '/api/properties', { token: fresh, body: { title: 'À supprimer', mode: 'vente', type_bien: 'villa', price: 1, wilaya: 'Oran', photos: [] } });
+  assert.equal((await s.request('DELETE', '/api/auth/me', { token: fresh })).status, 200);
   assert.equal((await q('SELECT COUNT(*)::int c FROM users WHERE id = $1', [u.id])).rows[0].c, 0);
   assert.equal((await q('SELECT COUNT(*)::int c FROM properties WHERE owner_id = $1', [u.id])).rows[0].c, 0);
   assert.equal((await s.request('POST', '/api/auth/login', { body: { email: u.email, password: 'nouveaumdp1' } })).status, 401);

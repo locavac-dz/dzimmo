@@ -4,6 +4,7 @@ const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
 const db     = require('../db');
 const mailer = require('../mailer');
+const { revokeSessions } = require('../sessions');
 
 function sign(user) {
   return jwt.sign(
@@ -114,6 +115,7 @@ router.post('/reset-password', async (req, res) => {
   if (!r.rows[0]) return res.status(400).json({ error: 'Lien invalide ou expiré.' });
   const { user_id, id: tokenId } = r.rows[0];
   await db.users.update({ id: user_id }, { password: await bcrypt.hash(password, 10) });
+  await revokeSessions(user_id);
   await db.pool.query('UPDATE password_reset_tokens SET used = true WHERE id = $1', [tokenId]);
   res.json({ ok: true });
 });

@@ -74,6 +74,9 @@ Windows : `demarrer.bat`
   Les justificatifs sont des données sensibles (loi 18-07) : dossier privé `VERIFICATION_DIR` (jamais sous `public/`),
   images ré-encodées sans métadonnées, consultables des seuls admins via l'API, **supprimés dès la décision** — ne jamais
   les garder, les journaliser ni les inclure dans une sauvegarde ; on ne conserve que le résultat.
+- **Sessions révocables** (`server/sessions.js`) : `users.sessions_valid_after` refuse les jetons émis avant cette date. Toute action qui
+  change qui contrôle un compte (réinitialisation du mot de passe, reprise d'un compte) doit appeler `revokeSessions(userId)`. Les
+  middlewares `auth` et `admin`, la fiche non publique et le WebSocket relisent le compte en base ; le rôle admin vient de la base, pas du jeton.
 - Interface bilingue FR / AR — toute nouvelle chaîne dans les deux langues
 - Montants en **DZD**
 - Conformité RGPD + loi algérienne 18-07

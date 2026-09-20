@@ -91,21 +91,24 @@ function setup(server) {
   const wss = new WebSocketServer({ server, path: '/ws' });
 
   wss.on('connection', (ws, req) => {
-    let userId = null;
+    let payload = null;
     try {
       const url   = new URL(req.url, 'http://localhost');
       const token = url.searchParams.get('token');
-      if (token) {
-        const payload = jwt.verify(token, process.env.JWT_SECRET);
-        userId = payload.id;
-      }
+      if (token) payload = jwt.verify(token, process.env.JWT_SECRET);
     } catch {}
 
-    if (!userId) { ws.close(4001, 'Unauthorized'); return; }
+    if (!payload || !payload.id) { ws.close(4001, 'Unauthorized'); return; }
 
-    const remove = hub.add(userId, ws);
-    ws.on('close', remove);
+    // Le compte est relu en base : un jeton révoqué ou un compte suspendu ne reçoit plus de notifications
+    let remove = null, closed = false;
+    ws.on('close', () => { closed = true; if (remove) remove(); });
     ws.on('error', () => {});
+    require('./db').users.findById(payload.id).then(user => {
+      if (closed) return;
+      if (!user || user.banned || require('./sessions').isRevoked(payload, user)) { ws.close(4001, 'Unauthorized'); return; }
+      remove = hub.add(payload.id, ws);
+    }).catch(() => { if (!closed) ws.close(1011, 'Error'); });
   });
 }
 
