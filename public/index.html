@@ -122,6 +122,25 @@
       font-size: 0.7rem; font-weight: 700;
     }
 
+    /* Menu mobile : ☰ dans l'en-tête, panneau sous l'en-tête (navigation, thème, langue, inscription) */
+    .menu-btn {
+      display: none; align-items: center; justify-content: center; flex-shrink: 0;
+      width: 40px; height: 36px; padding: 0; border-radius: 8px; line-height: 1;
+      background: none; border: 1.5px solid var(--border); color: var(--text); font-size: 1.15rem; cursor: pointer;
+    }
+    #mobile-menu {
+      display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 101;
+      background: var(--white); border-bottom: 1px solid var(--border); box-shadow: 0 10px 24px rgba(0,0,0,.14);
+      padding: .4rem .75rem .8rem;
+    }
+    #mobile-menu .nav-link { display: block; padding: .8rem .6rem; font-size: 1rem; }
+    #mobile-menu .menu-tools {
+      display: flex; align-items: center; flex-wrap: wrap; gap: .6rem;
+      margin-top: .4rem; padding-top: .7rem; border-top: 1px solid var(--border);
+    }
+    #mobile-menu .lang-toggle { margin: 0; }
+    #mobile-menu .menu-tools .theme-btn, #mobile-menu .menu-tools .lang-btn { min-height: 36px; min-width: 40px; }
+
     /* ── Héros ── */
     #hero {
       background: linear-gradient(135deg, #0a3d2b 0%, #0C6E4F 60%, #1a9b6e 100%);
@@ -551,7 +570,23 @@
       .detail-gallery-side { display: none; }
       .msg-layout { grid-template-columns: 1fr; }
       .form-grid { grid-template-columns: 1fr; }
-      .nav-link { display: none; }
+      /* En-tête : logo, « + », connexion (ou cloche, messages, avatar) et ☰ ; le reste est dans le menu */
+      .header-inner { gap: .5rem; padding: 0 .75rem; }
+      .header-actions { gap: .4rem; }
+      .nav, .logo-flag, #theme-toggle, .header-actions > .lang-toggle, #auth-btns .btn-primary { display: none; }
+      .logo { font-size: 1.3rem; gap: .45rem; }
+      .menu-btn { display: inline-flex; }
+      #mobile-menu.open { display: block; }
+      /* Panneau de notifications : sous l'en-tête, sur toute la largeur (ancré à la cloche il sortait de l'écran) */
+      #notif-panel { position: fixed; top: 63px; left: .5rem; right: .5rem; width: auto; max-height: calc(100vh - 80px); }
+      /* Rangées d'onglets (tableau de bord, administration) : elles défilent d'un côté à l'autre au lieu d'élargir la page.
+         Le filet du bas devient une ombre interne : un overflow couperait l'onglet actif qui déborde de 2 px. */
+      .tabs { overflow-x: auto; border-bottom: none; box-shadow: inset 0 -2px 0 var(--border); scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+      .tabs::-webkit-scrollbar { display: none; }
+      .tab-btn { flex-shrink: 0; white-space: nowrap; margin-bottom: 0; }
+      /* « + Publier » réduit à « + » (le texte reste lu par les lecteurs d'écran) */
+      #btn-publier { font-size: 0; padding: .35rem .7rem; }
+      #btn-publier::before { content: '+'; font-size: 1.2rem; line-height: 1; }
       .dashboard-stats { grid-template-columns: 1fr 1fr; }
     }
 
@@ -657,6 +692,9 @@
     }
     .card-cmp.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 
+    /* Petits téléphones : le nom du site disparaît de l'en-tête (l'icône reste), sinon cloche + messages + avatar ne tiennent pas */
+    @media (max-width: 420px) { .logo-text { display: none; } }
+
     /* Comparateur sur mobile : barre compacte (miniatures seules, plus de bouton coupé), posée au-dessus de la barre
        d'appel d'une fiche, tableau à colonne des critères fixe, boutons plus faciles à toucher */
     @media (max-width: 768px) {
@@ -734,16 +772,16 @@
 <!-- ═══════════════════ HEADER ═══════════════════ -->
 <header id="header">
   <div class="header-inner">
-    <div class="logo" onclick="showPage('home')" style="cursor:pointer"><img class="logo-mark" src="/logo-icon.svg" alt="" width="36" height="36"><span class="logo-text">Dz<span>Immo</span></span> <span style="font-size:.6rem;font-weight:400;color:var(--text-muted);font-family:Arial">🇩🇿</span></div>
+    <div class="logo" onclick="showPage('home')" style="cursor:pointer"><img class="logo-mark" src="/logo-icon.svg" alt="" width="36" height="36"><span class="logo-text">Dz<span>Immo</span></span> <span class="logo-flag" style="font-size:.6rem;font-weight:400;color:var(--text-muted);font-family:Arial">🇩🇿</span></div>
     <nav class="nav">
       <a class="nav-link active" data-page="home" onclick="showPage('home')" data-i18n="nav_home">Accueil</a>
       <a class="nav-link" data-page="annonces" onclick="showPage('annonces')" data-i18n="nav_annonces">Annonces</a>
       <a class="nav-link" data-page="agences" onclick="showPage('agences')" data-i18n="nav_agences">Agences</a>
       <a class="nav-link" data-page="carte" onclick="showPage('carte')" data-i18n="nav_carte">Carte</a>
-      <a class="nav-link hidden" id="nav-admin" data-page="admin" onclick="showPage('admin')" style="color:#7c3aed;font-weight:700" data-i18n="nav_admin">⚙️ Admin</a>
+      <a class="nav-link nav-admin hidden" id="nav-admin" data-page="admin" onclick="showPage('admin')" style="color:#7c3aed;font-weight:700" data-i18n="nav_admin">⚙️ Admin</a>
     </nav>
     <div class="header-actions">
-      <button id="theme-toggle" onclick="toggleTheme()" title="Mode sombre / clair" aria-label="Basculer le thème" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:.3rem .5rem;font-size:1rem;cursor:pointer;color:var(--text);line-height:1;transition:border-color .15s">🌙</button>
+      <button id="theme-toggle" class="theme-btn" onclick="toggleTheme()" title="Mode sombre / clair" aria-label="Basculer le thème" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:.3rem .5rem;font-size:1rem;cursor:pointer;color:var(--text);line-height:1;transition:border-color .15s">🌙</button>
       <div class="lang-toggle">
         <button class="lang-btn active" data-lang="fr" onclick="applyLang('fr')">FR</button>
         <button class="lang-btn" data-lang="ar" onclick="applyLang('ar')">ع</button>
@@ -771,8 +809,25 @@
         </button>
         <button class="avatar-btn" id="avatar-btn" onclick="showPage('dashboard')"></button>
       </div>
+      <button id="menu-btn" class="menu-btn" onclick="toggleMenu()" aria-expanded="false" aria-controls="mobile-menu"
+              data-i18n="menu_label" data-i18n-attr="aria-label" aria-label="Menu">☰</button>
     </div>
   </div>
+  <nav id="mobile-menu">
+    <a class="nav-link" data-page="home" onclick="showPage('home')" data-i18n="nav_home">Accueil</a>
+    <a class="nav-link" data-page="annonces" onclick="showPage('annonces')" data-i18n="nav_annonces">Annonces</a>
+    <a class="nav-link" data-page="agences" onclick="showPage('agences')" data-i18n="nav_agences">Agences</a>
+    <a class="nav-link" data-page="carte" onclick="showPage('carte')" data-i18n="nav_carte">Carte</a>
+    <a class="nav-link nav-admin hidden" data-page="admin" onclick="showPage('admin')" style="color:#7c3aed;font-weight:700" data-i18n="nav_admin">⚙️ Admin</a>
+    <div class="menu-tools">
+      <button class="theme-btn" onclick="toggleTheme()" title="Mode sombre / clair" aria-label="Basculer le thème" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:.3rem .5rem;font-size:1rem;cursor:pointer;color:var(--text);line-height:1">🌙</button>
+      <div class="lang-toggle">
+        <button class="lang-btn active" data-lang="fr" onclick="applyLang('fr')">FR</button>
+        <button class="lang-btn" data-lang="ar" onclick="applyLang('ar')">ع</button>
+      </div>
+      <button id="menu-register" class="btn btn-primary btn-sm" style="margin-inline-start:auto" onclick="toggleMenu(false);openModal('register')" data-i18n="btn_register">S'inscrire</button>
+    </div>
+  </nav>
 </header>
 
 <!-- ═══════════════════ PAGE ACCUEIL ═══════════════════ -->
@@ -1643,7 +1698,7 @@ let currentLang = localStorage.getItem('dz_lang') || 'fr';
 
 const TRANSLATIONS = {
   fr: {
-    nav_home:'Accueil', nav_annonces:'Annonces', nav_agences:'Agences', nav_carte:'Carte',
+    nav_home:'Accueil', nav_annonces:'Annonces', nav_agences:'Agences', nav_carte:'Carte', menu_label:'Menu',
     btn_publier:'+ Publier', btn_login:'Connexion', btn_register:"S'inscrire",
     hero_title:'Trouvez votre bien immobilier en Algérie',
     hero_sub:'Appartements, villas, terrains, locaux · Vente et location partout en Algérie',
@@ -1891,7 +1946,7 @@ const TRANSLATIONS = {
     sr_disclaimer:'Simulation indicative. Consultez un conseiller pour une analyse personnalisée.',
   },
   ar: {
-    nav_home:'الرئيسية', nav_annonces:'الإعلانات', nav_agences:'الوكالات', nav_carte:'الخريطة',
+    nav_home:'الرئيسية', nav_annonces:'الإعلانات', nav_agences:'الوكالات', nav_carte:'الخريطة', menu_label:'القائمة',
     btn_publier:'+ نشر', btn_login:'تسجيل الدخول', btn_register:'إنشاء حساب',
     hero_title:'ابحث عن عقارك في الجزائر',
     hero_sub:'شقق، فلل، أراضي، محلات · بيع وإيجار في جميع أنحاء الجزائر',
@@ -2272,9 +2327,23 @@ function unit(n, base) {
 function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   localStorage.setItem('dzimmo_theme', t);
-  const btn = document.getElementById('theme-toggle');
-  if (btn) btn.textContent = t === 'dark' ? '☀️' : '🌙';
+  document.querySelectorAll('.theme-btn').forEach(b => { b.textContent = t === 'dark' ? '☀️' : '🌙'; });
 }
+
+// ── Menu mobile ──────────────────────────────────────
+function toggleMenu(force) {
+  const menu = document.getElementById('mobile-menu'), btn = document.getElementById('menu-btn');
+  const open = force === undefined ? !menu.classList.contains('open') : !!force;
+  menu.classList.toggle('open', open);
+  btn.setAttribute('aria-expanded', String(open));
+  btn.textContent = open ? '✕' : '☰';
+}
+// Se referme : clic ailleurs, touche Échap, agrandissement de la fenêtre au-delà du mode mobile
+document.addEventListener('click', e => {
+  if (!e.target.closest('#mobile-menu, #menu-btn')) toggleMenu(false);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleMenu(false); });
+window.matchMedia('(max-width: 768px)').addEventListener('change', e => { if (!e.matches) toggleMenu(false); });
 function toggleTheme() {
   const cur = document.documentElement.getAttribute('data-theme')
     || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -2336,9 +2405,10 @@ async function loadCurrentUser() {
     currentUser = r;
     document.getElementById('auth-btns').classList.add('hidden');
     document.getElementById('user-btns').classList.remove('hidden');
+    document.getElementById('menu-register').classList.add('hidden');
     const btn = document.getElementById('avatar-btn');
     btn.textContent = (r.name || '?')[0].toUpperCase();
-    if (r.is_admin) document.getElementById('nav-admin').classList.remove('hidden');
+    if (r.is_admin) document.querySelectorAll('.nav-admin').forEach(l => l.classList.remove('hidden'));
     setupWs();
     loadUnreadCount();
     loadNotifsFromStorage();
@@ -2389,6 +2459,8 @@ function logout() {
   if (wsConn) { wsConn.close(); wsConn = null; }
   document.getElementById('auth-btns').classList.remove('hidden');
   document.getElementById('user-btns').classList.add('hidden');
+  document.getElementById('menu-register').classList.remove('hidden');
+  document.querySelectorAll('.nav-admin').forEach(l => l.classList.add('hidden'));   // le lien Admin ne survit pas à la déconnexion
   showPage('home');
   toast(T('logout_done'));
 }
@@ -2462,6 +2534,7 @@ function relabelSeo() {
 }
 
 function showPage(page, data = null) {
+  toggleMenu(false);
   document.body.classList.remove('qc-on');   // la barre d'appel n'existe que sur une fiche (renderDetail la remet)
   // Hors fiche annonce, on quitte l'URL /annonce/… (les filtres d'annonces réécrivent ensuite la query)
   if (page !== 'detail') {
@@ -3491,6 +3564,7 @@ function adminTab(name) {
   document.querySelectorAll('#admin-tabs .tab-btn').forEach((b, i) => {
     b.classList.toggle('active', ADMIN_TABS[i] === name);
   });
+  document.querySelector('#admin-tabs .tab-btn.active')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });   // onglet actif visible (mobile)
   ({ resume: adminLoadResume, moderation: () => adminLoadModeration(), verifications: () => adminLoadVerifications(),
      users: adminLoadUsers, properties: adminLoadProperties,
      agencies: adminLoadAgencies, signalements: adminLoadSignalements,
@@ -4317,6 +4391,7 @@ async function dashTab(tab) {
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
     b.classList.toggle('active', ['mes-annonces','mes-contacts','favoris','alertes','profil','verification'][i] === tab);
   });
+  document.querySelector('#page-dashboard .tab-btn.active')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });   // onglet actif visible (mobile)
   const c = document.getElementById('dash-tab-content');
   c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
