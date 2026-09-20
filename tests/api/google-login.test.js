@@ -65,7 +65,8 @@ test('première connexion : le compte est créé (adresse confirmée, mot de pas
   assert.match(row.password, /^\$2[aby]\$/, 'un mot de passe existe, mais personne ne le connaît');
   assert.equal((await s.request('GET', '/api/auth/me', { token: r.body.token })).body.email, 'nouveau.membre@gmail.com');
   // Email de bienvenue dans la langue choisie, pas d'email de confirmation d'adresse
-  await sleep(150);
+  // L'email part après la réponse : on l'attend (3 s au plus) au lieu de supposer un délai fixe
+  for (const end = Date.now() + 3000; Date.now() < end && !mails.some(m => m.to === 'nouveau.membre@gmail.com');) await sleep(20);
   const sent = mails.filter(m => m.to === 'nouveau.membre@gmail.com');
   assert.equal(sent.length, 1);
   assert.match(sent[0].html, /dir="rtl"/);

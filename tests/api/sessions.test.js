@@ -174,7 +174,7 @@ test('WebSocket : jeton valide reçoit ses notifications ; jeton révoqué, comp
   const ok = await connect(u.token);
   assert.equal(ok.code, undefined, 'connexion maintenue');
   wsHub.send(u.id, { type: 'notif', n: 1 });
-  await sleep(150);
+  for (const end = Date.now() + 3000; Date.now() < end && !ok.messages.length;) await sleep(20);   // attente active : pas de délai fixe
   assert.deepEqual(ok.messages, [{ type: 'notif', n: 1 }]);
   ok.ws.close();
 

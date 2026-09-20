@@ -12,10 +12,14 @@ test.before(async () => {
   s = await startServer();
   admin = await s.makeAdmin(await s.register('admin'));
   const hash = '$2a$10$abcdefghijklmnopqrstuuFj2fQ0y1x0i7uWyq3m0T0aA0GzE6y0K';
-  // Le jeu de démonstration (6 annonces) est retiré pour que les totaux ne dépendent pas du seed ;
-  // il reste le compte et l'agence de démonstration, comptés ci-dessous.
+  // Tout le jeu de démonstration est retiré (annonces, agences, comptes) : les totaux ci-dessous ne dépendent pas du seed.
+  // Un compte et une agence témoins, créés ici, tiennent la place de ceux du seed dans les comptes attendus.
   await q('DELETE FROM properties');
-  // 60 comptes (+ l'admin et le compte de démonstration), 45 annonces (dont 12 en attente et 4 refusées), 30 agences, 33 signalements, 27 abonnés
+  await q('DELETE FROM agencies');
+  await q('DELETE FROM users WHERE id <> $1', [admin.id]);
+  await q(`INSERT INTO users (name, email, password, email_verified) VALUES ('Compte témoin', 'temoin@test.dz', $1, true)`, [hash]);
+  await q(`INSERT INTO agencies (owner_id, name, wilaya) VALUES ($1, 'Vitrine témoin', 'Alger')`, [admin.id]);
+  // 60 comptes (+ l'admin et le compte témoin), 45 annonces (dont 12 en attente et 4 refusées), 30 agences, 33 signalements, 27 abonnés
   await q(`INSERT INTO users (name, email, password, email_verified)
            SELECT 'Membre ' || g, 'membre' || g || '@test.dz', $1, true FROM generate_series(1, 60) g`, [hash]);
   await q(`INSERT INTO properties (owner_id, title, mode, type_bien, price, wilaya, status)
@@ -49,7 +53,7 @@ test('pagination : paramètres bornés et motifs de recherche neutralisés', () 
 
 test('comptes : 25 par page, total, pages, plus récents d\'abord, aucune ligne en double', async () => {
   const p1 = (await get('/users')).body;
-  assert.equal(p1.total, 62, '60 + admin + compte de démonstration');
+  assert.equal(p1.total, 62, '60 + admin + compte témoin');
   assert.equal(p1.pages, 3);
   assert.equal(p1.page, 1);
   assert.equal(p1.per_page, 25);

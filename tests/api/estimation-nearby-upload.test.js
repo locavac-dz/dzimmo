@@ -159,11 +159,16 @@ test('upload/multiple : une image illisible fait échouer tout l\'envoi (400, pa
   // Taille inhabituelle : d'autres fichiers de test envoient des photos en même temps dans ce dossier, on ne cherche que la nôtre
   const r = await upload([{ data: await image(83, 47, '#123456') }, { data: Buffer.from('ceci n\'est pas une image'), name: 'fausse.png' }], owner.token);
   assert.deepEqual(r, { status: 400, body: { error: 'Image illisible ou corrompue.' } });
-  await new Promise(done => setTimeout(done, 200));   // la suppression des fichiers déjà écrits n'attend pas la réponse
-  const orphans = [];
-  for (const f of [...uploadsNow()].filter(f => !before.has(f))) {
-    const m = await sharp(path.join(UPLOADS, f)).metadata().catch(() => null);
-    if (m && m.width === 83 && m.height === 47) orphans.push(f);
+  // La suppression des fichiers déjà écrits n'attend pas la réponse : on observe jusqu'à 3 s plutôt qu'un délai fixe
+  let orphans;
+  for (const end = Date.now() + 3000; ;) {
+    orphans = [];
+    for (const f of [...uploadsNow()].filter(f => !before.has(f))) {
+      const m = await sharp(path.join(UPLOADS, f)).metadata().catch(() => null);
+      if (m && m.width === 83 && m.height === 47) orphans.push(f);
+    }
+    if (!orphans.length || Date.now() > end) break;
+    await new Promise(done => setTimeout(done, 50));
   }
   assert.deepEqual(orphans, [], 'la photo valide du même envoi est retirée');
   // Même règle pour l'envoi simple

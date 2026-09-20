@@ -9,10 +9,12 @@ const BASE = 'https://dzimmo.test';   // APP_URL défini par le helper
 test.before(async () => {
   s = await startServer();
   admin = await s.makeAdmin(await s.register('admin'));
-  // Les annonces de démonstration (seed) servent de jeu de données
-  const list = await s.request('GET', '/api/properties?limit=50');
-  sample = list.body.data[0];
-  assert.ok(sample, 'le seed doit fournir au moins une annonce active');
+  // Annonce de référence créée ici (les tests ne dépendent pas du contenu du jeu de démonstration)
+  const { rows } = await s.db.pool.query(
+    `INSERT INTO properties (owner_id, title, description, mode, type_bien, price, wilaya, commune, image, status)
+     VALUES ($1, 'Villa de référence avec jardin', 'Villa lumineuse, quatre chambres, garage.', 'vente', 'villa', 48000000, 'Tipaza', 'Tipaza', '/uploads/reference-seo.webp', 'active')
+     RETURNING id, mode, type_bien, wilaya`, [admin.id]);
+  sample = rows[0];
 });
 test.after(async () => { await s.stop(); });
 
