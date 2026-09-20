@@ -8,6 +8,7 @@ const AR = {
   // Limitation de débit et erreurs générales
   'Trop de tentatives. Réessayez dans 15 minutes.': 'محاولات كثيرة جداً. أعد المحاولة بعد 15 دقيقة.',
   "Trop d'uploads. Réessayez dans 1 heure.": 'عدد كبير من عمليات الرفع. أعد المحاولة بعد ساعة.',
+  "Trop d'exports. Réessayez dans 1 heure.": 'عدد كبير من عمليات التصدير. أعد المحاولة بعد ساعة.',
   'Trop de requêtes. Réessayez dans une minute.': 'طلبات كثيرة جداً. أعد المحاولة بعد دقيقة.',
   'Erreur interne du serveur.': 'خطأ داخلي في الخادم.',
   'Route introuvable.': 'المسار غير موجود.',

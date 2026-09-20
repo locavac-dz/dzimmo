@@ -121,6 +121,16 @@ const publicStatsLimiter = rateLimit({
 });
 app.use('/api/stats/public', publicStatsLimiter);
 
+const exportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Trop d'exports. Réessayez dans 1 heure." },
+  skip: () => process.env.NODE_ENV === 'test',
+});
+app.use('/api/auth/export', exportLimiter);
+
 app.use(express.json());
 
 // Service Worker sans cache pour détecter les mises à jour

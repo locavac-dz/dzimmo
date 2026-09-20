@@ -203,6 +203,80 @@ router.delete('/me', require('../middleware/auth'), async (req, res) => {
   res.json({ ok: true });
 });
 
+// GET /api/auth/export — export des données personnelles (loi 18-07 / RGPD, droit d'accès)
+router.get('/export', require('../middleware/auth'), async (req, res) => {
+  const uid = req.user.id;
+  const pool = db.pool;
+  const user = await db.users.findById(uid);
+  if (!user) return res.status(404).json({ error: 'Utilisateur introuvable.' });
+
+  const [props, msgs, sent, received, favs, revs, alerts] = await Promise.all([
+    pool.query(
+      `SELECT id, title, mode, type_bien, price, surface_m2, wilaya, commune, description, status, created_at
+         FROM properties WHERE owner_id = $1 ORDER BY id`, [uid]),
+    pool.query(
+      `SELECT m.id, m.from_id, f.name AS from_name, m.to_id, t.name AS to_name,
+              m.property_id, m.body, m.created_at
+         FROM messages m
+         JOIN users f ON f.id = m.from_id
+         JOIN users t ON t.id = m.to_id
+        WHERE m.from_id = $1 OR m.to_id = $1
+        ORDER BY m.id`, [uid]),
+    pool.query(
+      `SELECT c.id, c.type, c.status, c.message, c.visit_date, c.offer_amount, c.created_at,
+              p.id AS property_id, p.title AS property_title
+         FROM contact_requests c
+         JOIN properties p ON p.id = c.property_id
+        WHERE c.user_id = $1
+        ORDER BY c.id`, [uid]),
+    pool.query(
+      `SELECT c.id, c.type, c.status, c.message, c.visit_date, c.offer_amount, c.created_at,
+              c.user_id AS requester_id, u.name AS requester_name,
+              p.id AS property_id, p.title AS property_title
+         FROM contact_requests c
+         JOIN properties p ON p.id = c.property_id AND p.owner_id = $1
+         JOIN users u ON u.id = c.user_id
+        ORDER BY c.id`, [uid]),
+    pool.query(
+      `SELECT f.property_id, p.title AS property_title, p.mode, p.type_bien, p.price, p.wilaya,
+              p.status, f.created_at
+         FROM favorites f
+         JOIN properties p ON p.id = f.property_id
+        WHERE f.user_id = $1
+        ORDER BY f.created_at`, [uid]),
+    pool.query(
+      `SELECT r.id, r.rating, r.comment, r.created_at, p.id AS property_id, p.title AS property_title
+         FROM reviews r
+         JOIN properties p ON p.id = r.property_id
+        WHERE r.author_id = $1
+        ORDER BY r.id`, [uid]),
+    pool.query(
+      `SELECT id, wilaya, mode, type_bien, min_price, max_price, min_surface, created_at
+         FROM search_alerts WHERE user_id = $1 ORDER BY id`, [uid]),
+  ]);
+
+  const data = {
+    exported_at: new Date().toISOString(),
+    profile: {
+      id: user.id, name: user.name, email: user.email, phone: user.phone || null,
+      bio: user.bio || null, avatar: user.avatar || null,
+      is_agent: user.is_agent, verified_kind: user.verified_kind || null,
+      lang: user.lang, created_at: user.created_at,
+    },
+    properties: props.rows,
+    messages: msgs.rows,
+    contact_requests_sent: sent.rows,
+    contact_requests_received: received.rows,
+    favorites: favs.rows,
+    reviews: revs.rows,
+    search_alerts: alerts.rows,
+  };
+
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="dzimmo-${uid}-${new Date().toISOString().slice(0, 10)}.json"`);
+  res.json(data);
+});
+
 // GET /api/auth/users/:id — profil public
 router.get('/users/:id', async (req, res) => {
   const user = await db.users.findById(req.params.id);
