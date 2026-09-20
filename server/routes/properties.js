@@ -3,7 +3,7 @@ const db     = require('../db');
 const auth   = require('../middleware/auth');
 const optionalAuth = require('../middleware/optionalAuth');
 const moderation   = require('../moderation');
-const { likePattern } = require('../pagination');
+const search = require('../search');
 const { isRevoked } = require('../sessions');
 const quality = require('../quality');
 const expiry  = require('../expiry');
@@ -115,13 +115,10 @@ router.get('/', optionalAuth, async (req, res) => {
   if (num(min_surface) !== null) add('p.surface_m2 >= ?', num(min_surface));
   if (num(max_surface) !== null) add('p.surface_m2 <= ?', num(max_surface));
   if (num(rooms)       !== null) add('p.rooms >= ?',      Math.min(1000, Math.ceil(num(rooms)))); // colonne entière
-  const like = likePattern(q);   // % et _ saisis sont cherchés tels quels ; texte vide ou non textuel : ignoré
-  if (like) {
-    conds.push(
-      `(p.title ILIKE $${idx} OR p.commune ILIKE $${idx} OR p.wilaya ILIKE $${idx} OR p.description ILIKE $${idx})`
-    );
-    params.push(like); idx++;
-  }
+  // Recherche tolérante (accents, arabe, français ↔ arabe) : chaque mot de la requête doit figurer dans le texte de recherche de l'annonce
+  // (server/search.js). Requête sans mot cherchable (« % » seul) : recherche brute comme avant ; vide ou non textuelle : ignorée.
+  const text = search.condition(q, 's.text', ['p.title', 'p.commune', 'p.wilaya', 'p.description'], v => { params.push(v); return '$' + idx++; });
+  if (text) conds.push(`EXISTS (SELECT 1 FROM property_search s WHERE s.property_id = p.id AND ${text})`);
 
   const where    = 'WHERE ' + conds.join(' AND ');
   const limitNum = Math.min(200, Math.max(1, parseInt(limitQ) || 12));

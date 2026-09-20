@@ -6,7 +6,8 @@
 // qu'une annonce isolée. Si la vérification est retirée, les programmes disparaissent du site sans être supprimés.
 const db      = require('./db');
 const WILAYAS = require('./wilayas');
-const { paginate, likePattern } = require('./pagination');
+const { paginate } = require('./pagination');
+const search = require('./search');
 
 const STATUSES = ['sur_plan', 'en_construction', 'livre'];
 // Équipements de la résidence (libellés FR / AR dans public/index.html)
@@ -125,8 +126,8 @@ async function list(query = {}) {
   if (STATUSES.includes(query.status)) conds.push(`j.status = ${arg(query.status)}`);
   const aid = db.toId(query.agency_id);
   if (aid !== null) conds.push(`j.agency_id = ${arg(aid)}`);
-  const like = likePattern(query.q);
-  if (like) { const p = arg(like); conds.push(`(j.name ILIKE ${p} OR j.commune ILIKE ${p})`); }
+  const text = search.condition(query.q, 's.text', ['j.name', 'j.commune'], arg);   // recherche tolérante (server/search.js)
+  if (text) conds.push(`EXISTS (SELECT 1 FROM project_search s WHERE s.project_id = j.id AND ${text})`);
   return paginate(db.pool, {
     columns: COLUMNS, from: FROM, where: 'WHERE ' + conds.join(' AND '), params,
     orderBy: SORTS[query.sort] || SORTS.recent, query, defaut: 12,

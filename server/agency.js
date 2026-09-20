@@ -4,7 +4,8 @@
 // sont limités à http(s) et les réseaux sociaux à leur domaine : aucune adresse arbitraire n'atteint un attribut src ou href.
 const db      = require('./db');
 const WILAYAS = require('./wilayas');
-const { paginate, likePattern } = require('./pagination');
+const { paginate } = require('./pagination');
+const search = require('./search');
 
 const KINDS    = ['agence', 'promoteur'];
 // Services proposés (libellés FR / AR dans public/index.html)
@@ -173,8 +174,9 @@ async function directory(query = {}) {
   }
   if (SERVICES.includes(query.service)) conds.push(`a.services @> to_jsonb(${arg(query.service)}::text)`);
   if (query.verified === '1' || query.verified === 'true') conds.push('COALESCE(a.verified, false) = true');
-  const like = likePattern(query.q);
-  if (like) { params.push(like); conds.push(`(a.name ILIKE $${params.length} OR a.tagline ILIKE $${params.length} OR a.commune ILIKE $${params.length})`); }
+  // Recherche tolérante (accents, arabe, français ↔ arabe) sur nom, slogan, commune, adresse, wilaya, type de professionnel, présentation
+  const text = search.condition(query.q, 's.text', ['a.name', 'a.tagline', 'a.commune'], arg);
+  if (text) conds.push(`EXISTS (SELECT 1 FROM agency_search s WHERE s.agency_id = a.id AND ${text})`);
 
   const result = await paginate(db.pool, {
     columns: COLUMNS, from: FROM, where: 'WHERE ' + conds.join(' AND '), params,

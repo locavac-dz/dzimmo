@@ -134,6 +134,20 @@ Windows : `demarrer.bat`
   stockage borné) ; ce dossier est un cache régénérable, à exclure des sauvegardes.
 - **Leaflet** (150 Ko) n'est chargé qu'à la première ouverture de la carte (`loadLeaflet`) : ne pas le remettre dans la page.
 
+## Recherche tolérante
+
+- **Toute recherche libre passe par `server/search.js`** (annonces, agences, programmes) : chaque mot de la requête, normalisé (accents,
+  casse, ponctuation, arabe : tachkil, tatwil, alif à hamza, ى/ي, ة/ه, chiffres indo-arabes), doit figurer dans le **texte de recherche**
+  de l'objet (tables `property_search`, `agency_search`, `project_search`, tenues à jour par des **déclencheurs SQL** : toute écriture,
+  API, SQL ou seed, est prise en compte). Ne pas réécrire d'`ILIKE` sur les colonnes brutes ; utiliser `search.condition(...)`.
+- Le texte indexé contient aussi le nom arabe de la wilaya et les mots arabes du type de bien, du mode et du type de professionnel
+  (table `search_lexicon`, alignée sur `LEXICON` au démarrage par `search.sync`, avec verrou pour pm2 cluster) : « الجزائر » trouve Alger.
+  Une nouvelle wilaya, un nouveau type de bien ou de mode doit être ajouté à `LEXICON` (test de complétude).
+- **`dz_norm()` (SQL, migration 012) et `normalize()` (JS) doivent rester identiques** : `tests/api/search.test.js` les compare sur tous les
+  caractères des blocs latin et arabe. La migration est générée : modifier la normalisation exige une nouvelle migration.
+- Aucune extension PostgreSQL (`unaccent`, `pg_trgm`) : droits particuliers et invisibles des schémas de test. Recherche par sous-chaîne
+  (pas de tolérance aux fautes de frappe) ; si le volume l'exige, un index `pg_trgm` sur `*_search.text` est la suite naturelle.
+
 ## Consignes
 
 - Ne jamais committer `.env`, `.env.production` ni `dzimmo.json`.
