@@ -179,6 +179,14 @@ test('nom : repli sur la partie locale de l\'adresse, borné à 100 caractères 
   const b = await login(idToken({ name: 'N'.repeat(300), picture: 'javascript:alert(1)' }));
   assert.equal(b.body.user.name.length, 100);
   assert.equal(b.body.user.avatar, '');
+  // https ne suffit pas : seule une photo servie par Google est gardée (l'avatar finit dans un attribut src)
+  const pieges = ['https://exemple.com/p.jpg', 'https://lh3.googleusercontent.com@exemple.com/p', 'https://lh3.googleusercontent.com.exemple.com/p',
+    'https://lh3.googleusercontent.com/a"onerror="alert(1)', 'https://lh3.googleusercontent.com/' + 'a'.repeat(600)];
+  for (const [i, picture] of pieges.entries()) {
+    const c = await login(idToken({ sub: `sub-photo-${i}`, email: `photo${i}@gmail.com`, picture }));
+    assert.equal(c.status, 200);
+    assert.equal(c.body.user.avatar, '', picture.slice(0, 60));
+  }
 });
 
 test('compte Google : « mot de passe oublié » permet d\'en définir un, et révoque les sessions précédentes', async () => {

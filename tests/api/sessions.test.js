@@ -114,6 +114,47 @@ test('fiche non publique : un jeton révoqué ne donne plus le droit de la voir 
   assert.equal((await s.request('GET', `/api/properties/${id}`, { token: owner.token })).status, 200);
 });
 
+test('routes à authentification facultative : jeton révoqué, compte suspendu ou admin rétrogradé = simple visiteur', async () => {
+  const owner = await s.register('facultatif');
+  const id = (await s.request('POST', '/api/properties', { token: owner.token, body: { title: 'En attente (facultatif)', mode: 'vente', type_bien: 'villa', price: 1, wilaya: 'Oran', photos: [] } })).body.id;
+  const agencyId = (await q('INSERT INTO agencies (owner_id, name) VALUES ($1, $2) RETURNING id', [owner.id, 'Agence facultative'])).rows[0].id;
+  const sees = async token => ({
+    mine:    (await s.request('GET', `/api/properties/user/${owner.id}`, { token })).body.some(p => p.id === id),
+    history: (await s.request('GET', `/api/properties/${id}/price-history`, { token })).status,
+    is_mine: (await s.request('GET', `/api/agencies/${agencyId}`, { token })).body.is_mine === true,
+  });
+  assert.deepEqual(await sees(owner.token), { mine: true, history: 200, is_mine: true });
+  assert.deepEqual(await sees(undefined),   { mine: false, history: 404, is_mine: false });
+
+  // Suspendu : l'ancien jeton ne montre plus rien de privé, sans erreur (la page publique reste consultable)
+  await q('UPDATE users SET banned = true WHERE id = $1', [owner.id]);
+  assert.equal((await sees(owner.token)).mine, false);
+  assert.equal((await sees(owner.token)).history, 404);
+  assert.equal((await s.request('GET', '/api/properties?limit=1', { token: owner.token })).status, 200, 'jamais de 401/403 sur une route publique');
+  await q('UPDATE users SET banned = false WHERE id = $1', [owner.id]);
+  assert.deepEqual(await sees(owner.token), { mine: true, history: 200, is_mine: true });
+
+  // Sessions révoquées
+  await untilNextSecond(); await revokeSessions(owner.id);
+  assert.deepEqual(await sees(owner.token), { mine: false, history: 404, is_mine: false });
+  assert.deepEqual(await sees((await login(owner)).body.token), { mine: true, history: 200, is_mine: true });
+
+  // Admin rétrogradé : son jeton affirme encore « is_admin », la base non
+  const boss = await s.makeAdmin(await s.register('patron-facultatif'));
+  assert.equal((await s.request('GET', '/api/properties?status=pending', { token: boss.token })).status, 200);
+  assert.equal((await s.request('GET', `/api/properties/${id}`, { token: boss.token })).status, 200);
+  await q('UPDATE users SET is_admin = false WHERE id = $1', [boss.id]);
+  assert.equal((await s.request('GET', '/api/properties?status=pending', { token: boss.token })).status, 403);
+  assert.equal((await s.request('GET', `/api/properties/${id}`, { token: boss.token })).status, 404);
+  assert.equal((await s.request('GET', `/api/properties/${id}/stats`, { token: boss.token })).status, 403, 'route protégée : rôle lu en base aussi');
+
+  // Jeton illisible ou compte supprimé : visiteur anonyme, pas d'erreur
+  assert.equal((await s.request('GET', '/api/properties?limit=1', { token: 'abc.def.ghi' })).status, 200);
+  const ghost = await s.register('fantome-facultatif');
+  await q('DELETE FROM users WHERE id = $1', [ghost.id]);
+  assert.equal((await s.request('GET', '/api/properties?limit=1', { token: ghost.token })).status, 200);
+});
+
 // WebSocket : connexion avec jeton, renvoie 'open' + messages reçus, ou 'closed' + code
 function connect(token) {
   return new Promise(resolve => {

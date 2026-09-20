@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const db     = require('../db');
 const mailer = require('../mailer');
 const google = require('../google-auth');
+const images = require('../images');
 const { revokeSessions } = require('../sessions');
 
 // Emails de réinitialisation du mot de passe acceptés par compte et par heure (au-delà : réponse identique, aucun envoi)
@@ -110,7 +111,7 @@ router.post('/google', async (req, res) => {
         user = await db.users.insert({
           name: String(g.name || email.split('@')[0]).trim().slice(0, 100), email, google_id: g.sub,
           password: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10),
-          avatar: typeof g.picture === 'string' && /^https:\/\//.test(g.picture) ? g.picture.slice(0, 500) : null,
+          avatar: images.isGoogleAvatar(g.picture) ? g.picture : null,   // photo servie par Google, sinon pas d'avatar
           is_agent: false, lang: req.lang, email_verified: true,
         });
         created = true;
@@ -137,11 +138,17 @@ router.get('/me', require('../middleware/auth'), async (req, res) => {
 // PUT /api/auth/profile
 router.put('/profile', require('../middleware/auth'), async (req, res) => {
   const { name, phone, bio, avatar } = req.body;
+  // Un champ présent doit être du texte : un nombre ou un objet donnait une erreur 500 (« .trim is not a function »)
+  if ([name, phone, bio, avatar].some(v => v !== undefined && typeof v !== 'string'))
+    return res.status(400).json({ error: 'Données du profil invalides.' });
+  // L'avatar finit dans un attribut src : uniquement un fichier envoyé sur ce site (ou vide pour le retirer), jamais une adresse libre
+  if (avatar !== undefined && avatar.trim() !== '' && !images.isUpload(avatar.trim()))
+    return res.status(400).json({ error: images.BAD_IMAGE });
   const changes = {};
   if (name   !== undefined) changes.name   = name.trim();
   if (phone  !== undefined) changes.phone  = phone.trim() || null;
   if (bio    !== undefined) changes.bio    = bio.trim();
-  if (avatar !== undefined) changes.avatar = avatar.trim();
+  if (avatar !== undefined) changes.avatar = avatar.trim() || null;
   if (!Object.keys(changes).length)
     return res.status(400).json({ error: 'Aucun champ à modifier.' });
   await db.users.update({ id: req.user.id }, changes);

@@ -15,7 +15,8 @@ module.exports = async function authMiddleware(req, res, next) {
     // Le compte mémorise la dernière langue choisie sur le site : emails et notifications suivent
     if (req.langExplicit && user.lang !== req.lang)
       db.pool.query('UPDATE users SET lang = $1 WHERE id = $2', [req.lang, user.id]).catch(() => {});
-    req.user = payload;
+    // Le rôle admin vient de la base, pas du jeton (un admin rétrogradé garde son jeton jusqu'à expiration)
+    req.user = { ...payload, is_admin: !!user.is_admin };
     next();
   } catch {
     res.status(401).json({ error: 'Token expiré ou invalide.' });

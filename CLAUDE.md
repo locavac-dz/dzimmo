@@ -81,7 +81,8 @@ Windows : `demarrer.bat`
   pré-inscription par un tiers) ; sinon nouveau compte. La CSP et le COOP ne s'ouvrent à Google que si la variable est définie.
 - **Sessions révocables** (`server/sessions.js`) : `users.sessions_valid_after` refuse les jetons émis avant cette date. Toute action qui
   change qui contrôle un compte (réinitialisation du mot de passe, reprise d'un compte) doit appeler `revokeSessions(userId)`. Les
-  middlewares `auth` et `admin`, la fiche non publique et le WebSocket relisent le compte en base ; le rôle admin vient de la base, pas du jeton.
+  middlewares `auth`, `admin` et `optionalAuth` ainsi que le WebSocket relisent le compte en base ; le rôle admin (`req.user.is_admin`) vient de
+  la base, pas du jeton. Avec `optionalAuth`, un compte suspendu, supprimé ou révoqué redevient un visiteur anonyme (jamais d'erreur).
 - Interface bilingue FR / AR — toute nouvelle chaîne dans les deux langues
 - Montants en **DZD**
 - Conformité RGPD + loi algérienne 18-07
@@ -161,4 +162,6 @@ Windows : `demarrer.bat`
 - Toute image saisie par un utilisateur (annonce, logo, programme…) est validée par `server/images.js` : fichier envoyé sur ce site
   (`/uploads/…`) ou, pour les annonces de démonstration, adresse https de la liste blanche `REMOTE_HOSTS`. Ajouter un domaine
   est une décision de sécurité (à répercuter dans la migration `011_clean_listing_images.sql`, test `listing-images.test.js`).
+  L'avatar d'un compte suit la même logique : fichier `/uploads/…` seulement, ou photo Google servie par `lh*.googleusercontent.com`
+  (`isGoogleAvatar`, règle identique dans la migration `015_clean_avatars.sql`).
 - Répondre et commenter le code en français.

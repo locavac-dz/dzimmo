@@ -4,7 +4,6 @@ const auth   = require('../middleware/auth');
 const optionalAuth = require('../middleware/optionalAuth');
 const moderation   = require('../moderation');
 const search = require('../search');
-const { isRevoked } = require('../sessions');
 const quality = require('../quality');
 const expiry  = require('../expiry');
 const clicks  = require('../clicks');
@@ -270,12 +269,8 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
   // En attente / refusée : visible uniquement de son propriétaire et des admins (404 pour les autres)
   const hidden = moderation.HIDDEN_STATUSES.includes(property.status);
-  let staff = !!req.user && (req.user.is_admin || req.user.id === property.owner_id);
-  if (hidden && staff) {
-    // Annonce non publique : le compte est relu en base (jeton révoqué, compte suspendu ou rôle retiré = 404)
-    const u = await db.users.findById(req.user.id);
-    staff = !!u && !u.banned && !isRevoked(req.user, u) && (u.is_admin || u.id === property.owner_id);
-  }
+  // (`optionalAuth` a relu le compte en base : jeton révoqué, compte suspendu ou rôle retiré = visiteur anonyme, donc 404)
+  const staff = !!req.user && (req.user.is_admin || req.user.id === property.owner_id);
   if (hidden && !staff) return res.status(404).json({ error: 'Annonce introuvable.' });
 
   // Incrémenter les vues (pas pour une annonce non publiée)
@@ -498,15 +493,15 @@ router.post('/:id/click', optionalAuth, async (req, res) => {
 // GET /api/properties/:id/price-history
 router.get('/:id/price-history', optionalAuth, async (req, res) => {
   const { pool } = db;
+  // Identifiant absurde ou annonce inconnue : « introuvable », jamais une erreur SQL
+  const row = await db.properties.findById(req.params.id);
   // Pas d'historique pour une annonce non publiée (sauf propriétaire / admin)
-  const prop = await pool.query('SELECT owner_id, status FROM properties WHERE id = $1', [Number(req.params.id)]);
-  const row  = prop.rows[0];
-  if (row && moderation.HIDDEN_STATUSES.includes(row.status)
-      && !(req.user && (req.user.is_admin || req.user.id === row.owner_id)))
+  if (!row || (moderation.HIDDEN_STATUSES.includes(row.status)
+      && !(req.user && (req.user.is_admin || req.user.id === row.owner_id))))
     return res.status(404).json({ error: 'Annonce introuvable.' });
   const r = await pool.query(
     'SELECT price, changed_at FROM price_history WHERE property_id = $1 ORDER BY changed_at ASC',
-    [Number(req.params.id)]
+    [row.id]
   );
   res.json(r.rows);
 });
@@ -605,10 +600,15 @@ router.post('/:id/reviews', auth, async (req, res) => {
 // POST /api/properties/:id/signaler
 router.post('/:id/signaler', auth, async (req, res) => {
   const { motif, message } = req.body;
-  if (!motif) return res.status(400).json({ error: 'Motif requis.' });
+  if (!motif || typeof motif !== 'string') return res.status(400).json({ error: 'Motif requis.' });
+  // L'annonce doit exister et être visible de celui qui la signale : pas de signalement orphelin dans la file des admins
+  const prop = await db.properties.findById(req.params.id);
+  if (!prop || (moderation.HIDDEN_STATUSES.includes(prop.status)
+      && !(req.user.is_admin || req.user.id === prop.owner_id)))
+    return res.status(404).json({ error: 'Annonce introuvable.' });
   await db.pool.query(
     'INSERT INTO signalements (property_id, user_id, motif, message) VALUES ($1,$2,$3,$4)',
-    [req.params.id, req.user?.id || null, motif, message || null]
+    [prop.id, req.user.id, motif.slice(0, 200), typeof message === 'string' ? message.slice(0, 2000) || null : null]
   );
   res.json({ ok: true });
 });
@@ -616,7 +616,8 @@ router.post('/:id/signaler', auth, async (req, res) => {
 // GET /api/properties/user/:id — annonces d'un utilisateur avec compteur de contacts
 router.get('/user/:id', optionalAuth, async (req, res) => {
   const { pool } = db;
-  const uid = Number(req.params.id);
+  const uid = db.toId(req.params.id);
+  if (uid === null) return res.status(404).json({ error: 'Utilisateur introuvable.' });
   // Le propriétaire (et les admins) voient aussi ses annonces en attente / refusées ; le public, seulement les publiées
   const self = req.user && (req.user.is_admin || req.user.id === uid);
   // L'annonceur voit aussi les annonces retirées automatiquement (pour les renouveler), pas celles qu'il a archivées lui-même

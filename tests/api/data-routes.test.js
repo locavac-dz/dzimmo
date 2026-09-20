@@ -409,6 +409,74 @@ test('fiche d\'annonce : compteur de vues, identifiants invalides, historique de
   assert.deepEqual(del.body.photos, ['/uploads/b.jpg']);
 });
 
+test('identifiants absurdes dans l\'URL : « introuvable », jamais une erreur 500', async () => {
+  const u = await s.register('id-absurde');
+  const before = (await q('SELECT COUNT(*)::int AS n FROM signalements')).rows[0].n;
+  for (const bad of ['abc', '0', '-3', '1.5', '1e30', '99999999999', '%27', 'NaN']) {
+    const routes = [
+      ['GET',    `/api/properties/${bad}/price-history`],
+      ['POST',   `/api/properties/${bad}/signaler`, { motif: 'Arnaque' }],
+      ['GET',    `/api/properties/user/${bad}`],
+      ['DELETE', `/api/alerts/${bad}`],
+    ];
+    for (const [method, url, body] of routes)
+      assert.equal((await s.request(method, url, { token: u.token, body })).status, 404, `${method} ${url}`);
+  }
+  // Annonce inexistante : pas d'historique, pas de signalement orphelin dans la file des admins
+  assert.equal((await s.request('GET', '/api/properties/999999/price-history')).status, 404);
+  assert.equal((await s.request('POST', '/api/properties/999999/signaler', { token: u.token, body: { motif: 'Arnaque' } })).status, 404);
+  assert.equal((await q('SELECT COUNT(*)::int AS n FROM signalements')).rows[0].n, before);
+  // Un compte sans annonce reste une liste vide
+  assert.deepEqual((await s.request('GET', `/api/properties/user/${u.id}`)).body, []);
+
+  // Signalement : annonce en attente invisible du signaleur, motif non textuel, texte borné
+  const pending = (await s.request('POST', '/api/properties', { token: u.token, body: { title: 'À signaler', mode: 'vente', type_bien: 'villa', price: 1, wilaya: 'Oran', photos: [] } })).body.id;
+  const other = await s.register('signaleur');
+  assert.equal((await s.request('POST', `/api/properties/${pending}/signaler`, { token: other.token, body: { motif: 'Arnaque' } })).status, 404);
+  const p = await listing('Annonce signalée');
+  assert.equal((await s.request('POST', `/api/properties/${p}/signaler`, { token: other.token, body: { motif: { a: 1 } } })).status, 400);
+  assert.equal((await s.request('POST', `/api/properties/${p}/signaler`, { token: other.token, body: { motif: 'm'.repeat(5000), message: 'x'.repeat(9000) } })).status, 200);
+  const row = (await q('SELECT length(motif) AS m, length(message) AS t FROM signalements WHERE property_id = $1 AND user_id = $2', [p, other.id])).rows[0];
+  assert.deepEqual(row, { m: 200, t: 2000 });
+});
+
+test('profil : l\'avatar n\'est qu\'un fichier envoyé sur le site ; un champ non textuel donne 400, pas 500', async () => {
+  const u = await s.register('avatar');
+  const put = body => s.request('PUT', '/api/auth/profile', { token: u.token, body });
+  for (const avatar of ['https://exemple.com/a.jpg', 'javascript:alert(1)', 'data:image/svg+xml,<svg onload=alert(1)>', '/uploads/../secret.png',
+    '/uploads/a.jpg" onerror="alert(1)', '//exemple.com/uploads/a.jpg', '/uploads/a.svg']) {
+    const r = await put({ avatar });
+    assert.equal(r.status, 400, avatar);
+    assert.equal(r.body.error, 'Image invalide : envoyez-la depuis le formulaire.');
+  }
+  assert.equal((await put({ avatar: ' /uploads/moi-1.webp ' })).body.avatar, '/uploads/moi-1.webp');
+  assert.equal((await s.request('GET', `/api/auth/users/${u.id}`)).body.avatar, '/uploads/moi-1.webp');
+  assert.equal((await put({ avatar: '' })).body.avatar, '', 'vide : avatar retiré');
+  for (const body of [{ name: 42 }, { phone: {} }, { bio: ['x'] }, { avatar: 7 }, { name: null }])
+    assert.equal((await put(body)).status, 400, JSON.stringify(body));
+  assert.equal((await put({ name: '  Nouveau nom ' })).body.name, 'Nouveau nom');
+
+  // Migration 015 : même règle que server/images.js sur les avatars déjà enregistrés (rejouable, ne touche que le champ)
+  const images = require('../../server/images');
+  const samples = ['/uploads/ok.webp', '/uploads/OK_2.JPG', 'https://lh3.googleusercontent.com/a/AbC-d_e=s96-c', 'https://exemple.com/a.jpg',
+    'javascript:alert(1)', 'https://lh3.googleusercontent.com@exemple.com/p', 'https://lh3.googleusercontent.com/a"x', '/uploads/a.svg',
+    'https://lh3.googleusercontent.com/' + 'a'.repeat(600)];
+  const ids = [];
+  for (const avatar of samples) {
+    const m = await s.register('avatar-mig');
+    await q('UPDATE users SET avatar = $1 WHERE id = $2', [avatar, m.id]);
+    ids.push(m.id);
+  }
+  const sql = require('node:fs').readFileSync(require('node:path').join(__dirname, '../../server/migrations/015_clean_avatars.sql'), 'utf8');
+  await q(sql); await q(sql);
+  const kept = (await q('SELECT id, avatar FROM users WHERE id = ANY($1)', [ids])).rows;
+  for (const [i, avatar] of samples.entries()) {
+    const expected = images.isUpload(avatar) || images.isGoogleAvatar(avatar) ? avatar : null;
+    assert.equal(kept.find(r => r.id === ids[i]).avatar, expected, avatar.slice(0, 60));
+  }
+  assert.equal(kept.filter(r => r.avatar).length, 3);
+});
+
 // ── Après le remplacement des requêtes « table entière » ─────────────────────
 test('favoris : une annonce en attente ou refusée n\'est ni ajoutable ni listée', async () => {
   const u = await s.register('fav-cache');

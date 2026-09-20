@@ -19,6 +19,14 @@ const isRemote = v => typeof v === 'string' && v.length <= MAX_LENGTH && REMOTE_
 
 const isListingImage = v => isUpload(v) || isRemote(v);
 
+// ── Avatar d'un compte ────────────────────────────────────────────────────────────────────────────────────────────
+// Saisi par le membre (PUT /api/auth/profile) : uniquement un fichier envoyé sur ce site. La photo d'un compte Google vient d'un jeton signé
+// par Google, jamais du membre : on ne la garde que si elle est servie par Google (lh3…lh6.googleusercontent.com), sinon le compte n'a pas
+// d'avatar. La migration 015 applique la même règle aux comptes déjà enregistrés : la garder identique.
+const GOOGLE_AVATAR     = /^https:\/\/lh[0-9]\.googleusercontent\.com\/[A-Za-z0-9\-._~/=]+$/;
+const MAX_GOOGLE_AVATAR = 500;
+const isGoogleAvatar = v => typeof v === 'string' && v.length <= MAX_GOOGLE_AVATAR && GOOGLE_AVATAR.test(v);
+
 const BAD_IMAGE = 'Image invalide : envoyez-la depuis le formulaire.';
 const TOO_MANY  = 'Trop de photos (20 maximum).';
 
@@ -32,4 +40,4 @@ function invalid({ image, photos } = {}) {
   return photos.every(isListingImage) ? null : BAD_IMAGE;
 }
 
-module.exports = { UPLOAD_PATH, REMOTE_HOSTS, MAX_LENGTH, MAX_PHOTOS, BAD_IMAGE, TOO_MANY, isUpload, isListingImage, invalid };
+module.exports = { UPLOAD_PATH, REMOTE_HOSTS, MAX_LENGTH, MAX_PHOTOS, BAD_IMAGE, TOO_MANY, isUpload, isListingImage, isGoogleAvatar, invalid };

@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { pool } = require('../db');
+const { pool, toId } = require('../db');
 const auth = require('../middleware/auth');
 
 // GET /api/alerts — mes alertes
@@ -39,9 +39,10 @@ router.post('/', auth, async (req, res) => {
 
 // DELETE /api/alerts/:id — supprimer une alerte
 router.delete('/:id', auth, async (req, res) => {
-  const r = await pool.query(
+  const id = toId(req.params.id);   // identifiant absurde : « introuvable », pas une erreur SQL
+  const r = id === null ? { rowCount: 0 } : await pool.query(
     'DELETE FROM search_alerts WHERE id = $1 AND user_id = $2 RETURNING id',
-    [req.params.id, req.user.id]
+    [id, req.user.id]
   );
   if (!r.rowCount) return res.status(404).json({ error: 'Alerte introuvable.' });
   res.json({ ok: true });

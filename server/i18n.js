@@ -80,6 +80,7 @@ const AR = {
   'Ce compte a été suspendu. Contactez le support.': 'تم تعليق هذا الحساب. تواصل مع الدعم.',
   'Utilisateur introuvable.': 'المستخدم غير موجود.',
   'Aucun champ à modifier.': 'لا يوجد أي حقل للتعديل.',
+  'Données du profil invalides.': 'بيانات الملف الشخصي غير صالحة.',
   'Email requis.': 'البريد الإلكتروني مطلوب.',
   'Token et mot de passe requis.': 'الرمز وكلمة المرور مطلوبان.',
   'Lien invalide ou expiré.': 'الرابط غير صالح أو منتهي الصلاحية.',
@@ -133,7 +134,6 @@ const AR = {
 
   // Recherche géographique
   'Coordonnées invalides.': 'الإحداثيات غير صالحة.',
-  'Équipements invalides.': 'التجهيزات غير صالحة.',
 
   // Import CSV
   'Fichier CSV requis.': 'ملف CSV مطلوب.',
