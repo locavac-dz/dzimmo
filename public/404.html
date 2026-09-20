@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Page introuvable — DzImmo</title>
+  <meta name="robots" content="noindex,follow">
+  <title>Page introuvable — DzImmo | الصفحة غير موجودة</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -11,7 +12,9 @@
     body { font-family: Arial, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f8fafc; color: #1e293b; }
     .box { text-align: center; padding: 2rem; }
     h1 { font-size: 5rem; margin: 0; color: #0C6E4F; }
-    h2 { font-size: 1.5rem; margin: 0.5rem 0 1.5rem; }
+    h2 { font-size: 1.5rem; margin: 0.5rem 0 .5rem; }
+    p { margin: 0 0 1rem; }
+    .ar { direction: rtl; margin-bottom: 1.5rem; }
     a { display: inline-block; padding: 0.75rem 1.5rem; background: #0C6E4F; color: #fff; border-radius: 8px; text-decoration: none; font-weight: 700; }
     a:hover { background: #0a5c42; }
   </style>
@@ -21,7 +24,11 @@
     <h1>404</h1>
     <h2>Page introuvable</h2>
     <p>Cette page n'existe pas ou a été supprimée.</p>
-    <a href="/">Retour à l'accueil</a>
+    <div class="ar" lang="ar" dir="rtl">
+      <h2>الصفحة غير موجودة</h2>
+      <p>هذه الصفحة غير موجودة أو تم حذفها.</p>
+    </div>
+    <a href="/">Retour à l'accueil · العودة إلى الرئيسية</a>
   </div>
 </body>
 </html>

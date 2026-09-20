@@ -10,6 +10,8 @@ const AR = {
   "Trop d'uploads. Réessayez dans 1 heure.": 'عدد كبير من عمليات الرفع. أعد المحاولة بعد ساعة.',
   'Trop de requêtes. Réessayez dans une minute.': 'طلبات كثيرة جداً. أعد المحاولة بعد دقيقة.',
   'Erreur interne du serveur.': 'خطأ داخلي في الخادم.',
+  'Route introuvable.': 'المسار غير موجود.',
+
   'Requête invalide (JSON mal formé).': 'طلب غير صالح (JSON غير سليم).',
   'Requête trop volumineuse.': 'الطلب كبير جداً.',
 

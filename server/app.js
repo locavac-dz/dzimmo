@@ -128,8 +128,13 @@ app.use('/api/newsletter', require('./routes/newsletter'));
 app.use('/api/alerts',    require('./routes/alerts'));
 
 app.get('/api/health', (_, res) => res.json({ ok: true, message: 'DzImmo API opérationnelle 🇩🇿' }));
-app.get('/404', (_, res) => res.sendFile(path.join(__dirname, '..', 'public', '404.html')));
-app.get('*', (_, res) => res.sendFile(path.join(__dirname, '..', 'public', 'index.html')));
+
+// Chemins inconnus : vraie 404 (et non la SPA en 200, que les moteurs de recherche prendraient pour une page valide).
+// Les pages du site sont servies plus haut : accueil et /annonce/… par seo.js, fichiers par express.static.
+const page404 = (_, res) => res.status(404).sendFile(path.join(__dirname, '..', 'public', '404.html'));
+app.use('/api', (_, res) => res.status(404).json({ error: 'Route introuvable.' }));
+app.get('/404', page404);
+app.use(page404);
 
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   console.error('[Erreur]', err.message);
