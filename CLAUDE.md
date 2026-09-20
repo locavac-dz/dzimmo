@@ -130,4 +130,7 @@ Windows : `demarrer.bat`
 - Emails (`server/mailer.js`, gabarits `build*`) et notifications temps réel (`server/messages.js`) sont rédigés en
   français **et** en arabe, dans la langue du destinataire (`users.lang`, dernière langue choisie sur le site).
   Tout nouvel email ou nouvelle notification doit recevoir `lang` et exister dans les deux langues.
+- Toute image saisie par un utilisateur (annonce, logo, programme…) est validée par `server/images.js` : fichier envoyé sur ce site
+  (`/uploads/…`) ou, pour les annonces de démonstration, adresse https de la liste blanche `REMOTE_HOSTS`. Ajouter un domaine
+  est une décision de sécurité (à répercuter dans la migration `011_clean_listing_images.sql`, test `listing-images.test.js`).
 - Répondre et commenter le code en français.

@@ -16,6 +16,7 @@ const AR = {
   'Nom invalide (2 à 80 caractères).': 'الاسم غير صالح (من حرفين إلى 80 حرفاً).',
   'Type de professionnel invalide.': 'نوع المهني غير صالح.',
   'Wilaya invalide.': 'الولاية غير صالحة.',
+  'Trop de photos (20 maximum).': 'عدد الصور كبير جداً (20 كحد أقصى).',
   'Texte trop long.': 'النص طويل جداً.',
   'Numéro de téléphone invalide.': 'رقم الهاتف غير صالح.',
   'Adresse web invalide (http:// ou https:// attendu).': 'عنوان الويب غير صالح (يجب أن يبدأ بـ http:// أو https://).',

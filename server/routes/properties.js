@@ -8,6 +8,7 @@ const { isRevoked } = require('../sessions');
 const quality = require('../quality');
 const expiry  = require('../expiry');
 const clicks  = require('../clicks');
+const images  = require('../images');
 
 const MODES_VALIDES    = ['vente', 'location_longue', 'location_courte'];
 const TYPES_VALIDES    = ['appartement','villa','maison','bureau','local_commercial','terrain','ferme','entrepot'];
@@ -266,6 +267,9 @@ router.post('/', auth, async (req, res) => {
     return res.status(400).json({ error: 'Mode invalide.' });
   if (!TYPES_VALIDES.includes(type_bien))
     return res.status(400).json({ error: 'Type de bien invalide.' });
+  // image et photos sont rendues dans des attributs src : uniquement nos envois (voir server/images.js)
+  const imageError = images.invalid({ image, photos });
+  if (imageError) return res.status(400).json({ error: imageError });
 
   const finalImage  = image || (Array.isArray(photos) && photos[0]) || '';
   const finalPhotos = Array.isArray(photos) && photos.length ? photos : (finalImage ? [finalImage] : []);
@@ -329,6 +333,8 @@ router.put('/:id', auth, async (req, res) => {
     return res.status(403).json({ error: 'Accès refusé.' });
 
   const { title, description, price, surface_m2, rooms, baths, status, features, image, photos } = req.body;
+  const imageError = images.invalid({ image, photos });
+  if (imageError) return res.status(400).json({ error: imageError });
   const changes = {};
   if (title       !== undefined) changes.title       = title.trim();
   if (description !== undefined) changes.description = description;
@@ -336,7 +342,7 @@ router.put('/:id', auth, async (req, res) => {
   if (surface_m2  !== undefined) changes.surface_m2  = Number(surface_m2);
   if (rooms       !== undefined) changes.rooms       = Number(rooms);
   if (baths       !== undefined) changes.baths       = Number(baths);
-  if (image       !== undefined) changes.image       = image;
+  if (image       !== undefined) changes.image       = image || '';
   if (status      !== undefined && STATUTS_VALIDES.includes(status)) {
     // Un propriétaire ne peut pas court-circuiter la modération : une annonce en attente, refusée,
     // ou archivée après un refus (motif conservé) ne repasse pas « active » sans validation.
@@ -469,6 +475,8 @@ router.post('/:id/photos', auth, async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: 'URL requise.' });
   const photos = [...(property.photos || [property.image].filter(Boolean)), url];
+  const imageError = images.invalid({ photos });   // url : une chaîne d'envoi valide ; total de photos plafonné
+  if (imageError) return res.status(400).json({ error: imageError });
   const patch = { photos: JSON.stringify(photos) };
   // Nouvelle photo sur une annonce publiée : retour en modération (sauf admin / agence vérifiée)
   const review = property.status === 'active' && !(await moderation.isTrusted(req.user));

@@ -142,7 +142,7 @@ test('agences : création, unicité, fiche avec annonces actives, modification, 
 test('demandes de contact : listes envoyées / reçues, changement de statut, annulation', async () => {
   const owner = await s.makeAdmin(await s.register('proprio'));
   const r1 = await s.register('dem1'), r2 = await s.register('dem2');
-  const p1 = await s.request('POST', '/api/properties', { token: owner.token, body: { title: 'Bien contacté 1', mode: 'vente', type_bien: 'villa', price: 1, wilaya: 'Oran', image: '/x.jpg', photos: ['/x.jpg'] } });
+  const p1 = await s.request('POST', '/api/properties', { token: owner.token, body: { title: 'Bien contacté 1', mode: 'vente', type_bien: 'villa', price: 1, wilaya: 'Oran', image: '/uploads/x.jpg', photos: ['/uploads/x.jpg'] } });
   const p2 = await s.request('POST', '/api/properties', { token: owner.token, body: { title: 'Bien contacté 2', mode: 'vente', type_bien: 'villa', price: 1, wilaya: 'Oran', photos: [] } });
   const c1 = await s.request('POST', '/api/contacts', { token: r1.token, body: { property_id: p1.body.id, type: 'info', message: 'Un' } });
   const c2 = await s.request('POST', '/api/contacts', { token: r2.token, body: { property_id: p2.body.id, type: 'visite', visit_date: '2026-12-01' } });
@@ -152,7 +152,7 @@ test('demandes de contact : listes envoyées / reçues, changement de statut, an
   assert.deepEqual(received.map(c => c.id), [c2.body.id, c1.body.id], 'plus récente d\'abord');
   assert.equal(received[0].requester_name, 'Test dem2');
   assert.equal(received[0].property_title, 'Bien contacté 2');
-  assert.equal(received[1].property_image, '/x.jpg');
+  assert.equal(received[1].property_image, '/uploads/x.jpg');
   assert.equal(received[1].message, 'Un');
   assert.ok('requester_phone' in received[0]);
   const mine = (await s.request('GET', '/api/contacts/mine', { token: r1.token })).body;
@@ -351,13 +351,13 @@ test('fiche d\'annonce : compteur de vues, identifiants invalides, historique de
   const history = (await s.request('GET', `/api/properties/${p}/price-history`)).body;
   assert.deepEqual(history.map(h => Number(h.price)), [10000000, 12000000]);
 
-  const mine = (await s.request('POST', '/api/properties', { token: o.token, body: { title: 'Photos', mode: 'vente', type_bien: 'villa', price: 1, wilaya: 'Oran', photos: ['/a.jpg'] } })).body.id;
-  const own = await s.request('POST', `/api/properties/${mine}/photos`, { token: o.token, body: { url: '/b.jpg' } });
-  assert.deepEqual(own.body.photos, ['/a.jpg', '/b.jpg']);
-  assert.equal((await s.request('POST', `/api/properties/${mine}/photos`, { token: admin.token, body: { url: '/c.jpg' } })).status, 403, 'seul le propriétaire ajoute une photo');
+  const mine = (await s.request('POST', '/api/properties', { token: o.token, body: { title: 'Photos', mode: 'vente', type_bien: 'villa', price: 1, wilaya: 'Oran', photos: ['/uploads/a.jpg'] } })).body.id;
+  const own = await s.request('POST', `/api/properties/${mine}/photos`, { token: o.token, body: { url: '/uploads/b.jpg' } });
+  assert.deepEqual(own.body.photos, ['/uploads/a.jpg', '/uploads/b.jpg']);
+  assert.equal((await s.request('POST', `/api/properties/${mine}/photos`, { token: admin.token, body: { url: '/uploads/c.jpg' } })).status, 403, 'seul le propriétaire ajoute une photo');
   assert.equal((await s.request('POST', `/api/properties/${mine}/photos`, { token: o.token, body: {} })).status, 400);
-  const del = await s.request('DELETE', `/api/properties/${mine}/photos`, { token: o.token, body: { url: '/a.jpg' } });
-  assert.deepEqual(del.body.photos, ['/b.jpg']);
+  const del = await s.request('DELETE', `/api/properties/${mine}/photos`, { token: o.token, body: { url: '/uploads/a.jpg' } });
+  assert.deepEqual(del.body.photos, ['/uploads/b.jpg']);
 });
 
 // ── Après le remplacement des requêtes « table entière » ─────────────────────
