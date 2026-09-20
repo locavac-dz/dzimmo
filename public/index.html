@@ -253,6 +253,7 @@
       box-shadow: var(--shadow); padding: 1.25rem; position: sticky; top: 80px;
     }
     .contact-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+    .field-hint { font-size: .76rem; color: var(--text-muted); margin-top: .3rem; line-height: 1.5; }
     /* Badge « annonceur vérifié » (identité ou professionnel) */
     .adv-badge {
       display: inline-flex; align-items: center; gap: .25rem; margin-top: .3rem;
@@ -1569,7 +1570,7 @@
     <div id="register-error" class="error-msg hidden"></div>
     <div class="form-row"><label data-i18n="m_name">Nom complet</label><input id="reg-name" type="text" placeholder="Prénom Nom"></div>
     <div class="form-row"><label data-i18n="m_email">Email</label><input id="reg-email" type="email" placeholder="vous@exemple.dz"></div>
-    <div class="form-row"><label data-i18n="m_phone">Téléphone</label><input id="reg-phone" type="tel" placeholder="+213 6XX XX XX XX"></div>
+    <div class="form-row"><label data-i18n="m_phone">Téléphone</label><input id="reg-phone" type="tel" placeholder="+213 6XX XX XX XX"><div class="field-hint" data-i18n-html="m_phone_hint"></div></div>
     <div class="form-row"><label data-i18n="m_pass">Mot de passe</label><input id="reg-pass" type="password" placeholder="6 caractères minimum"></div>
     <button class="btn btn-primary" style="width:100%;padding:.75rem;margin-top:.5rem" onclick="doRegister()" data-i18n="m_register">S'inscrire</button>
     <div class="form-divider" data-i18n="m_or">ou</div>
@@ -1718,6 +1719,7 @@ const TRANSLATIONS = {
     dash_tab_annonces:'Mes annonces', dash_tab_contacts:'Demandes reçues',
     dash_tab_favoris:'Favoris', dash_tab_alertes:'Alertes email', dash_tab_profil:'Profil',
     dash_tab_verif:'Vérification',
+    m_phone_hint:"Ce numéro est affiché sur vos annonces (boutons Appeler et WhatsApp). Depuis l'étranger : commencez par + et l'indicatif du pays (ex. <bdi dir=\"ltr\">+33 6 12 34 56 78</bdi>).",
     adv_identity:'Identité vérifiée', adv_business:'Professionnel vérifié',
     adv_identity_tip:"DzImmo a contrôlé une pièce d'identité de cet annonceur. Cela ne prouve pas qu'il est propriétaire du bien.",
     adv_business_tip:"DzImmo a contrôlé le registre de commerce ou l'agrément de ce professionnel.",
@@ -1965,6 +1967,7 @@ const TRANSLATIONS = {
     dash_tab_annonces:'إعلاناتي', dash_tab_contacts:'الطلبات المستلمة',
     dash_tab_favoris:'المفضلة', dash_tab_alertes:'تنبيهات البريد', dash_tab_profil:'الملف الشخصي',
     dash_tab_verif:'التوثيق',
+    m_phone_hint:'يظهر هذا الرقم على إعلاناتك (زرّا الاتصال والواتساب). من الخارج: ابدأ بـ + ثم رمز البلد (مثال: <bdi dir="ltr">+33 6 12 34 56 78</bdi>).',
     adv_identity:'الهوية موثَّقة', adv_business:'مهني موثَّق',
     adv_identity_tip:'تحقق DzImmo من وثيقة هوية هذا المعلن. وهذا لا يثبت أنه مالك العقار.',
     adv_business_tip:'تحقق DzImmo من السجل التجاري أو الاعتماد الخاص بهذا المهني.',
@@ -3364,32 +3367,56 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && document.getElementById('compare-modal').classList.contains('open')) closeCompare();
 });
 
-// Numéro algérien saisi librement (0555 12 34 56, +213 555…, 00213…, fixe 021 12 34 56…) →
-// { intl: '213555123456', national: '0555 12 34 56', mobile: true } ; null si ce n'est pas un numéro algérien exploitable.
-// WhatsApp n'est proposé que pour les mobiles (05 / 06 / 07).
-function parsePhoneDZ(raw) {
-  let d = String(raw || '').replace(/[^\d+]/g, '');
+// Indicatifs pays courants (diaspora, pays voisins) : ils servent seulement à écrire « +33 612 345 678 » lisiblement
+const COUNTRY_CODES = ['1', '7', '20', '31', '32', '33', '34', '39', '41', '44', '46', '47', '49', '90', '212', '216', '218',
+  '351', '352', '353', '961', '962', '966', '971', '974'];
+
+// Numéro saisi librement → { intl: '213555123456', national: '0555 12 34 56', mobile: true } ; null si inexploitable.
+//  · Algérie (0555 12 34 56, +213 555…, 00213…, fixe 021 12 34 56) : mobile 05 / 06 / 07 → WhatsApp proposé ; ligne fixe → appel seul.
+//  · Étranger : uniquement avec « + » ou « 00 » et l'indicatif du pays (+33 6 12 34 56 78) ; 8 à 15 chiffres. On ne sait pas si
+//    c'est un mobile (mobile: null) : Appeler et WhatsApp sont proposés (WhatsApp prévient si le numéro n'y est pas inscrit).
+//  · Sans « + » ni « 00 », un numéro commençant par 0 est lu comme algérien (0612 34 56 78 = mobile algérien).
+function parsePhone(raw) {
+  // « +33 (0)6… » : le 0 entre parenthèses ne se compose pas depuis l'étranger
+  let d = String(raw || '').replace(/\(0\)/g, '').replace(/[^\d+]/g, '');
+  const international = d.startsWith('+') || d.startsWith('00');
   if (d.startsWith('+')) d = d.slice(1);
   else if (d.startsWith('00')) d = d.slice(2);
   else if (d.startsWith('0')) d = '213' + d.slice(1);
-  if (!d.startsWith('213')) return null;
-  let n = d.slice(3);
-  if (n.startsWith('0')) n = n.slice(1);                 // « +213 0555… » : 0 de trop
-  const mobile = /^[567]\d{8}$/.test(n);
-  if (!mobile && !/^[2-4]\d{7}$/.test(n)) return null;
-  const pairs = t => t.match(/\d{2}/g).join(' ');
-  return { intl: '213' + n, mobile,
-    national: mobile ? '0' + n.slice(0, 3) + ' ' + pairs(n.slice(3)) : '0' + n.slice(0, 2) + ' ' + pairs(n.slice(2)) };
+
+  if (d.startsWith('213')) {
+    let n = d.slice(3);
+    if (n.startsWith('0')) n = n.slice(1);               // « +213 0555… » : 0 de trop
+    const mobile = /^[567]\d{8}$/.test(n);
+    if (!mobile && !/^[2-4]\d{7}$/.test(n)) return null;
+    const pairs = t => t.match(/\d{2}/g).join(' ');
+    return { intl: '213' + n, mobile,
+      national: mobile ? '0' + n.slice(0, 3) + ' ' + pairs(n.slice(3)) : '0' + n.slice(0, 2) + ' ' + pairs(n.slice(2)) };
+  }
+
+  if (!international || !/^[1-9]\d{7,14}$/.test(d)) return null;
+  // Groupes de 3 chiffres, sans jamais finir sur un chiffre isolé (…519 9 → …51 99)
+  const groups = t => {
+    const g = t.match(/\d{1,3}/g);
+    if (g.length > 1 && g[g.length - 1].length === 1) { const last = g.pop(), prev = g.pop(); g.push(prev.slice(0, 2), prev.slice(2) + last); }
+    return g.join(' ');
+  };
+  const cc = COUNTRY_CODES.filter(c => d.startsWith(c)).sort((x, y) => y.length - x.length)[0];
+  const rest = cc ? d.slice(cc.length) : '';
+  const shown = !cc ? '+' + groups(d)
+    : (cc === '1' && rest.length === 10) ? `+1 ${rest.slice(0, 3)} ${rest.slice(3, 6)} ${rest.slice(6)}`   // Amérique du Nord : 514 555 0199
+    : '+' + cc + ' ' + groups(rest);
+  return { intl: d, mobile: null, national: shown };
 }
 
 // Boutons « Appeler » et « WhatsApp » de la fiche : annonce active seulement, jamais pour son propre annonceur.
 // Numéro de l'agence pour une annonce d'agence, sinon celui du propriétaire.
 function quickContactHTML(p) {
   if (p.status !== 'active' || (currentUser && currentUser.id === p.owner_id)) return '';
-  const ph = parsePhoneDZ(p.agency_phone) || parsePhoneDZ(p.owner_phone);
+  const ph = parsePhone(p.agency_phone) || parsePhone(p.owner_phone);
   if (!ph) return '';
   const text = T('det_wa_msg').replace('{title}', p.title).replace('{url}', annonceUrl(p.id, p.title));
-  const wa = ph.mobile
+  const wa = ph.mobile !== false   // ligne fixe algérienne : pas de WhatsApp
     ? `<a class="qc-wa" href="https://wa.me/${ph.intl}?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">
          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.004 2C6.48 2 2 6.478 2 12c0 1.762.46 3.42 1.264 4.856L2 22l5.297-1.24A9.96 9.96 0 0 0 12.004 22C17.523 22 22 17.522 22 12S17.523 2 12.004 2zm0 18.2a8.19 8.19 0 0 1-4.18-1.145l-.3-.178-3.144.736.77-3.06-.195-.314A8.16 8.16 0 0 1 3.8 12c0-4.518 3.68-8.2 8.204-8.2 4.52 0 8.196 3.682 8.196 8.2 0 4.52-3.676 8.2-8.196 8.2z"/></svg>
          ${T('det_whatsapp')}</a>` : '';
@@ -4390,7 +4417,7 @@ async function dashTab(tab) {
           <h3 style="font-size:1rem;font-weight:700;margin-bottom:1.25rem">${T('prof_title')}</h3>
           <div class="form-row"><label>${T('prof_name')}</label><input id="p-name" value="${esc(currentUser.name)}"></div>
           <div class="form-row"><label>${T('prof_email')}</label><input value="${esc(currentUser.email)}" disabled style="background:#f1f5f9"></div>
-          <div class="form-row"><label>${T('prof_phone')}</label><input id="p-phone" value="${esc(currentUser.phone || '')}"></div>
+          <div class="form-row"><label>${T('prof_phone')}</label><input id="p-phone" type="tel" value="${esc(currentUser.phone || '')}"><div class="field-hint">${T('m_phone_hint')}</div></div>
           <div class="form-row"><label>${T('prof_bio')}</label><textarea id="p-bio" rows="3">${esc(currentUser.bio || '')}</textarea></div>
           <div style="display:flex;gap:.75rem;margin-top:1rem">
             <button class="btn btn-primary" style="flex:1" onclick="updateProfile()">${T('prof_save')}</button>
