@@ -8,3 +8,7 @@ backups/
 *.log
 .DS_Store
 Thumbs.db
+
+# Réglages de session Claude Code et scripts locaux d'administration
+.claude/
+scripts/renommer-role-db.ps1
