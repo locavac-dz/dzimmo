@@ -143,6 +143,19 @@ const exportLimiter = rateLimit({
 });
 app.use('/api/auth/export', exportLimiter);
 
+// Formulaires publics sans compte (page Contact, newsletter) : chaque appel peut envoyer un email ou écrire en base
+const contactLimiter = rateLimit({
+  ...shared('contact'),
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de messages. Réessayez dans 1 heure.' },
+  skip: () => process.env.NODE_ENV === 'test',
+});
+app.use('/api/contact', contactLimiter);
+app.use('/api/newsletter', contactLimiter);
+
 app.use(express.json());
 
 // Service Worker sans cache pour détecter les mises à jour
@@ -176,6 +189,7 @@ app.get('/uploads/thumbs/:width/:name', require('./thumbs').serve);
 app.use('/api/auth',       require('./routes/auth'));
 app.use('/api/properties', require('./routes/properties'));
 app.use('/api/contacts',   require('./routes/contacts'));
+app.use('/api/contact',    require('./routes/contact'));    // page Contact (visiteur → équipe), distinct des demandes sur une annonce
 app.use('/api/messages',   require('./routes/messages'));
 app.use('/api/upload',     require('./routes/upload'));
 app.use('/api/agencies',   require('./routes/agencies'));

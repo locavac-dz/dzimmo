@@ -27,6 +27,7 @@ const SAMPLES = {
   buildAdminVerificationPending:  { ownerName: 'Karim', kind: 'business', url: 'https://dzimmo.dz/' },
   buildExpiryReminder:            { name: 'Karim', propertyTitle: 'Villa X', days: 30, graceDays: 14, confirmUrl: 'https://dzimmo.dz/annonce/1-villa?renew=abc' },
   buildListingExpired:            { name: 'Karim', propertyTitle: 'Villa X', renewUrl: 'https://dzimmo.dz/annonce/1-villa?renew=abc' },
+  buildSiteContact:               { name: 'Sara', email: 'sara@exemple.dz', subject: 'partenariat', message: 'Hello there' },
 };
 
 test('chaque gabarit d\'email existe et est couvert par un jeu de données', () => {

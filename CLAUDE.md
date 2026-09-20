@@ -167,7 +167,14 @@ Windows : `demarrer.bat`
   Un test (`tests/unit/i18n-errors.test.js`) échoue si un message n'a pas de traduction.
 - Emails (`server/mailer.js`, gabarits `build*`) et notifications temps réel (`server/messages.js`) sont rédigés en
   français **et** en arabe, dans la langue du destinataire (`users.lang`, dernière langue choisie sur le site).
-  Tout nouvel email ou nouvelle notification doit recevoir `lang` et exister dans les deux langues.
+  Tout nouvel email ou nouvelle notification doit recevoir `lang` et exister dans les deux langues, et tout gabarit `build*`
+  a son jeu de données dans `tests/unit/emails-notifs.test.js`. `sendMail` renvoie `true` / `false` : une route dont l'email
+  **est** le résultat (page Contact) répond 503 en cas d'échec, jamais un faux « envoyé ».
+- **Page Contact** (`POST /api/contact`, `server/routes/contact.js`) — à ne pas confondre avec `/api/contacts` (demandes sur une annonce) :
+  le message part à `CONTACT_EMAIL`, sinon aux administrateurs (dans leur langue), avec l'adresse du visiteur en `Reply-To` seulement ;
+  il n'est ni stocké ni journalisé. Contact et newsletter partagent le limiteur `contact`.
+- Envoi d'images (`server/routes/upload.js`) : un fichier illisible est une erreur du client (400), et l'envoi multiple est tout ou rien
+  (les fichiers déjà écrits sont retirés).
 - Toute image saisie par un utilisateur (annonce, logo, programme…) est validée par `server/images.js` : fichier envoyé sur ce site
   (`/uploads/…`) ou, pour les annonces de démonstration, adresse https de la liste blanche `REMOTE_HOSTS`. Ajouter un domaine
   est une décision de sécurité (à répercuter dans la migration `011_clean_listing_images.sql`, test `listing-images.test.js`).

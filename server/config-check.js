@@ -6,7 +6,7 @@
 const path = require('path');
 const jwt  = require('jsonwebtoken');
 
-const { FROM_OK } = require('./mailer');   // la règle qu'applique réellement l'envoi (sender)
+const { FROM_OK, EMAIL_OK } = require('./mailer');   // la règle qu'applique réellement l'envoi (sender)
 const SECRET_MIN = 32;
 const PLACEHOLDER_SECRET = /changez|change[-_ ]?me|secret-de-test|example|exemple/i;
 const LOCAL = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/i;
@@ -83,6 +83,9 @@ function checkConfig(env = process.env) {
   const from = (env.EMAIL_FROM || '').trim();
   if (from && !FROM_OK.test(from))
     warnings.push('EMAIL_FROM est invalide (attendu « Nom <adresse@domaine> » ou une adresse seule) : le compte SMTP sert d\'expéditeur.');
+  const contact = (env.CONTACT_EMAIL || '').trim();
+  if (contact && !EMAIL_OK.test(contact))
+    warnings.push('CONTACT_EMAIL est invalide (une adresse seule attendue) : les messages de la page Contact vont aux administrateurs.');
   if ((env.MODERATION || 'on').toLowerCase() === 'off') warnings.push('MODERATION=off : les annonces sont publiées sans validation.');
 
   return { errors, warnings };

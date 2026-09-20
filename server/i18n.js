@@ -9,6 +9,7 @@ const AR = {
   'Trop de tentatives. Réessayez dans 15 minutes.': 'محاولات كثيرة جداً. أعد المحاولة بعد 15 دقيقة.',
   "Trop d'uploads. Réessayez dans 1 heure.": 'عدد كبير من عمليات الرفع. أعد المحاولة بعد ساعة.',
   "Trop d'exports. Réessayez dans 1 heure.": 'عدد كبير من عمليات التصدير. أعد المحاولة بعد ساعة.',
+  'Trop de messages. Réessayez dans 1 heure.': 'عدد كبير من الرسائل. أعد المحاولة بعد ساعة.',
   'Trop de requêtes. Réessayez dans une minute.': 'طلبات كثيرة جداً. أعد المحاولة بعد دقيقة.',
   'Erreur interne du serveur.': 'خطأ داخلي في الخادم.',
   'Route introuvable.': 'المسار غير موجود.',
@@ -120,6 +121,13 @@ const AR = {
   'Email et token requis.': 'البريد الإلكتروني والرمز مطلوبان.',
   'Token invalide.': 'رمز غير صالح.',
 
+  // Page Contact (visiteur → équipe du site)
+  'Nom et message requis.': 'الاسم والرسالة مطلوبان.',
+  'Nom trop long (100 caractères maximum).': 'الاسم طويل جداً (100 حرف كحد أقصى).',
+  'Message trop court (10 caractères minimum).': 'الرسالة قصيرة جداً (10 أحرف على الأقل).',
+  'Message trop long (5000 caractères maximum).': 'الرسالة طويلة جداً (5000 حرف كحد أقصى).',
+  "Votre message n'a pas pu être envoyé. Réessayez plus tard.": 'تعذّر إرسال رسالتك. أعد المحاولة لاحقاً.',
+
   // Demandes de contact et messagerie
   'Annonce et type requis.': 'الإعلان ونوع الطلب مطلوبان.',
   'Type invalide.': 'نوع غير صالح.',
@@ -147,6 +155,7 @@ const AR = {
   'Aucun fichier reçu.': 'لم يتم استلام أي ملف.',
   "Erreur lors du traitement de l'image.": 'خطأ أثناء معالجة الصورة.',
   'Erreur lors du traitement des images.': 'خطأ أثناء معالجة الصور.',
+  'Image illisible ou corrompue.': 'الصورة غير قابلة للقراءة أو تالفة.',
   'Format non supporté. Utilisez JPEG, PNG ou WebP.': 'صيغة غير مدعومة. استعمل JPEG أو PNG أو WebP.',
   'Fichier trop volumineux (10 Mo maximum).': 'الملف كبير جداً (10 ميغابايت كحد أقصى).',
   'Trop de fichiers (10 maximum).': 'عدد الملفات كبير جداً (10 كحد أقصى).',

@@ -106,6 +106,10 @@ test('emails : hôte d\'exemple, compte SMTP absent ou expéditeur invalide → 
     assert.match(check({ EMAIL_FROM: bad }).warnings.join(), /EMAIL_FROM est invalide/, bad);
     assert.equal(sender({ EMAIL_FROM: bad, EMAIL_USER: 'noreply@dzimmo.dz' }), fallback, 'mailer retombe sur le compte SMTP');
   }
+  // Destinataire de la page Contact : une adresse seule (facultative)
+  for (const ok of [undefined, '', 'contact@dzimmo.dz']) assert.deepEqual(check({ CONTACT_EMAIL: ok }).warnings, [], String(ok));
+  for (const bad of ['contact', 'a@b.dz, c@d.dz', 'Equipe <contact@dzimmo.dz>', 'a@b.dz\r\nBcc: x@y.dz'])
+    assert.match(check({ CONTACT_EMAIL: bad }).warnings.join(), /CONTACT_EMAIL est invalide/, bad);
 });
 
 test('erreurs et avertissements s\'accumulent, chacun expliqué en français', () => {

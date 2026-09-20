@@ -30,6 +30,7 @@ const UPLOAD_ERRORS = {
   LIMIT_UNEXPECTED_FILE: 'Fichier inattendu.',
 };
 const uploadErrorMessage = err => UPLOAD_ERRORS[err.code] || err.message;
+const UNREADABLE = 'Image illisible ou corrompue.';
 
 // Compresse et sauvegarde un buffer image → WebP ≤ 1920 px, qualité 82
 async function processImage(buffer) {
@@ -52,8 +53,8 @@ router.post('/', auth, (req, res) => {
       const url = await processImage(req.file.buffer);
       res.json({ url });
     } catch (e) {
-      console.error('[upload] Erreur compression :', e.message);
-      res.status(500).json({ error: 'Erreur lors du traitement de l\'image.' });
+      // Fichier renommé en .png, image tronquée… : c'est le fichier envoyé qui est en cause, pas le serveur (400 et non 500)
+      res.status(400).json({ error: UNREADABLE });
     }
   });
 });
@@ -63,13 +64,13 @@ router.post('/multiple', auth, (req, res) => {
   upload.array('files', 10)(req, res, async err => {
     if (err) return res.status(400).json({ error: uploadErrorMessage(err) });
     if (!req.files?.length) return res.status(400).json({ error: 'Aucun fichier reçu.' });
-    try {
-      const urls = await Promise.all(req.files.map(f => processImage(f.buffer)));
-      res.json({ urls });
-    } catch (e) {
-      console.error('[upload] Erreur compression :', e.message);
-      res.status(500).json({ error: 'Erreur lors du traitement des images.' });
+    // Tout ou rien : si une image est illisible, celles déjà écrites sont retirées (sinon des fichiers sans annonce s'accumulaient)
+    const done = await Promise.allSettled(req.files.map(f => processImage(f.buffer)));
+    if (done.some(d => d.status === 'rejected')) {
+      for (const d of done) if (d.status === 'fulfilled') fs.promises.unlink(path.join(UPLOAD_DIR, path.basename(d.value))).catch(() => {});
+      return res.status(400).json({ error: UNREADABLE });
     }
+    res.json({ urls: done.map(d => d.value) });
   });
 });
 

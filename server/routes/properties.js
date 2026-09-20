@@ -177,7 +177,7 @@ router.get('/estimation', async (req, res) => {
       params.push(type_bien); conds.push(`type_bien = $${params.length}`);
     }
     if (withWilaya && wilaya) {
-      params.push(wilaya); conds.push(`wilaya = $${params.length}`);
+      params.push(String(wilaya)); conds.push(`wilaya = $${params.length}`);
     }
     if (mode && MODES_VALIDES.includes(mode)) {
       params.push(mode); conds.push(`mode = $${params.length}`);
@@ -201,7 +201,8 @@ router.get('/estimation', async (req, res) => {
     };
   };
 
-  if (!mode) {
+  // Mode absent ou inconnu : refusé (un mode inconnu était ignoré, et l'estimation mélangeait loyers et prix de vente)
+  if (!mode || !MODES_VALIDES.includes(mode)) {
     return res.status(400).json({ error: 'mode_required' });
   }
 

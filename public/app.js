@@ -289,7 +289,7 @@ const TRANSLATIONS = {
     ct_ph_name:'Votre nom', ct_ph_msg:'Décrivez votre demande...',
     ct_opt_info:'Renseignement général', ct_opt_annonce:'Problème avec une annonce',
     ct_opt_compte:'Mon compte', ct_opt_partner:'Partenariat / Agence', ct_opt_autre:'Autre',
-    ct_btn_send:'Envoyer le message',
+    ct_btn_send:'Envoyer le message', ct_sent:'✅ Message envoyé ! Nous vous répondrons sous 24 h.', ct_failed:'Votre message n’a pas pu être envoyé.',
     ft_sim:'Nos simulateurs', ft_sim_prix:'Prix au m²', ft_sim_estim:'Estimation immobilière',
     ft_sim_notaire:'Frais de notaire', ft_sim_credit:'Simulation de crédit',
     sp_title:'Prix au m²', sp_sub:"Calculez le prix au m² ou le prix total d'un bien.",
@@ -632,7 +632,7 @@ const TRANSLATIONS = {
     ct_ph_name:'اسمك الكامل', ct_ph_msg:'صِف طلبك...',
     ct_opt_info:'استفسار عام', ct_opt_annonce:'مشكلة مع إعلان',
     ct_opt_compte:'حسابي', ct_opt_partner:'شراكة / وكالة', ct_opt_autre:'أخرى',
-    ct_btn_send:'إرسال الرسالة',
+    ct_btn_send:'إرسال الرسالة', ct_sent:'✅ تم إرسال رسالتك! سنرد عليك خلال 24 ساعة.', ct_failed:'تعذّر إرسال رسالتك.',
     ft_sim:'محاكياتنا', ft_sim_prix:'سعر المتر المربع', ft_sim_estim:'تقدير العقار',
     ft_sim_notaire:'رسوم التوثيق', ft_sim_credit:'محاكاة القرض',
     sp_title:'سعر المتر المربع', sp_sub:'احسب سعر المتر المربع أو السعر الإجمالي لعقارك.',
@@ -1865,10 +1865,10 @@ async function submitContactPage(event) {
   const subject = document.getElementById('cp-subject').value;
   const message = document.getElementById('cp-message').value.trim();
   try {
-    await api('/newsletter/contact', 'POST', { name, email, subject, message }).catch(() => null);
-    toast('✅ Message envoyé ! Nous vous répondrons sous 24 h.');
+    await api('/contact', 'POST', { name, email, subject, message });
+    toast(T('ct_sent'));
     event.target.reset();
-  } catch { toast('✅ Message envoyé ! Nous vous répondrons sous 24 h.'); event.target.reset(); }
+  } catch (e) { toast('❌ ' + (e.message || T('ct_failed'))); }   // échec : on le dit, et le texte saisi reste dans le formulaire
   return false;
 }
 

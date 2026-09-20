@@ -27,22 +27,29 @@ const siteUrl = () => (process.env.APP_URL || 'http://localhost:3001').replace(/
 // Expéditeur : EMAIL_FROM (« Nom <adresse> » ou adresse seule) s'il est valide, sinon le compte SMTP. Un retour à la ligne y est refusé
 // (injection d'en-têtes) ; config-check signale une valeur invalide au démarrage.
 const FROM_OK = /^(?:[^<>\r\n"@,;]{1,80}\s)?<?[^\s<>@,;"]+@[^\s<>@,;"]+\.[^\s<>@,;"]+>?$/;
+// Adresse seule (destinataire CONTACT_EMAIL, adresse de réponse d'un visiteur) : ni espace, ni séparateur de liste, ni chevrons
+const EMAIL_OK = /^[^\s@<>,;"]+@[^\s@<>,;"]+\.[^\s@<>,;"]+$/;
 function sender(env = process.env) {
   const from = (env.EMAIL_FROM || '').trim();
   return from && FROM_OK.test(from) ? from : `"DzImmo 🏢" <${env.EMAIL_USER}>`;
 }
 
-async function sendMail({ to, subject, html }) {
+// Renvoie true si le serveur SMTP a accepté le message, false sinon (SMTP non configuré, destinataire absent, refus) :
+// la plupart des appelants l'ignorent ; le formulaire de contact s'en sert pour ne pas annoncer un envoi qui n'a pas eu lieu.
+async function sendMail({ to, subject, html, replyTo }) {
   const t = getTransporter();
-  if (!t || !to) return;
+  if (!t || !to) return false;
   try {
     await t.sendMail({
       from: sender(),
       to, subject, html,
+      ...(replyTo ? { replyTo } : {}),
     });
+    return true;
   } catch (e) {
     // Les erreurs SMTP citent souvent le destinataire : pas d'adresse email dans les journaux (loi 18-07)
     console.error('[Mailer]', String(e.message).replace(/[^\s<>"']+@[^\s<>"']+/g, '<adresse>'));
+    return false;
   }
 }
 
@@ -361,6 +368,28 @@ function buildListingExpired(lang, { name, propertyTitle, renewUrl }) {
   };
 }
 
+// Message du formulaire de la page Contact, adressé à l'équipe du site (langue de l'administrateur destinataire).
+// Tout ce qui vient du visiteur passe par esc() ; son adresse sert d'adresse de réponse (replyTo), jamais d'expéditeur.
+const CONTACT_SUBJECTS = {
+  fr: { info: 'Renseignement général', annonce: 'Problème avec une annonce', compte: 'Mon compte', partenariat: 'Partenariat / Agence', autre: 'Autre' },
+  ar: { info: 'استفسار عام', annonce: 'مشكلة مع إعلان', compte: 'حسابي', partenariat: 'شراكة / وكالة', autre: 'أخرى' },
+};
+function buildSiteContact(lang, { name, email, subject, message }) {
+  const topic = CONTACT_SUBJECTS[lang === 'ar' ? 'ar' : 'fr'][subject] || CONTACT_SUBJECTS[lang === 'ar' ? 'ar' : 'fr'].autre;
+  return {
+    subject: pick(lang, `✉️ Message du site — ${topic}`, `✉️ رسالة من الموقع — ${topic}`),
+    html: wrap(`
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Nouveau message depuis la page Contact ✉️', 'رسالة جديدة من صفحة الاتصال ✉️')}</h2>
+      <p>${pick(lang, 'De', 'من')} : <strong>${esc(name)}</strong> &lt;${esc(email)}&gt;<br>
+         ${pick(lang, 'Sujet', 'الموضوع')} : <strong>${esc(topic)}</strong></p>
+      <p style="white-space:pre-wrap;background:#f7f7f7;border-radius:8px;padding:12px">${esc(message)}</p>
+      <p style="color:#777;font-size:13px">${pick(lang,
+        'Répondez directement à cet email : la réponse part vers l’adresse du visiteur.',
+        'يمكنك الرد مباشرة على هذه الرسالة: سيصل الرد إلى عنوان الزائر.')}</p>
+    `, lang),
+  };
+}
+
 // ── Envoi ────────────────────────────────────────────────────────────────────
 // Chaque fonction reçoit `lang` (langue du destinataire) ; sans lang : français.
 const send = (to, built) => sendMail({ to, ...built });
@@ -377,15 +406,16 @@ const mailVerificationDecision = d => send(d.to, buildVerificationDecision(d.lan
 const mailExpiryReminder = d => send(d.to, buildExpiryReminder(d.lang, d));
 const mailListingExpired = d => send(d.to, buildListingExpired(d.lang, d));
 const mailAdminVerificationPending = d => send(d.to, buildAdminVerificationPending(d.lang, d));
+const mailSiteContact = d => sendMail({ to: d.to, replyTo: d.email, ...buildSiteContact(d.lang, d) });
 
 module.exports = {
-  sendMail, sender, siteUrl, FROM_OK,
+  sendMail, sender, siteUrl, FROM_OK, EMAIL_OK,
   mailWelcome, mailVerifyEmail, mailPasswordReset,
   mailContactRequest, mailNewMessage, mailSearchAlert,
   mailModerationDecision, mailAdminPending, mailVerificationDecision, mailAdminVerificationPending,
-  mailExpiryReminder, mailListingExpired,
+  mailExpiryReminder, mailListingExpired, mailSiteContact, CONTACT_SUBJECTS,
   // gabarits purs (tests)
   build: { buildWelcome, buildVerifyEmail, buildPasswordReset, buildContactRequest, buildNewMessage,
            buildSearchAlert, buildModerationDecision, buildAdminPending,
-           buildVerificationDecision, buildAdminVerificationPending, buildExpiryReminder, buildListingExpired },
+           buildVerificationDecision, buildAdminVerificationPending, buildExpiryReminder, buildListingExpired, buildSiteContact },
 };
