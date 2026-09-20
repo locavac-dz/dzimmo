@@ -130,6 +130,9 @@ const AR = {
   'Le message ne peut pas dépasser 2000 caractères.': 'لا يمكن أن تتجاوز الرسالة 2000 حرف.',
   'Vous ne pouvez pas vous envoyer un message.': 'لا يمكنك إرسال رسالة إلى نفسك.',
 
+  // Recherche géographique
+  'Coordonnées invalides.': 'الإحداثيات غير صالحة.',
+
   // Import CSV
   'Fichier CSV requis.': 'ملف CSV مطلوب.',
   'Fichier CSV vide ou invalide.': 'ملف CSV فارغ أو غير صالح.',

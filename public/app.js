@@ -347,6 +347,10 @@ const TRANSLATIONS = {
     pub_photos_req:'Au moins une photo est requise avant de publier.',
     imp_btn:'📥 Importer en CSV', imp_dl_tpl:'📄 Télécharger le modèle CSV',
     imp_result_ok:'{n} annonce(s) importée(s) en modération.', imp_result_err:'{e} erreur(s).',
+    pwa_install:'📲 Installer l\'app',
+    map_zone_mode:'📍 Zone', map_zone_exit:'✕ Zone', map_zone_hint:'Cliquez sur la carte pour chercher autour de ce point.',
+    map_zone_radius:'Rayon (km)', map_zone_results:'{n} bien(s) dans un rayon de {r} km',
+    dash_stats_btn:'📈 30j', dash_stats_title:'Vues · 30 derniers jours',
   },
   ar: {
     nav_home:'الرئيسية', nav_annonces:'الإعلانات', nav_agences:'الوكالات', nav_carte:'الخريطة', menu_label:'القائمة',
@@ -686,6 +690,10 @@ const TRANSLATIONS = {
     pub_photos_req:'مطلوبة صورة واحدة على الأقل قبل النشر.',
     imp_btn:'📥 استيراد بملف CSV', imp_dl_tpl:'📄 تحميل نموذج CSV',
     imp_result_ok:'{n} إعلان مُرسَل للمراجعة.', imp_result_err:'{e} خطأ.',
+    pwa_install:'📲 تثبيت التطبيق',
+    map_zone_mode:'📍 منطقة', map_zone_exit:'✕ منطقة', map_zone_hint:'انقر على الخريطة للبحث حول هذه النقطة.',
+    map_zone_radius:'نطاق (كم)', map_zone_results:'{n} عقار في نطاق {r} كم',
+    dash_stats_btn:'📈 30ي', dash_stats_title:'المشاهدات · 30 يوماً',
   }
 };
 
@@ -886,6 +894,14 @@ async function init() {
   else if (params.get('p'))          showPage('detail', Number(params.get('p')));
   if (window.location.hash.includes('reset_token=')) openModal('login');
   if (navigator.serviceWorker) navigator.serviceWorker.register('/sw.js');
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault(); _pwaPrompt = e;
+    document.getElementById('pwa-install-btn')?.classList.remove('hidden');
+  });
+  window.addEventListener('appinstalled', () => {
+    _pwaPrompt = null;
+    document.getElementById('pwa-install-btn')?.classList.add('hidden');
+  });
 
   // Restaurer une recherche filtrée partagée par URL
   if (params.get('page') === 'annonces') {
@@ -3048,6 +3064,7 @@ async function dashTab(tab) {
               <span style="font-size:.79rem;color:var(--text-muted)">👁 <strong>${p.views||0}</strong> ${unit(p.views||0, 'u_view')}</span>
               <span style="font-size:.79rem;color:var(--text-muted)">📩 <strong>${p.contact_count||0}</strong> ${unit(p.contact_count||0, 'u_req')}</span>
               <span style="font-size:.79rem;color:var(--text-muted)" title="${esc(T('dash_clicks_tip'))}">📞 <strong>${p.call_clicks||0}</strong> · 💬 <strong>${p.whatsapp_clicks||0}</strong></span>
+              <button class="btn btn-outline btn-sm" style="font-size:.72rem;padding:.12rem .42rem;border-color:var(--text-muted);color:var(--text-muted)" onclick="showPropertyStats(${p.id},this)">${T('dash_stats_btn')}</button>
               <span style="font-size:.79rem;color:var(--text-muted)">${new Date(p.created_at).toLocaleDateString('fr-DZ')}</span>
             </div>
           </div>
@@ -3686,5 +3703,167 @@ async function loadMapMarkers() {
   } catch (e) {
     countEl.textContent = T('map_error');
     console.error('[carte]', e.message);
+  }
+}
+
+// ── PWA : bouton d'installation ──────────────────────────────────────────────
+let _pwaPrompt = null;
+
+function installPWA() {
+  if (!_pwaPrompt) return;
+  _pwaPrompt.prompt();
+  _pwaPrompt.userChoice.then(c => {
+    _pwaPrompt = null;
+    if (c.outcome === 'accepted') document.getElementById('pwa-install-btn')?.classList.add('hidden');
+  });
+}
+
+// ── Carte : recherche par rayon ──────────────────────────────────────────────
+let _mapZoneMode = false, _mapZoneCircle = null, _mapZoneCenter = null;
+
+function toggleMapZone() {
+  if (_mapZoneMode) exitMapZone(); else enterMapZone();
+}
+
+function enterMapZone() {
+  _mapZoneMode = true;
+  const btn = document.getElementById('map-zone-btn');
+  if (btn) { btn.setAttribute('data-i18n', 'map_zone_exit'); btn.textContent = T('map_zone_exit'); btn.style.borderColor = '#dc2626'; btn.style.color = '#dc2626'; }
+  document.getElementById('map-zone-hint')?.classList.remove('hidden');
+  const ctrl = document.getElementById('map-zone-controls');
+  if (ctrl) { ctrl.classList.remove('hidden'); ctrl.style.display = 'flex'; }
+  if (mapInstance) mapInstance.on('click', onMapZoneClick);
+}
+
+function exitMapZone() {
+  _mapZoneMode = false; _mapZoneCenter = null;
+  const btn = document.getElementById('map-zone-btn');
+  if (btn) { btn.setAttribute('data-i18n', 'map_zone_mode'); btn.textContent = T('map_zone_mode'); btn.style.borderColor = ''; btn.style.color = ''; }
+  document.getElementById('map-zone-hint')?.classList.add('hidden');
+  const ctrl = document.getElementById('map-zone-controls');
+  if (ctrl) { ctrl.classList.add('hidden'); ctrl.style.display = 'none'; }
+  if (_mapZoneCircle && mapInstance) { mapInstance.removeLayer(_mapZoneCircle); _mapZoneCircle = null; }
+  if (mapInstance) mapInstance.off('click', onMapZoneClick);
+  loadMapMarkers();
+}
+
+async function onMapZoneClick(e) {
+  _mapZoneCenter = e.latlng;
+  await loadNearbyMarkers();
+}
+
+function onRadiusChange(val) {
+  document.getElementById('map-zone-radius-val').textContent = val;
+  if (_mapZoneCenter) loadNearbyMarkers();
+}
+
+async function loadNearbyMarkers() {
+  if (!mapInstance || !_mapZoneCenter) return;
+  const radius = parseInt(document.getElementById('map-zone-radius').value) || 5;
+  const { lat, lng } = _mapZoneCenter;
+  const countEl = document.getElementById('map-count');
+  countEl.textContent = T('loading');
+  try {
+    const resp = await api(`/properties/nearby?lat=${lat}&lng=${lng}&radius=${radius}`);
+    const withCoords = (resp.data || []).filter(p => p.lat && p.lng);
+    if (_mapZoneCircle) mapInstance.removeLayer(_mapZoneCircle);
+    _mapZoneCircle = L.circle([lat, lng], { radius: radius * 1000, color: '#0C6E4F', fillColor: '#0C6E4F', fillOpacity: 0.08, weight: 2 }).addTo(mapInstance);
+    mapInstance.setView([lat, lng], Math.max(10, Math.round(14 - Math.log2(radius))));
+    countEl.textContent = T('map_zone_results').replace('{n}', withCoords.length).replace('{r}', radius);
+    mapCluster.clearLayers();
+    const markers = withCoords.map(p => {
+      const isVente = p.mode === 'vente';
+      const color = isVente ? '#0C6E4F' : '#f59e0b';
+      const icon = L.divIcon({
+        className: 'map-marker-icon',
+        html: `<div style="background:${color};color:#fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:2px solid #fff">${isVente ? '🏷' : '🔑'}</div>`,
+        iconSize: [34, 34], iconAnchor: [17, 17], popupAnchor: [0, -20],
+      });
+      const dist = p.distance_km != null ? `<div style="font-size:.78rem;color:#64748b;margin-bottom:4px">📏 ${p.distance_km} km</div>` : '';
+      const popup = `<div style="width:220px">
+        <img src="${esc(thumbUrl(p.image || '', 480))}" style="width:100%;height:115px;object-fit:cover;border-radius:7px;display:block;margin-bottom:8px" onerror="this.style.background='#e2e8f0'">
+        <div style="font-weight:700;font-size:.88rem;margin-bottom:3px;line-height:1.3">${esc(p.title)}</div>
+        <div style="font-size:.78rem;color:#64748b;margin-bottom:4px">📍 ${esc(p.commune || wilayaName(p.wilaya))}</div>
+        ${dist}
+        <div style="font-size:.95rem;font-weight:700;color:${color};margin-bottom:8px">${priceText(p)}</div>
+        <button onclick="showPage('detail',${p.id})" style="background:${color};color:#fff;border:none;border-radius:7px;padding:6px 0;font-size:.82rem;font-weight:600;cursor:pointer;width:100%;font-family:inherit">${T('map_view')}</button>
+      </div>`;
+      return L.marker([p.lat, p.lng], { icon }).bindPopup(popup, { maxWidth: 250 });
+    });
+    mapCluster.addLayers(markers);
+  } catch (err) {
+    countEl.textContent = T('map_error');
+    console.error('[carte zone]', err.message);
+  }
+}
+
+// ── Stats journalières d'une annonce (tableau de bord annonceur) ──────────────
+async function showPropertyStats(id, triggerBtn) {
+  // Basculer : un deuxième clic ferme le panneau
+  const existing = document.getElementById('stats-panel-' + id);
+  if (existing) { existing.remove(); if (triggerBtn) triggerBtn.style.opacity = ''; return; }
+  if (triggerBtn) triggerBtn.style.opacity = '.5';
+
+  // Trouver la carte de l'annonce pour y insérer le panneau en-dessous
+  const card = triggerBtn?.closest('[style*="background:var(--white)"]');
+  if (!card) return;
+
+  const panel = document.createElement('div');
+  panel.id = 'stats-panel-' + id;
+  panel.style.cssText = 'background:var(--white);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;margin-top:.5rem;box-shadow:var(--shadow)';
+  panel.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  card.parentElement.insertBefore(panel, card.nextSibling);
+
+  try {
+    const stats = await api('/properties/' + id + '/stats');
+    if (!stats.views.length && !stats.clicks.length) {
+      panel.innerHTML = `<div style="font-size:.83rem;color:var(--text-muted);text-align:center;padding:.5rem">${T('dash_stats_title')} — aucune donnée</div>`;
+      return;
+    }
+    // Construire l'ensemble des 30 derniers jours
+    const today = new Date();
+    const days = Array.from({ length: 30 }, (_, i) => {
+      const d = new Date(today); d.setDate(today.getDate() - 29 + i);
+      return d.toISOString().slice(0, 10);
+    });
+    const viewMap = Object.fromEntries(stats.views.map(r => [r.day, Number(r.views)]));
+    const clickMap = {};
+    stats.clicks.forEach(r => { clickMap[r.day] = (clickMap[r.day] || 0) + Number(r.n); });
+
+    const views  = days.map(d => viewMap[d] || 0);
+    const clicks = days.map(d => clickMap[d] || 0);
+    const maxV = Math.max(...views, ...clicks, 1);
+
+    const W = 520, H = 110, pad = { t: 10, b: 18, l: 28, r: 8 };
+    const pw = (W - pad.l - pad.r) / (days.length - 1);
+    const px = i => pad.l + i * pw;
+    const py = v => pad.t + (1 - v / maxV) * (H - pad.t - pad.b);
+
+    const line = (arr, color) => arr.map((v, i) => (i ? 'L' : 'M') + px(i).toFixed(1) + ',' + py(v).toFixed(1)).join(' ');
+    const dots = (arr, color) => arr.filter(v => v > 0).map((v, i) => arr[i] === v ? `<circle cx="${px(i).toFixed(1)}" cy="${py(v).toFixed(1)}" r="2.5" fill="${color}"/>` : '').join('');
+
+    // Labels : premier, dernier, et milieu
+    const lblIdx = [0, 14, 29];
+    const labels = lblIdx.map(i => {
+      const d = new Date(days[i]); const lbl = d.toLocaleDateString('fr-DZ', { day:'2-digit', month:'short' });
+      const anchor = i === 0 ? 'start' : i === 29 ? 'end' : 'middle';
+      return `<text x="${px(i).toFixed(1)}" y="${H - 3}" text-anchor="${anchor}" font-size="8" fill="currentColor" opacity=".6">${lbl}</text>`;
+    });
+
+    panel.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+        <span style="font-size:.83rem;font-weight:700;color:var(--text-muted)">${T('dash_stats_title')}</span>
+        <span style="font-size:.78rem;color:var(--text-muted)"><span style="color:#0C6E4F">— vues</span> &nbsp; <span style="color:#f59e0b">— clics</span></span>
+      </div>
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;color:var(--text);overflow:visible">
+        <line x1="${pad.l}" y1="${H - pad.b}" x2="${W - pad.r}" y2="${H - pad.b}" stroke="var(--border)" stroke-width="1"/>
+        <path d="${line(views, '#0C6E4F')}" fill="none" stroke="#0C6E4F" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="${line(clicks, '#f59e0b')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linejoin="round"/>
+        ${dots(views, '#0C6E4F')}${dots(clicks, '#f59e0b')}
+        ${labels.join('')}
+      </svg>`;
+  } catch {
+    panel.innerHTML = `<div style="font-size:.83rem;color:#dc2626;padding:.5rem">${T('dash_error')}</div>`;
+    if (triggerBtn) triggerBtn.style.opacity = '';
   }
 }

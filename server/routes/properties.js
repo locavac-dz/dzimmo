@@ -221,6 +221,37 @@ router.get('/estimation', async (req, res) => {
   }
 });
 
+// GET /api/properties/nearby?lat=X&lng=Y&radius=R — annonces proches d'un point (DOIT être avant /:id)
+router.get('/nearby', async (req, res) => {
+  const lat    = parseFloat(req.query.lat);
+  const lng    = parseFloat(req.query.lng);
+  const radius = Math.min(100, Math.max(0.1, parseFloat(req.query.radius) || 5));
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180)
+    return res.status(400).json({ error: 'Coordonnées invalides.' });
+  const { rows } = await db.pool.query(`
+    SELECT p.*,
+      u.name AS owner_name, u.phone AS owner_phone, u.avatar AS owner_avatar, u.verified_kind AS owner_verified_kind,
+      a.name AS agency_name, a.logo AS agency_logo, a.phone AS agency_phone,
+      COALESCE(a.verified, false) AS agency_verified, a.kind AS agency_kind,
+      ROUND((6371 * acos(LEAST(1.0,
+        cos(radians($1)) * cos(radians(p.lat)) * cos(radians(p.lng) - radians($2)) +
+        sin(radians($1)) * sin(radians(p.lat))
+      )))::numeric, 2) AS distance_km
+    FROM properties p
+    LEFT JOIN users    u ON u.id = p.owner_id
+    LEFT JOIN agencies a ON a.id = p.agency_id
+    WHERE p.lat IS NOT NULL AND p.lng IS NOT NULL
+      AND p.status = 'active'
+      AND (6371 * acos(LEAST(1.0,
+        cos(radians($1)) * cos(radians(p.lat)) * cos(radians(p.lng) - radians($2)) +
+        sin(radians($1)) * sin(radians(p.lat))
+      ))) <= $3
+    ORDER BY distance_km
+    LIMIT 100
+  `, [lat, lng, radius]);
+  res.json({ data: rows, total: rows.length, radius, lat, lng });
+});
+
 // GET /api/properties/:id
 router.get('/:id', optionalAuth, async (req, res) => {
   const property = await db.properties.findById(req.params.id);
@@ -238,7 +269,14 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
   // Incrémenter les vues (pas pour une annonce non publiée)
   // (incrément atomique en SQL : deux visites simultanées comptent bien deux vues)
-  if (!hidden) await db.pool.query('UPDATE properties SET views = COALESCE(views, 0) + 1 WHERE id = $1', [property.id]);
+  if (!hidden) {
+    await db.pool.query('UPDATE properties SET views = COALESCE(views, 0) + 1 WHERE id = $1', [property.id]);
+    await db.pool.query(
+      `INSERT INTO property_views_daily (property_id, day, views) VALUES ($1, CURRENT_DATE, 1)
+       ON CONFLICT (property_id, day) DO UPDATE SET views = property_views_daily.views + 1`,
+      [property.id]
+    ).catch(() => {});
+  }
 
   const [reviews, detail] = await Promise.all([
     db.pool.query(
@@ -452,6 +490,27 @@ router.get('/:id/price-history', optionalAuth, async (req, res) => {
     [Number(req.params.id)]
   );
   res.json(r.rows);
+});
+
+// GET /api/properties/:id/stats — vues journalières + clics sur 30 jours (propriétaire / admin uniquement)
+router.get('/:id/stats', auth, async (req, res) => {
+  const prop = await db.properties.findById(req.params.id);
+  if (!prop) return res.status(404).json({ error: 'Annonce introuvable.' });
+  if (prop.owner_id !== req.user.id && !req.user.is_admin)
+    return res.status(403).json({ error: 'Accès refusé.' });
+  const [views, clicks] = await Promise.all([
+    db.pool.query(
+      `SELECT day::text, views FROM property_views_daily
+       WHERE property_id = $1 AND day >= CURRENT_DATE - 29
+       ORDER BY day`, [prop.id]
+    ),
+    db.pool.query(
+      `SELECT day::text, channel, n FROM contact_clicks
+       WHERE property_id = $1 AND day >= CURRENT_DATE - 29
+       ORDER BY day`, [prop.id]
+    ),
+  ]);
+  res.json({ views: views.rows, clicks: clicks.rows });
 });
 
 // DELETE /api/properties/:id

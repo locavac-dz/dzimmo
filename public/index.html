@@ -62,6 +62,7 @@
         <button class="lang-btn active" data-lang="fr" onclick="applyLang('fr')">FR</button>
         <button class="lang-btn" data-lang="ar" onclick="applyLang('ar')">ع</button>
       </div>
+      <button id="pwa-install-btn" class="btn btn-outline btn-sm hidden" onclick="installPWA()" data-i18n="pwa_install">📲 Installer l'app</button>
       <button class="btn btn-primary btn-sm" id="btn-publier" onclick="tryPublier()" data-i18n="btn_publier">+ Publier</button>
       <div id="auth-btns" style="display:flex;gap:.4rem">
         <button class="btn btn-outline btn-sm" onclick="openModal('login')" data-i18n="btn_login">Connexion</button>
@@ -868,6 +869,13 @@
       <option value="ferme" data-i18n="s_ferme">Ferme</option>
       <option value="entrepot" data-i18n="s_entrepot">Entrepôt</option>
     </select>
+    <button id="map-zone-btn" class="btn btn-outline btn-sm" onclick="toggleMapZone()" data-i18n="map_zone_mode" style="white-space:nowrap">📍 Zone</button>
+    <div id="map-zone-controls" class="hidden" style="display:flex;align-items:center;gap:.45rem">
+      <label style="font-size:.8rem;font-weight:600;white-space:nowrap" data-i18n="map_zone_radius">Rayon (km)</label>
+      <input id="map-zone-radius" type="range" min="1" max="50" value="5" step="1" oninput="onRadiusChange(this.value)" style="width:80px">
+      <span id="map-zone-radius-val" style="font-size:.82rem;font-weight:700;min-width:1.5rem">5</span>
+    </div>
+    <span id="map-zone-hint" class="hidden" style="font-size:.78rem;color:var(--primary);font-style:italic" data-i18n="map_zone_hint">Cliquez sur la carte…</span>
     <span id="map-count" style="font-size:.8rem;color:var(--text-muted);white-space:nowrap;margin-left:auto"></span>
   </div>
   <div id="map-container" style="height:calc(100vh - 130px);min-height:420px;width:100%"></div>
