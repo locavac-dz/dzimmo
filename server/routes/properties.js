@@ -7,6 +7,7 @@ const { likePattern } = require('../pagination');
 const { isRevoked } = require('../sessions');
 const quality = require('../quality');
 const expiry  = require('../expiry');
+const clicks  = require('../clicks');
 
 const MODES_VALIDES    = ['vente', 'location_longue', 'location_courte'];
 const TYPES_VALIDES    = ['appartement','villa','maison','bureau','local_commercial','terrain','ferme','entrepot'];
@@ -375,6 +376,17 @@ router.post('/:id/confirm', async (req, res) => {
   res.json({ ok: true, status: r.status });
 });
 
+// POST /api/properties/:id/click — { channel: 'call' | 'whatsapp' } : clic sur « Appeler » / « WhatsApp » (compteur anonyme)
+// Réponse toujours 204 : rien n'indique si le clic a été compté (annonce inconnue, propre annonce, déjà compté récemment).
+router.post('/:id/click', optionalAuth, async (req, res) => {
+  const channel = req.body && req.body.channel;
+  if (!clicks.CHANNELS.includes(channel)) return res.status(400).json({ error: 'Action invalide.' });
+  const p = await db.properties.findById(req.params.id);
+  if (p && p.status === 'active' && !(req.user && req.user.id === p.owner_id) && clicks.firstRecently(req.ip, p.id, channel))
+    await clicks.record(p.id, channel);
+  res.status(204).end();
+});
+
 // GET /api/properties/:id/price-history
 router.get('/:id/price-history', optionalAuth, async (req, res) => {
   const { pool } = db;
@@ -479,10 +491,12 @@ router.get('/user/:id', optionalAuth, async (req, res) => {
   // L'annonceur voit aussi les annonces retirées automatiquement (pour les renouveler), pas celles qu'il a archivées lui-même
   const visible = self ? "(p.status != 'archived' OR p.expired_at IS NOT NULL)" : "p.status IN ('active','sold','rented')";
   const params = [uid];
-  let ownerOnly = '';   // colonnes réservées à l'annonceur : échéance du rappel, signaux de qualité
+  let ownerOnly = '';   // colonnes réservées à l'annonceur : clics, échéance du rappel, signaux de qualité
   if (self) {
     params.push(expiry.graceDays());
     ownerOnly = `,
+       (SELECT COALESCE(SUM(k.n), 0)::int FROM contact_clicks k WHERE k.property_id = p.id AND k.channel = 'call')     AS call_clicks,
+       (SELECT COALESCE(SUM(k.n), 0)::int FROM contact_clicks k WHERE k.property_id = p.id AND k.channel = 'whatsapp') AS whatsapp_clicks,
        CASE WHEN p.status = 'active' AND p.expiry_notified_at IS NOT NULL
             THEN p.expiry_notified_at + make_interval(days => $2) END                                                 AS expires_at,
        (SELECT flags FROM listing_quality WHERE property_id = p.id)                                                   AS quality_flags`;

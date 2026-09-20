@@ -211,9 +211,9 @@ test('statistiques du propriétaire (stats/me) et globales (stats)', async () =>
   await s.request('PUT', `/api/contacts/${c1.body.id}/status`, { token: o.token, body: { status: 'confirmed' } });
 
   assert.deepEqual((await s.request('GET', '/api/stats/me', { token: o.token })).body,
-    { properties: 3, active: 2, contacts: 2, pending: 1, total_views: 15 });
+    { properties: 3, active: 2, contacts: 2, pending: 1, total_views: 15, calls: 0, whatsapps: 0, calls_30d: 0, whatsapps_30d: 0 });
   assert.deepEqual((await s.request('GET', '/api/stats/me', { token: req.token })).body,
-    { properties: 0, active: 0, contacts: 0, pending: 0, total_views: 0 });
+    { properties: 0, active: 0, contacts: 0, pending: 0, total_views: 0, calls: 0, whatsapps: 0, calls_30d: 0, whatsapps_30d: 0 });
 
   const afterAll = (await s.request('GET', '/api/stats', { token: admin.token })).body;
   const delta = k => afterAll[k] - beforeAll[k];

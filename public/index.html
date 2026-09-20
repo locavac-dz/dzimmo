@@ -1837,9 +1837,11 @@ const TRANSLATIONS = {
     dash_tab_favoris:'Favoris', dash_tab_alertes:'Alertes email', dash_tab_profil:'Profil',
     dash_tab_verif:'Vérification',
     dash_st_expired:'Retirée (non confirmée)',
+    dash_calls:'Appels', dash_whatsapps:'WhatsApp',
     dash_confirmed:'Disponibilité confirmée le {date}', dash_expires:'⚠ À reconfirmer avant le {date}',
     dash_expired_note:'Retirée faute de confirmation : renouvelez-la si le bien est toujours disponible.',
     dash_still:'✓ Toujours disponible', dash_renew:'🔄 Renouveler', dash_renewed:'Merci ! Votre annonce est confirmée.',
+    dash_clicks_tip:'Clics sur « Appeler » et « WhatsApp » depuis cette annonce',
     det_confirmed:'Disponibilité confirmée le',
     rn_title:"L'annonce est-elle toujours disponible ?", rn_yes:'✓ Oui, toujours disponible', rn_no:'Non, elle est vendue / louée',
     rn_done:'Merci ! Votre annonce reste en ligne.', rn_closed:'Annonce retirée : elle est marquée comme vendue / louée.',
@@ -2102,9 +2104,11 @@ const TRANSLATIONS = {
     dash_tab_favoris:'المفضلة', dash_tab_alertes:'تنبيهات البريد', dash_tab_profil:'الملف الشخصي',
     dash_tab_verif:'التوثيق',
     dash_st_expired:'مسحوب (غير مؤكَّد)',
+    dash_calls:'المكالمات', dash_whatsapps:'واتساب',
     dash_confirmed:'تم تأكيد التوفر في {date}', dash_expires:'⚠ يجب تأكيده قبل {date}',
     dash_expired_note:'تم سحبه لعدم التأكيد: جدِّده إذا كان العقار ما زال متاحاً.',
     dash_still:'✓ ما زال متاحاً', dash_renew:'🔄 تجديد', dash_renewed:'شكراً! تم تأكيد إعلانك.',
+    dash_clicks_tip:'النقرات على «اتصال» و«واتساب» من هذا الإعلان',
     det_confirmed:'تم تأكيد التوفر في',
     rn_title:'هل ما زال الإعلان متاحاً؟', rn_yes:'✓ نعم، ما زال متاحاً', rn_no:'لا، تم بيعه / تأجيره',
     rn_done:'شكراً! يبقى إعلانك منشوراً.', rn_closed:'تم سحب الإعلان: سُجِّل على أنه مباع / مؤجَّر.',
@@ -3667,6 +3671,14 @@ function parsePhone(raw) {
   return { intl: d, mobile: null, national: shown };
 }
 
+// Compte le clic (anonyme, dédoublonné par le serveur) ; ne doit jamais retarder ni empêcher l'appel
+function trackContact(id, channel) {
+  try {
+    fetch(API + '/properties/' + id + '/click', { method: 'POST', keepalive: true,
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ channel }) }).catch(() => {});
+  } catch { /* compteur facultatif */ }
+}
+
 // Boutons « Appeler » et « WhatsApp » de la fiche : annonce active seulement, jamais pour son propre annonceur.
 // Numéro de l'agence pour une annonce d'agence, sinon celui du propriétaire.
 function quickContactHTML(p) {
@@ -3675,11 +3687,11 @@ function quickContactHTML(p) {
   if (!ph) return '';
   const text = T('det_wa_msg').replace('{title}', p.title).replace('{url}', annonceUrl(p.id, p.title));
   const wa = ph.mobile !== false   // ligne fixe algérienne : pas de WhatsApp
-    ? `<a class="qc-wa" href="https://wa.me/${ph.intl}?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">
+    ? `<a class="qc-wa" href="https://wa.me/${ph.intl}?text=${encodeURIComponent(text)}" target="_blank" rel="noopener" onclick="trackContact(${p.id},'whatsapp')">
          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.004 2C6.48 2 2 6.478 2 12c0 1.762.46 3.42 1.264 4.856L2 22l5.297-1.24A9.96 9.96 0 0 0 12.004 22C17.523 22 22 17.522 22 12S17.523 2 12.004 2zm0 18.2a8.19 8.19 0 0 1-4.18-1.145l-.3-.178-3.144.736.77-3.06-.195-.314A8.16 8.16 0 0 1 3.8 12c0-4.518 3.68-8.2 8.204-8.2 4.52 0 8.196 3.682 8.196 8.2 0 4.52-3.676 8.2-8.196 8.2z"/></svg>
          ${T('det_whatsapp')}</a>` : '';
   return `<div class="quick-contact">
-    <a class="qc-call" href="tel:+${ph.intl}" aria-label="${T('det_call')} ${ph.national}">📞 ${T('det_call')} <span class="qc-num">${ph.national}</span></a>${wa}
+    <a class="qc-call" href="tel:+${ph.intl}" onclick="trackContact(${p.id},'call')" aria-label="${T('det_call')} ${ph.national}">📞 ${T('det_call')} <span class="qc-num">${ph.national}</span></a>${wa}
   </div>`;
 }
 
@@ -4416,7 +4428,9 @@ async function loadDashboard() {
       <div class="stat-card"><div class="val">${stats.active}</div><div class="lbl">${T('dash_actives')}</div></div>
       <div class="stat-card"><div class="val">${stats.contacts}</div><div class="lbl">${T('dash_demandes')}</div></div>
       <div class="stat-card"><div class="val">${stats.pending}</div><div class="lbl">${T('dash_attente')}</div></div>
-      <div class="stat-card"><div class="val">${stats.total_views}</div><div class="lbl">${T('dash_vues')}</div></div>`;
+      <div class="stat-card"><div class="val">${stats.total_views}</div><div class="lbl">${T('dash_vues')}</div></div>
+      <div class="stat-card" title="${esc(T('dash_clicks_tip'))}"><div class="val">📞 ${stats.calls}</div><div class="lbl">${T('dash_calls')}</div></div>
+      <div class="stat-card" title="${esc(T('dash_clicks_tip'))}"><div class="val">💬 ${stats.whatsapps}</div><div class="lbl">${T('dash_whatsapps')}</div></div>`;
   } catch {}
   dashTab(currentDashTab);
 }
@@ -4593,6 +4607,7 @@ async function dashTab(tab) {
             <div style="display:flex;gap:1.1rem;margin-top:.4rem;flex-wrap:wrap">
               <span style="font-size:.79rem;color:var(--text-muted)">👁 <strong>${p.views||0}</strong> ${unit(p.views||0, 'u_view')}</span>
               <span style="font-size:.79rem;color:var(--text-muted)">📩 <strong>${p.contact_count||0}</strong> ${unit(p.contact_count||0, 'u_req')}</span>
+              <span style="font-size:.79rem;color:var(--text-muted)" title="${esc(T('dash_clicks_tip'))}">📞 <strong>${p.call_clicks||0}</strong> · 💬 <strong>${p.whatsapp_clicks||0}</strong></span>
               <span style="font-size:.79rem;color:var(--text-muted)">${new Date(p.created_at).toLocaleDateString('fr-DZ')}</span>
             </div>
           </div>

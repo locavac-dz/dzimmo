@@ -102,7 +102,13 @@ const uploadLimiter = rateLimit({
 app.use('/api/upload', uploadLimiter);
 app.use('/api/verification', uploadLimiter);   // justificatifs : mêmes limites que les photos
 
-// Liens de confirmation d'annonce (jeton de l'email) : publics, donc limités par adresse IP
+// Clics « Appeler / WhatsApp » et liens de confirmation d'annonce (jeton de l'email) : publics, donc limités par adresse IP
+const clickLimiter = rateLimit({
+  windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Trop de requêtes. Réessayez dans une minute.' },
+  skip: () => process.env.NODE_ENV === 'test',
+});
+app.use('/api/properties/:id/click', clickLimiter);
 app.use('/api/properties/:id/confirm', authLimiter);
 
 const publicStatsLimiter = rateLimit({

@@ -91,7 +91,7 @@ router.get('/me', require('../middleware/auth'), async (req, res) => {
          JOIN properties p ON p.id = c.property_id
         WHERE p.owner_id = $1`, [uid]),
   ]);
-  res.json({ ...props.rows[0], ...contacts.rows[0] });
+  res.json({ ...props.rows[0], ...contacts.rows[0], ...(await require('../clicks').totalsForOwner(uid)) });
 });
 
 module.exports = router;
