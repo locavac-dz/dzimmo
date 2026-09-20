@@ -252,6 +252,19 @@
       box-shadow: var(--shadow); padding: 1.25rem; position: sticky; top: 80px;
     }
     .contact-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+    /* Appel et WhatsApp en un clic (sans compte) ; sur mobile : barre fixée en bas de l'écran */
+    .quick-contact { display: flex; gap: .5rem; margin-bottom: 1rem; }
+    .quick-contact a {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: .4rem; min-height: 44px;
+      padding: .55rem .5rem; border-radius: 10px; font-weight: 700; font-size: .92rem; line-height: 1.2;
+      text-decoration: none; color: #fff; text-align: center;
+    }
+    .quick-contact .qc-call { background: var(--primary); }
+    .quick-contact .qc-call:hover { background: var(--primary-dark); }
+    .quick-contact .qc-wa { background: #128C7E; }
+    .quick-contact .qc-wa:hover { background: #0e7266; }
+    .quick-contact .qc-call { flex-direction: column; gap: 0; }
+    .quick-contact .qc-num { direction: ltr; unicode-bidi: isolate; white-space: nowrap; font-size: .8rem; font-weight: 600; opacity: .95; }
     .contact-form label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem; margin-top: 0.75rem; }
     .contact-form select,
     .contact-form input,
@@ -507,6 +520,12 @@
       #search-box { grid-template-columns: 1fr 1fr; }
       #search-box .full-mobile { grid-column: 1/-1; }
       .detail-body { grid-template-columns: 1fr; }
+      .quick-contact {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 801; margin: 0;
+        padding: .6rem 1rem calc(.6rem + env(safe-area-inset-bottom, 0px));
+        background: var(--white); border-top: 1px solid var(--border); box-shadow: 0 -4px 20px rgba(0,0,0,.12);
+      }
+      #detail-content.has-qc { padding-bottom: 5rem; }   /* la barre ne masque pas la fin de la fiche */
       .detail-gallery { grid-template-columns: 1fr; }
       .detail-gallery-side { display: none; }
       .msg-layout { grid-template-columns: 1fr; }
@@ -1607,6 +1626,7 @@ const TRANSLATIONS = {
     det_opt_info:"Demande d'information", det_opt_visit:'Demander une visite', det_opt_offer:'Faire une offre de prix',
     det_visit_date:'Date de visite souhaitée', det_offer_amount:"Montant de l'offre (DZD)",
     det_msg:'Message', det_msg_ph:'Votre message…', det_send_req:'Envoyer la demande', det_send_msg:'💬 Envoyer un message',
+    det_call:'Appeler', det_whatsapp:'WhatsApp', det_wa_msg:"Bonjour, votre annonce « {title} » sur DzImmo m'intéresse : {url}",
     det_login_hint:'Connectez-vous pour contacter le vendeur', det_login:'Se connecter',
     det_published:'Publié le', det_copy:'🔗 Copier', det_sent:'✅ Demande envoyée au vendeur !',
     det_price_hist:'📈 Historique des prix', det_stable:'stable', det_similar:'Biens similaires',
@@ -1829,7 +1849,8 @@ const TRANSLATIONS = {
     det_contact:'تواصل مع البائع', det_req_type:'نوع الطلب',
     det_opt_info:'طلب معلومات', det_opt_visit:'طلب زيارة', det_opt_offer:'تقديم عرض سعر',
     det_visit_date:'تاريخ الزيارة المطلوب', det_offer_amount:'مبلغ العرض (د.ج)',
-    det_msg:'الرسالة', det_msg_ph:'رسالتك…', det_send_req:'إرسال الطلب', det_send_msg:'💬 إرسال رسالة',
+    det_msg:'الرسالة', det_msg_ph:'رسالتك…', det_send_req:'إرسال الطلب', det_call:'اتصال', det_whatsapp:'واتساب', det_wa_msg:'السلام عليكم، أنا مهتم بإعلانكم «{title}» على DzImmo: {url}',
+    det_send_msg:'💬 إرسال رسالة',
     det_login_hint:'سجّل الدخول للتواصل مع البائع', det_login:'تسجيل الدخول',
     det_published:'نُشر في', det_copy:'🔗 نسخ', det_sent:'✅ تم إرسال الطلب إلى البائع!',
     det_price_hist:'📈 تطور السعر', det_stable:'مستقر', det_similar:'عقارات مشابهة',
@@ -2663,6 +2684,7 @@ function renderDetail(p) {
                 <div class="owner-agency">${T(p.agency_name ? 'det_agency' : 'det_private')}</div>
               </div>
             </div>
+            ${quickContactHTML(p)}
             ${token ? `
             <form class="contact-form" onsubmit="return submitContact(event, ${p.id}, ${p.owner_id})">
               <h3>${T('det_contact')}</h3>
@@ -2703,6 +2725,8 @@ function renderDetail(p) {
           </div>
         </div>
       </div>`;
+
+    container.classList.toggle('has-qc', !!container.querySelector('.quick-contact'));
 
     // Gestion des champs conditionnels
     const ctype = document.getElementById('ctype-' + p.id);
@@ -3268,6 +3292,40 @@ function cmpBackdrop(e) {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && document.getElementById('compare-modal').classList.contains('open')) closeCompare();
 });
+
+// Numéro algérien saisi librement (0555 12 34 56, +213 555…, 00213…, fixe 021 12 34 56…) →
+// { intl: '213555123456', national: '0555 12 34 56', mobile: true } ; null si ce n'est pas un numéro algérien exploitable.
+// WhatsApp n'est proposé que pour les mobiles (05 / 06 / 07).
+function parsePhoneDZ(raw) {
+  let d = String(raw || '').replace(/[^\d+]/g, '');
+  if (d.startsWith('+')) d = d.slice(1);
+  else if (d.startsWith('00')) d = d.slice(2);
+  else if (d.startsWith('0')) d = '213' + d.slice(1);
+  if (!d.startsWith('213')) return null;
+  let n = d.slice(3);
+  if (n.startsWith('0')) n = n.slice(1);                 // « +213 0555… » : 0 de trop
+  const mobile = /^[567]\d{8}$/.test(n);
+  if (!mobile && !/^[2-4]\d{7}$/.test(n)) return null;
+  const pairs = t => t.match(/\d{2}/g).join(' ');
+  return { intl: '213' + n, mobile,
+    national: mobile ? '0' + n.slice(0, 3) + ' ' + pairs(n.slice(3)) : '0' + n.slice(0, 2) + ' ' + pairs(n.slice(2)) };
+}
+
+// Boutons « Appeler » et « WhatsApp » de la fiche : annonce active seulement, jamais pour son propre annonceur.
+// Numéro de l'agence pour une annonce d'agence, sinon celui du propriétaire.
+function quickContactHTML(p) {
+  if (p.status !== 'active' || (currentUser && currentUser.id === p.owner_id)) return '';
+  const ph = parsePhoneDZ(p.agency_phone) || parsePhoneDZ(p.owner_phone);
+  if (!ph) return '';
+  const text = T('det_wa_msg').replace('{title}', p.title).replace('{url}', annonceUrl(p.id, p.title));
+  const wa = ph.mobile
+    ? `<a class="qc-wa" href="https://wa.me/${ph.intl}?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">
+         <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.004 2C6.48 2 2 6.478 2 12c0 1.762.46 3.42 1.264 4.856L2 22l5.297-1.24A9.96 9.96 0 0 0 12.004 22C17.523 22 22 17.522 22 12S17.523 2 12.004 2zm0 18.2a8.19 8.19 0 0 1-4.18-1.145l-.3-.178-3.144.736.77-3.06-.195-.314A8.16 8.16 0 0 1 3.8 12c0-4.518 3.68-8.2 8.204-8.2 4.52 0 8.196 3.682 8.196 8.2 0 4.52-3.676 8.2-8.196 8.2z"/></svg>
+         ${T('det_whatsapp')}</a>` : '';
+  return `<div class="quick-contact">
+    <a class="qc-call" href="tel:+${ph.intl}" aria-label="${T('det_call')} ${ph.national}">📞 ${T('det_call')} <span class="qc-num">${ph.national}</span></a>${wa}
+  </div>`;
+}
 
 function shareWhatsApp(id, title, price) {
   const url  = annonceUrl(id, title);
