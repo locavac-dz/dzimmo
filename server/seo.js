@@ -434,7 +434,7 @@ function mount(app) {
   }, 404);
 
   // Vitrine d'un professionnel : /agence/12-nom ou /promoteur/12-nom (le type doit correspondre, sinon redirection canonique)
-  app.get('/:kind(agence|promoteur)/:slug', async (req, res) => {
+  app.get(['/agence/:slug', '/promoteur/:slug'], async (req, res) => {
     const m = /^(\d+)(?:-.*)?$/.exec(req.params.slug);
     const a = m ? await agencyData.profile(Number(m[1])) : null;
     if (!a) return notFound(req, res);
@@ -454,10 +454,13 @@ function mount(app) {
   });
 
   // Pages de recherche : /vente, /location/alger, /vente/appartements/oran…
-  app.get('/:mode(vente|location|location-saisonniere)/:a?/:b?', async (req, res) => {
+  // Chemins écrits un par un : Express 5 n'accepte plus ni expression régulière ni « ? » dans un motif de route.
+  const MODE_ROOTS = [...SLUG_MODE.keys()].map(m => '/' + m);
+  const modeOf = req => req.path.split('/')[1].toLowerCase();
+  app.get(MODE_ROOTS.flatMap(r => [r, r + '/:a', r + '/:a/:b']), async (req, res) => {
     const base = baseUrl(req);
-    const f = { mode: SLUG_MODE.get(req.params.mode), type: null, wilaya: null };
-    for (const seg of [req.params.a, req.params.b].filter(Boolean)) {
+    const f = { mode: SLUG_MODE.get(modeOf(req)), type: null, wilaya: null };
+    for (const seg of [req.params.a, req.params.b].filter(Boolean).map(x => x.toLowerCase())) {   // /VENTE/Oran → 301 vers la forme canonique
       if (SLUG_TYPE.has(seg) && !f.type)            f.type = SLUG_TYPE.get(seg);
       else if (SLUG_WILAYA.has(seg) && !f.wilaya)   f.wilaya = SLUG_WILAYA.get(seg);
       else {
@@ -474,7 +477,7 @@ function mount(app) {
   });
 
   // Chemin trop profond sous /vente, /location… : vraie 404 plutôt que la SPA en 200
-  app.get('/:mode(vente|location|location-saisonniere)/*', (req, res) => send(res, {
+  app.get(MODE_ROOTS.map(r => r + '/:a/:b/*rest'), (req, res) => send(res, {
     title: 'Page introuvable | DzImmo', description: DEFAULT_DESC,
     canonical: baseUrl(req) + '/', robots: 'noindex,follow',
   }, 404));

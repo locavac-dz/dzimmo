@@ -1,6 +1,5 @@
 // Application Express (sans démarrage) : importée par server/index.js et par les tests.
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env'), quiet: true });
-require('express-async-errors');
 
 const express     = require('express');
 const cors        = require('cors');
@@ -157,6 +156,9 @@ app.use('/api/contact', contactLimiter);
 app.use('/api/newsletter', contactLimiter);
 
 app.use(express.json());
+// Express 5 laisse req.body à undefined quand la requête n'a pas de corps JSON : les routes lisent `const { … } = req.body`,
+// un POST sans corps doit donner leur 400 habituel, pas une erreur 500.
+app.use((req, _res, next) => { if (req.body === undefined) req.body = {}; next(); });
 
 // Service Worker sans cache pour détecter les mises à jour
 app.get('/sw.js', (_, res) => {

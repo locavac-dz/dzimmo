@@ -4,7 +4,9 @@ Fork de LocaVac. Package npm `dzimmo`. Domaine cible : dzimmo.dz.
 
 ## Stack
 
-- Node.js 20 + Express 4 — point d'entrée `server/index.js`
+- Node.js 20 + Express 5 — point d'entrée `server/index.js`. Les erreurs des routes `async` vont seules au gestionnaire d'erreurs
+  (plus de `express-async-errors`). Motifs de route : ni expression régulière ni `?` (`/:a?`), écrire les chemins un par un
+  (voir `server/seo.js`) ; `req.body` vaut toujours au moins `{}` (middleware dans `server/app.js`, test `tests/api/express5.test.js`).
 - PostgreSQL 17 (port **5433** en local)
 - Auth JWT (`jsonwebtoken` + `bcryptjs`)
 - Frontend HTML/CSS/JS vanilla en SPA, servi depuis `public/`
