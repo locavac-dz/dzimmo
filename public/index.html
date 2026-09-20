@@ -24,6 +24,7 @@
       --primary: #0C6E4F;
       --primary-dark: #0a5c42;
       --primary-light: #e8f5f0;
+      --adv-fg: #0C6E4F;              /* texte du badge « identité » : vert foncé en clair, menthe en sombre */
       --accent: #f59e0b;
       --red: #dc2626;
       --text: #1e293b;
@@ -41,20 +42,20 @@
       :root:not([data-theme="light"]) {
         --text: #e2e8f0; --text-secondary: #cbd5e1; --text-muted: #94a3b8;
         --border: #334155; --bg: #0f172a; --white: #1e293b; --surface: #1e293b;
-        --primary-light: rgba(12,110,79,.2);
+        --primary-light: rgba(12,110,79,.2); --adv-fg: #6ee7b7;
         --shadow: 0 2px 12px rgba(0,0,0,.35); --shadow-lg: 0 8px 32px rgba(0,0,0,.55);
       }
     }
     :root[data-theme="dark"] {
       --text: #e2e8f0; --text-secondary: #cbd5e1; --text-muted: #94a3b8;
       --border: #334155; --bg: #0f172a; --white: #1e293b; --surface: #1e293b;
-      --primary-light: rgba(12,110,79,.2);
+      --primary-light: rgba(12,110,79,.2); --adv-fg: #6ee7b7;
       --shadow: 0 2px 12px rgba(0,0,0,.35); --shadow-lg: 0 8px 32px rgba(0,0,0,.55);
     }
     :root[data-theme="light"] {
       --text: #1e293b; --text-secondary: #475569; --text-muted: #64748b;
       --border: #e2e8f0; --bg: #f8fafc; --white: #ffffff; --surface: #ffffff;
-      --primary-light: #e8f5f0;
+      --primary-light: #e8f5f0; --adv-fg: #0C6E4F;
       --shadow: 0 2px 12px rgba(0,0,0,.08); --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
     }
     *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -252,6 +253,23 @@
       box-shadow: var(--shadow); padding: 1.25rem; position: sticky; top: 80px;
     }
     .contact-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+    /* Badge « annonceur vérifié » (identité ou professionnel) */
+    .adv-badge {
+      display: inline-flex; align-items: center; gap: .25rem; margin-top: .3rem;
+      font-size: .72rem; font-weight: 700; line-height: 1.3; padding: .12rem .55rem; border-radius: 20px; cursor: help;
+    }
+    .adv-identity { background: var(--primary-light); color: var(--adv-fg); }
+    .adv-business { background: var(--primary); color: #fff; }
+    .card-body .adv-badge { margin: 0 0 .35rem; }
+    .vf-panel { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.25rem; margin-bottom: 1rem; box-shadow: var(--shadow); }
+    .vf-panel label { display: block; font-size: .85rem; font-weight: 600; margin: .8rem 0 .3rem; }
+    .vf-panel select, .vf-panel input[type=text], .vf-panel input[type=file] {
+      width: 100%; padding: .55rem .75rem; border: 1.5px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: .9rem;
+    }
+    .vf-panel .vf-radio { display: flex; gap: .5rem; align-items: flex-start; font-weight: 500; margin: .35rem 0; }
+    .vf-panel .vf-hint { font-size: .78rem; color: var(--text-muted); margin-top: .25rem; }
+    .vf-docs { display: flex; gap: .5rem; flex-wrap: wrap; margin: .6rem 0; }
+    .vf-docs img { height: 150px; max-width: 100%; border-radius: 8px; border: 1px solid var(--border); background: var(--border); cursor: zoom-in; object-fit: contain; }
     /* Appel et WhatsApp en un clic (sans compte) ; sur mobile : barre fixée en bas de l'écran */
     .quick-contact { display: flex; gap: .5rem; margin-bottom: 1rem; }
     .quick-contact a {
@@ -1044,6 +1062,7 @@
       <button class="tab-btn" onclick="dashTab('favoris')" data-i18n="dash_tab_favoris">Favoris</button>
       <button class="tab-btn" onclick="dashTab('alertes')" data-i18n="dash_tab_alertes">Alertes email</button>
       <button class="tab-btn" onclick="dashTab('profil')" data-i18n="dash_tab_profil">Profil</button>
+      <button class="tab-btn" onclick="dashTab('verification')" data-i18n="dash_tab_verif">Vérification</button>
     </div>
     <div id="dash-tab-content"><div class="loading"><div class="spinner"></div></div></div>
   </div>
@@ -1122,6 +1141,9 @@
 
     <h2 style="font-size:1.1rem;font-weight:800;margin:1.5rem 0 .5rem" data-i18n="priv_h7">7. Cookies</h2>
     <p style="line-height:1.7;color:var(--text-secondary)" data-i18n="priv_p7">La plateforme utilise uniquement des cookies strictement nécessaires au fonctionnement (session, préférences de langue, thème). Aucun cookie publicitaire ou de traçage tiers n'est déposé.</p>
+
+    <h2 style="font-size:1.1rem;font-weight:800;margin:1.5rem 0 .5rem" data-i18n="priv_h8">8. Vérification des annonceurs</h2>
+    <p style="line-height:1.7;color:var(--text-secondary)" data-i18n="priv_p8"></p>
   </div>
 </div>
 
@@ -1468,6 +1490,7 @@
     <div class="tabs" id="admin-tabs">
       <button class="tab-btn active" onclick="adminTab('resume')">📊 Résumé</button>
       <button class="tab-btn" onclick="adminTab('moderation')">🛡️ Modération <span id="mod-badge" class="hidden" style="background:#dc2626;color:#fff;border-radius:20px;padding:0 .45rem;font-size:.72rem;font-weight:800;margin-inline-start:.2rem"></span></button>
+      <button class="tab-btn" onclick="adminTab('verifications')">🪪 Vérifications <span id="verif-badge" class="hidden" style="background:#dc2626;color:#fff;border-radius:20px;padding:0 .45rem;font-size:.72rem;font-weight:800;margin-inline-start:.2rem"></span></button>
       <button class="tab-btn" onclick="adminTab('users')">👤 Utilisateurs</button>
       <button class="tab-btn" onclick="adminTab('properties')">🏠 Annonces</button>
       <button class="tab-btn" onclick="adminTab('agencies')">🏢 Agences</button>
@@ -1694,6 +1717,27 @@ const TRANSLATIONS = {
     dash_demandes:'Demandes reçues', dash_attente:'En attente', dash_vues:'Vues totales',
     dash_tab_annonces:'Mes annonces', dash_tab_contacts:'Demandes reçues',
     dash_tab_favoris:'Favoris', dash_tab_alertes:'Alertes email', dash_tab_profil:'Profil',
+    dash_tab_verif:'Vérification',
+    adv_identity:'Identité vérifiée', adv_business:'Professionnel vérifié',
+    adv_identity_tip:"DzImmo a contrôlé une pièce d'identité de cet annonceur. Cela ne prouve pas qu'il est propriétaire du bien.",
+    adv_business_tip:"DzImmo a contrôlé le registre de commerce ou l'agrément de ce professionnel.",
+    vf_title:'Faire vérifier mon compte',
+    vf_intro:"Un badge « vérifié » rassure les acheteurs et les locataires. Envoyez un justificatif : un administrateur DzImmo l'examine, puis le supprime.",
+    vf_ok_identity:'Votre identité est vérifiée depuis le {date}.',
+    vf_ok_business:'Votre statut de professionnel est vérifié depuis le {date}.',
+    vf_pending:"Votre demande est en cours d'examen (envoyée le {date}). Vous serez prévenu par notification et par email dès la décision.",
+    vf_rejected:'Votre dernière demande a été refusée : {reason}',
+    vf_cancel:'Annuler la demande', vf_cancel_confirm:'Annuler cette demande et supprimer les documents envoyés ?', vf_canceled:'Demande annulée.',
+    vf_upgrade:'Vous êtes un professionnel ? Faites aussi vérifier votre registre de commerce ou votre agrément.',
+    vf_no_ownership:"La vérification d'identité ne prouve pas la propriété d'un bien précis : elle confirme seulement qui est l'annonceur.",
+    vf_kind:'Vous êtes', vf_kind_identity:"Un particulier — pièce d'identité", vf_kind_business:'Un professionnel ou une agence — registre de commerce ou agrément',
+    vf_doc:'Type de document',
+    vf_doc_cni:"Carte nationale d'identité", vf_doc_passeport:'Passeport', vf_doc_permis:'Permis de conduire',
+    vf_doc_registre_commerce:'Registre de commerce', vf_doc_agrement:'Agrément',
+    vf_ref:"Numéro du registre de commerce ou de l'agrément",
+    vf_files:'Photos du document (recto, puis verso)', vf_files_hint:'JPEG, PNG ou WebP · 2 photos au plus, 8 Mo chacune · texte lisible, sans reflet',
+    vf_consent:"J'accepte que DzImmo examine ce document pour vérifier mon compte. Il sera supprimé dès la décision ; seul le résultat est conservé.",
+    vf_send:'Envoyer pour vérification', vf_sent:'✅ Demande envoyée. Nous vous prévenons dès la décision.', vf_need_file:'Ajoutez au moins une photo du document.',
     btn_create_alert:'🔔 Créer une alerte',
     alert_title:'Mes alertes email', alert_empty:'Aucune alerte. Créez-en une depuis la page Annonces.',
     alert_new:'+ Nouvelle alerte', alert_del:'Supprimer',
@@ -1724,7 +1768,9 @@ const TRANSLATIONS = {
     cgu_p5:"L'ensemble des éléments de la plateforme (marque, logo, interface, code) est protégé par le droit algérien de la propriété intellectuelle. Toute reproduction, même partielle, est interdite sans autorisation préalable écrite de DzImmo.",
     cgu_p6:"DzImmo se réserve le droit de modifier les présentes CGU à tout moment. Les utilisateurs en seront informés par email. La poursuite de l'utilisation de la plateforme après notification vaut acceptation des nouvelles CGU. Tout compte peut être résilié par l'utilisateur depuis son espace personnel.",
     cgu_p7:'Les présentes CGU sont soumises au droit algérien. Tout litige relève de la compétence exclusive des juridictions algériennes.',
-    priv_sub:'Dernière mise à jour : 1er janvier 2026',
+    priv_sub:'Dernière mise à jour : 20 septembre 2026',
+    priv_h8:'8. Vérification des annonceurs',
+    priv_p8:"Si vous demandez la vérification de votre compte, vous nous transmettez une pièce d'identité (particulier) ou un justificatif professionnel (registre de commerce, agrément). Ces documents servent uniquement à contrôler l'identité ou l'activité de l'annonceur : ils ne sont consultables que par les administrateurs de DzImmo, sont stockés à l'écart des données publiques du site et sont supprimés dès la décision (acceptation ou refus). Nous conservons seulement le résultat (compte vérifié ou non, date, numéro du registre de commerce ou de l'agrément pour un professionnel, motif d'un refus). Cette démarche est facultative et repose sur votre consentement ; vous pouvez demander à tout moment le retrait de la vérification.",
     priv_h1:'1. Données collectées', priv_h2:'2. Finalités du traitement',
     priv_h3:'3. Base légale', priv_h4:'4. Durée de conservation',
     priv_h5:'5. Droits des utilisateurs', priv_h6:'6. Sécurité', priv_h7:'7. Cookies',
@@ -1918,6 +1964,27 @@ const TRANSLATIONS = {
     dash_demandes:'الطلبات المستلمة', dash_attente:'في الانتظار', dash_vues:'إجمالي المشاهدات',
     dash_tab_annonces:'إعلاناتي', dash_tab_contacts:'الطلبات المستلمة',
     dash_tab_favoris:'المفضلة', dash_tab_alertes:'تنبيهات البريد', dash_tab_profil:'الملف الشخصي',
+    dash_tab_verif:'التوثيق',
+    adv_identity:'الهوية موثَّقة', adv_business:'مهني موثَّق',
+    adv_identity_tip:'تحقق DzImmo من وثيقة هوية هذا المعلن. وهذا لا يثبت أنه مالك العقار.',
+    adv_business_tip:'تحقق DzImmo من السجل التجاري أو الاعتماد الخاص بهذا المهني.',
+    vf_title:'توثيق حسابي',
+    vf_intro:'تطمئن شارة «موثَّق» المشترين والمستأجرين. أرسل وثيقة: يراجعها مشرف في DzImmo ثم يحذفها.',
+    vf_ok_identity:'هويتك موثَّقة منذ {date}.',
+    vf_ok_business:'صفتك كمهني موثَّقة منذ {date}.',
+    vf_pending:'طلبك قيد المراجعة (أُرسل في {date}). سنعلمك بإشعار وبريد إلكتروني فور اتخاذ القرار.',
+    vf_rejected:'تم رفض طلبك الأخير: {reason}',
+    vf_cancel:'إلغاء الطلب', vf_cancel_confirm:'هل تريد إلغاء هذا الطلب وحذف الوثائق المرسلة؟', vf_canceled:'تم إلغاء الطلب.',
+    vf_upgrade:'هل أنت مهني؟ وثّق أيضاً سجلك التجاري أو اعتمادك.',
+    vf_no_ownership:'توثيق الهوية لا يثبت ملكية عقار محدد، بل يؤكد فقط من هو المعلن.',
+    vf_kind:'أنت', vf_kind_identity:'فرد — وثيقة هوية', vf_kind_business:'مهني أو وكالة — سجل تجاري أو اعتماد',
+    vf_doc:'نوع الوثيقة',
+    vf_doc_cni:'بطاقة التعريف الوطنية', vf_doc_passeport:'جواز السفر', vf_doc_permis:'رخصة السياقة',
+    vf_doc_registre_commerce:'السجل التجاري', vf_doc_agrement:'الاعتماد',
+    vf_ref:'رقم السجل التجاري أو الاعتماد',
+    vf_files:'صور الوثيقة (الوجه ثم الظهر)', vf_files_hint:'JPEG أو PNG أو WebP · صورتان على الأكثر، 8 ميغابايت لكل واحدة · نص مقروء دون انعكاس ضوئي',
+    vf_consent:'أوافق على أن يراجع DzImmo هذه الوثيقة للتحقق من حسابي. ستُحذف فور اتخاذ القرار، ونحتفظ بالنتيجة فقط.',
+    vf_send:'إرسال للتوثيق', vf_sent:'✅ تم إرسال الطلب. سنعلمك فور اتخاذ القرار.', vf_need_file:'أضف صورة واحدة على الأقل للوثيقة.',
     btn_create_alert:'🔔 إنشاء تنبيه',
     alert_title:'تنبيهات البريد الإلكتروني', alert_empty:'لا توجد تنبيهات. أنشئ واحدة من صفحة الإعلانات.',
     alert_new:'+ تنبيه جديد', alert_del:'حذف',
@@ -1948,7 +2015,9 @@ const TRANSLATIONS = {
     cgu_p5:'جميع عناصر المنصة (العلامة التجارية، الشعار، الواجهة، الكود) محمية بموجب قانون الملكية الفكرية الجزائري. يُحظر أي نسخ، حتى جزئي، دون إذن كتابي مسبق من DzImmo.',
     cgu_p6:'تحتفظ DzImmo بحق تعديل هذه الشروط في أي وقت. سيتم إخطار المستخدمين عبر البريد الإلكتروني. يُعدّ الاستمرار في استخدام المنصة بعد الإخطار قبولًا للشروط الجديدة. يمكن للمستخدم إنهاء حسابه من مساحته الشخصية.',
     cgu_p7:'تخضع هذه الشروط للقانون الجزائري. يختص القضاء الجزائري حصريًا بالنظر في أي نزاع.',
-    priv_sub:'آخر تحديث: 1 يناير 2026',
+    priv_sub:'آخر تحديث: 20 سبتمبر 2026',
+    priv_h8:'8. توثيق المعلنين',
+    priv_p8:'إذا طلبتَ توثيق حسابك فإنك ترسل إلينا وثيقة هوية (للأفراد) أو وثيقة مهنية (سجل تجاري، اعتماد). تُستعمل هذه الوثائق حصراً للتحقق من هوية المعلن أو نشاطه: لا يطّلع عليها إلا مشرفو DzImmo، وتُخزَّن بمعزل عن البيانات العلنية للموقع، وتُحذف فور اتخاذ القرار (قبولاً أو رفضاً). نحتفظ بالنتيجة فقط (حساب موثَّق أو غير موثَّق، التاريخ، رقم السجل التجاري أو الاعتماد بالنسبة للمهني، وسبب الرفض). هذا الإجراء اختياري ويقوم على موافقتك، ويمكنك في أي وقت طلب سحب التوثيق.',
     priv_h1:'1. البيانات المجمعة', priv_h2:'2. أغراض المعالجة',
     priv_h3:'3. الأساس القانوني', priv_h4:'4. مدة الاحتفاظ',
     priv_h5:'5. حقوق المستخدمين', priv_h6:'6. الأمان', priv_h7:'7. ملفات تعريف الارتباط',
@@ -2591,6 +2660,7 @@ function cardHTML(p) {
         <span class="card-mode mode-${p.mode}">${MODES[p.mode] || p.mode}</span>
         <div class="card-title">${esc(p.title)}</div>
         <div class="card-loc">📍 ${esc(p.commune || wilayaName(p.wilaya))}, ${esc(wilayaName(p.wilaya))}</div>
+        ${advBadgeHTML(advKind(p))}
         <div class="card-price">${price}</div>
         <div class="card-meta">
           <span>${TYPES[p.type_bien] || p.type_bien}</span>
@@ -2682,6 +2752,7 @@ function renderDetail(p) {
               <div>
                 <div class="owner-name">${esc(p.agency_name || p.owner_name)}</div>
                 <div class="owner-agency">${T(p.agency_name ? 'det_agency' : 'det_private')}</div>
+                ${advBadgeHTML(advKind(p))}
               </div>
             </div>
             ${quickContactHTML(p)}
@@ -3347,13 +3418,14 @@ function copyPropertyLink(id) {
 // ══════════════════════════════════════════════════
 // PANNEAU ADMIN
 // ══════════════════════════════════════════════════
-const ADMIN_TABS = ['resume','moderation','users','properties','agencies','signalements','newsletter'];
+const ADMIN_TABS = ['resume','moderation','verifications','users','properties','agencies','signalements','newsletter'];
 
 function adminTab(name) {
   document.querySelectorAll('#admin-tabs .tab-btn').forEach((b, i) => {
     b.classList.toggle('active', ADMIN_TABS[i] === name);
   });
-  ({ resume: adminLoadResume, moderation: () => adminLoadModeration(), users: adminLoadUsers, properties: adminLoadProperties,
+  ({ resume: adminLoadResume, moderation: () => adminLoadModeration(), verifications: () => adminLoadVerifications(),
+     users: adminLoadUsers, properties: adminLoadProperties,
      agencies: adminLoadAgencies, signalements: adminLoadSignalements,
      newsletter: adminLoadNewsletter })[name]?.();
 }
@@ -3362,6 +3434,7 @@ async function loadAdmin() {
   if (!currentUser?.is_admin) { showPage('home'); return; }
   adminTab('resume');
   refreshModerationBadge();
+  refreshVerifBadge();
 }
 
 // ── Listes d'administration paginées (25 par page ; recherche et export CSV portent sur toutes les pages) ──
@@ -3441,6 +3514,12 @@ const MOD_REASONS_AR = {
   'Coordonnées personnelles dans le texte ou les photos': 'معلومات اتصال شخصية في النص أو الصور',
   'Annonce en double': 'إعلان مكرَّر',
   'Contenu non conforme aux CGU': 'محتوى مخالف لشروط الاستخدام',
+  'Justificatif illisible ou incomplet': 'الوثيقة غير مقروءة أو غير مكتملة',
+  'Document expiré': 'الوثيقة منتهية الصلاحية',
+  'Le nom du document ne correspond pas au compte': 'اسم الوثيقة لا يطابق اسم الحساب',
+  'Type de document non conforme': 'نوع الوثيقة غير مطابق',
+  'Registre de commerce sans activité immobilière': 'السجل التجاري لا يشمل نشاطاً عقارياً',
+  'Document non authentifiable': 'تعذّر التحقق من صحة الوثيقة',
 };
 const modReason = r => (currentLang === 'ar' && r
   ? String(r).split(' — ').map((x, i) => (i === 0 && MOD_REASONS_AR[x]) || x).join(' — ') : r);
@@ -3530,6 +3609,111 @@ async function adminModerate(id, decision) {
   } catch (e) { toast('❌ ' + e.message); }
 }
 
+// ── Vérification des annonceurs (administration) ─────────────────────────────
+const VERIF_REASONS = [
+  'Justificatif illisible ou incomplet',
+  'Document expiré',
+  'Le nom du document ne correspond pas au compte',
+  'Type de document non conforme',
+  'Registre de commerce sans activité immobilière',
+  'Document non authentifiable',
+];
+const VERIF_DOC = { cni: "Carte d'identité", passeport: 'Passeport', permis: 'Permis de conduire', registre_commerce: 'Registre de commerce', agrement: 'Agrément' };
+let _verStatus = 'pending', _verPage = 1;
+window._verDocs = {};
+
+function setVerifBadge(n) {
+  const b = document.getElementById('verif-badge');
+  if (!b) return;
+  b.textContent = n > 99 ? '99+' : n;
+  b.classList.toggle('hidden', !n);
+}
+async function refreshVerifBadge() {
+  try { setVerifBadge((await api('/admin/verifications?per_page=1')).counts.pending); } catch { /* badge facultatif */ }
+}
+
+async function adminLoadVerifications(status = _verStatus, page = 1) {
+  _verStatus = status;
+  const c = document.getElementById('admin-content');
+  c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const list = await api('/admin/verifications' + adminQuery({ status, page }));
+    _verPage = list.page;
+    setVerifBadge(list.counts.pending);
+    Object.values(window._verDocs).flat().forEach(u => URL.revokeObjectURL(u));
+    window._verDocs = {};
+    const card = v => `
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:1rem;box-shadow:var(--shadow)">
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.4rem">
+          <span class="adv-badge adv-${v.kind}" style="margin:0;cursor:default">${v.kind === 'business' ? 'Professionnel' : 'Particulier'}</span>
+          <strong>${esc(VERIF_DOC[v.doc_type] || v.doc_type)}</strong>${v.reference ? ' · n° <span dir="ltr">' + esc(v.reference) + '</span>' : ''}
+          <span style="font-size:.8rem;color:var(--text-muted)">#${v.id} · ${new Date(v.created_at).toLocaleString('fr-DZ')}</span>
+        </div>
+        <div style="font-size:.82rem;color:var(--text-muted);margin-bottom:.6rem;padding:.5rem .7rem;background:var(--bg);border-radius:8px">
+          👤 <strong>${esc(v.user_name)}</strong> · ${esc(v.user_email)} · ${esc(v.user_phone || 'tél. —')}
+          · ${v.user_email_verified ? '✅ email vérifié' : '⚠ email non vérifié'}
+          · inscrit le ${new Date(v.user_since).toLocaleDateString('fr-DZ')}${v.agency_name ? ' · 🏢 ' + esc(v.agency_name) : ''}
+          ${v.user_verified_kind ? ' · déjà vérifié : ' + esc(v.user_verified_kind) : ''}
+        </div>
+        ${v.status === 'pending' ? `
+          <div class="vf-docs" id="vf-docs-${v.id}">${Array.from({ length: v.files_count }, (_, i) => `<img alt="" id="vf-img-${v.id}-${i}" onclick="openLightbox(window._verDocs[${v.id}], ${i})">`).join('')}</div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" onclick="adminVerifDecide(${v.id},'approve')">✅ Approuver</button>
+            <button class="btn btn-outline btn-sm" style="border-color:#dc2626;color:#dc2626" onclick="document.getElementById('vf-refuse-${v.id}').classList.toggle('hidden')">❌ Refuser…</button>
+          </div>
+          <div id="vf-refuse-${v.id}" class="hidden" style="margin-top:.7rem;display:flex;flex-direction:column;gap:.5rem">
+            <select id="vf-reason-${v.id}" style="padding:.4rem .6rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:.85rem">
+              ${VERIF_REASONS.map(r => `<option>${esc(r)}</option>`).join('')}
+            </select>
+            <input id="vf-note-${v.id}" type="text" maxlength="300" placeholder="Précision pour le demandeur (facultatif)" style="padding:.4rem .6rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:.85rem">
+            <button class="btn btn-sm" style="background:#dc2626;color:#fff;align-self:flex-start" onclick="adminVerifDecide(${v.id},'reject')">Confirmer le refus</button>
+          </div>`
+        : `<div style="font-size:.85rem;color:${v.status === 'approved' ? '#166534' : '#b91c1c'}">${v.status === 'approved' ? '✅ Approuvée' : '❌ Refusée : ' + esc(v.reason || '')} · ${new Date(v.reviewed_at).toLocaleString('fr-DZ')} · documents supprimés</div>`}
+      </div>`;
+    const tab = (st, label, n) => `<button class="btn btn-sm ${status === st ? 'btn-primary' : 'btn-outline'}" onclick="adminLoadVerifications('${st}')">${label}${n === undefined ? '' : ' (' + n + ')'}</button>`;
+    c.innerHTML = `
+      <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap">
+        ${tab('pending', '⏳ En attente', list.counts.pending)}${tab('approved', '✅ Approuvées')}${tab('rejected', '❌ Refusées')}
+      </div>
+      ${list.items.length ? list.items.map(card).join('')
+        : `<div class="empty-state"><div class="icon">${status === 'pending' ? '🎉' : '📭'}</div><h3>${status === 'pending' ? 'Aucune vérification à traiter' : 'Aucune demande'}</h3></div>`}
+      ${adminPager(list, n => `adminLoadVerifications('${status}',${n})`)}`;
+    // Les justificatifs exigent le jeton : chargés par fetch puis affichés depuis des URL locales (blob:)
+    for (const v of list.items.filter(x => x.status === 'pending')) {
+      window._verDocs[v.id] = [];
+      for (let i = 0; i < v.files_count; i++) {
+        fetch(`${API}/admin/verifications/${v.id}/files/${i}`, { headers: { Authorization: 'Bearer ' + token } })
+          .then(r => r.ok ? r.blob() : Promise.reject())
+          .then(b => { const u = URL.createObjectURL(b); window._verDocs[v.id][i] = u; const el = document.getElementById(`vf-img-${v.id}-${i}`); if (el) el.src = u; })
+          .catch(() => { const el = document.getElementById(`vf-img-${v.id}-${i}`); if (el) el.alt = 'Justificatif indisponible'; });
+      }
+    }
+  } catch (e) { c.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message)}</p>`; }
+}
+
+async function adminVerifDecide(id, decision) {
+  let reason = '';
+  if (decision === 'reject') {
+    const preset = document.getElementById('vf-reason-' + id)?.value || '';
+    const note = document.getElementById('vf-note-' + id)?.value.trim() || '';
+    reason = [preset, note].filter(Boolean).join(' — ');
+  }
+  try {
+    await api('/admin/verifications/' + id + '/decision', 'PUT', { decision, reason });
+    toast(decision === 'approve' ? '✅ Compte vérifié, documents supprimés.' : '❌ Demande refusée, le demandeur est prévenu.');
+    adminLoadVerifications(_verStatus, _verPage);
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+async function adminRevokeVerif(userId) {
+  if (!confirm('Retirer la vérification de ce compte ? Son agence perdra aussi le statut vérifié.')) return;
+  try {
+    await api('/admin/verifications/revoke/' + userId, 'PUT');
+    toast('Vérification retirée.');
+    adminLoadUsers(_adminPage.users);
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
 async function adminLoadResume() {
   const c = document.getElementById('admin-content');
   c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
@@ -3572,9 +3756,10 @@ async function adminLoadUsers(page = 1) {
               <td style="font-weight:600">${esc(u.name)}</td>
               <td style="color:var(--text-muted)">${esc(u.email)}</td>
               <td>${u.is_admin ? '<span class="badge-admin">Admin</span>' : u.is_agent ? '<span class="badge-agent">Agent</span>' : '<span style="font-size:.8rem;color:var(--text-muted)">Particulier</span>'}</td>
-              <td>${u.email_verified ? '✅' : '—'}</td>
+              <td>${u.email_verified ? '✅' : '—'}${u.verified_kind ? ` <span class="adv-badge adv-${u.verified_kind}" style="margin:0;cursor:default">🛡️ ${u.verified_kind === 'business' ? 'Pro' : 'Identité'}</span>` : ''}</td>
               <td style="color:var(--text-muted);white-space:nowrap">${new Date(u.created_at).toLocaleDateString('fr-DZ')}</td>
               <td>
+                ${u.verified_kind ? `<button class="btn btn-outline btn-sm" title="Retirer la vérification" onclick="adminRevokeVerif(${u.id})">🛡️✕</button> ` : ''}
                 ${u.banned
                   ? `<button class="btn btn-outline btn-sm" style="border-color:#22c55e;color:#22c55e" onclick="adminBanUser(${u.id},false)">✔ Débannir</button>`
                   : `<button class="btn btn-outline btn-sm" style="border-color:#ef4444;color:#ef4444" onclick="adminBanUser(${u.id},true)">🚫 Bannir</button>`}
@@ -3957,13 +4142,118 @@ async function ownerArchive(id) {
   } catch (e) { toast(e.message || T('dash_error'), 'error'); }
 }
 
+// ── Vérification de l'annonceur ──────────────────────────────────────────────
+// « professionnel » (agence vérifiée ou registre de commerce contrôlé) l'emporte sur « identité »
+function advKind(p) {
+  if (p.agency_verified || p.owner_verified_kind === 'business') return 'business';
+  return p.owner_verified_kind === 'identity' ? 'identity' : null;
+}
+function advBadgeHTML(kind) {
+  return kind ? `<span class="adv-badge adv-${kind}" title="${esc(T('adv_' + kind + '_tip'))}">🛡️ ${T('adv_' + kind)}</span>` : '';
+}
+
+const VF_DOCS = { identity: ['cni', 'passeport', 'permis'], business: ['registre_commerce', 'agrement'] };
+
+// Onglet « Vérification » : état du compte, demande en cours, formulaire d'envoi
+async function dashVerification(c) {
+  let v;
+  try { v = await api('/verification/me'); }
+  catch (e) { c.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message)}</p>`; return; }
+  const date = d => new Date(d).toLocaleDateString('fr-DZ');
+  const req = v.request;
+  let status = '';
+  if (v.verified_kind) {
+    status = `<div class="adv-badge adv-${v.verified_kind}" style="font-size:.85rem;margin:0 0 .5rem">🛡️ ${T('adv_' + v.verified_kind)}</div>
+      <p style="margin:.2rem 0">${T('vf_ok_' + v.verified_kind).replace('{date}', date(v.verified_at))}</p>
+      ${v.verified_kind === 'identity' ? `<p class="vf-hint" style="font-size:.82rem;color:var(--text-muted)">${T('vf_no_ownership')}</p>` : ''}`;
+  }
+  if (req && req.status === 'pending') {
+    status += `<p style="margin:.6rem 0;color:#92400e;background:#fef3c7;border-radius:8px;padding:.6rem .8rem">⏳ ${T('vf_pending').replace('{date}', date(req.created_at))}</p>
+      <button class="btn btn-outline btn-sm" onclick="cancelVerification(${req.id})">${T('vf_cancel')}</button>`;
+  } else if (req && req.status === 'rejected' && !v.verified_kind) {
+    status += `<p style="margin:.6rem 0;color:#b91c1c;background:#fef2f2;border-radius:8px;padding:.6rem .8rem">❌ ${T('vf_rejected').replace('{reason}', esc(modReason(req.reason || '')))}</p>`;
+  }
+  // Formulaire : ni demande en cours, ni professionnel déjà vérifié ; une identité déjà vérifiée ne propose que « professionnel »
+  const canSend = !(req && req.status === 'pending') && v.verified_kind !== 'business';
+  const kinds = v.verified_kind === 'identity' ? ['business'] : ['identity', 'business'];
+  const form = !canSend ? '' : `
+    <form onsubmit="return submitVerification(event)" style="margin-top:${status ? '1rem' : '0'}">
+      ${v.verified_kind === 'identity' ? `<p style="margin:0 0 .5rem">${T('vf_upgrade')}</p>` : ''}
+      <label>${T('vf_kind')}</label>
+      ${kinds.map((k, i) => `<label class="vf-radio"><input type="radio" name="kind" value="${k}" ${i === 0 ? 'checked' : ''} onchange="vfKindChanged(this.form)"> <span>${T('vf_kind_' + k)}</span></label>`).join('')}
+      <label>${T('vf_doc')}</label>
+      <select name="doc_type"></select>
+      <div id="vf-ref-wrap" class="hidden">
+        <label>${T('vf_ref')}</label>
+        <input type="text" name="reference" maxlength="40" dir="ltr">
+      </div>
+      <label>${T('vf_files')}</label>
+      <input type="file" name="files" accept="image/jpeg,image/png,image/webp" multiple>
+      <div class="vf-hint">${T('vf_files_hint')}</div>
+      <label class="vf-radio" style="margin-top:1rem"><input type="checkbox" name="consent" required> <span>${T('vf_consent')}</span></label>
+      <button type="submit" class="btn btn-primary" style="margin-top:.8rem">${T('vf_send')}</button>
+    </form>`;
+  c.innerHTML = `<div class="vf-panel">
+    <h3 style="margin:0 0 .4rem;font-size:1.05rem">🛡️ ${T('vf_title')}</h3>
+    ${v.verified_kind ? '' : `<p style="margin:0 0 .6rem;color:var(--text-muted);font-size:.9rem">${T('vf_intro')}</p>`}
+    ${status}${form}
+  </div>`;
+  const f = c.querySelector('form');
+  if (f) vfKindChanged(f);
+}
+
+// Adapte la liste des documents et le champ « numéro » au type choisi (particulier / professionnel)
+function vfKindChanged(f) {
+  const kind = f.kind.value;
+  f.doc_type.innerHTML = VF_DOCS[kind].map(d => `<option value="${d}">${T('vf_doc_' + d)}</option>`).join('');
+  document.getElementById('vf-ref-wrap').classList.toggle('hidden', kind !== 'business');
+  f.reference.required = kind === 'business';
+}
+
+async function submitVerification(e) {
+  e.preventDefault();
+  const f = e.target;
+  const files = [...f.files.files];
+  if (!files.length) { toast(T('vf_need_file')); return false; }
+  const fd = new FormData();
+  fd.append('kind', f.kind.value);
+  fd.append('doc_type', f.doc_type.value);
+  fd.append('reference', f.reference.value);
+  fd.append('consent', f.consent.checked ? 'true' : 'false');
+  files.slice(0, 2).forEach(x => fd.append('files', x));
+  const btn = f.querySelector('button[type=submit]');
+  btn.disabled = true;
+  try {
+    const r = await fetch(API + '/verification', { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'X-Lang': currentLang }, body: fd });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || T('err_server'));
+    toast(T('vf_sent'));
+    dashTab('verification');
+  } catch (err) {
+    toast('❌ ' + (err instanceof TypeError ? T('err_network') : err.message));
+    btn.disabled = false;
+  }
+  return false;
+}
+
+async function cancelVerification(id) {
+  if (!confirm(T('vf_cancel_confirm'))) return;
+  try {
+    await api('/verification/' + id, 'DELETE');
+    toast(T('vf_canceled'));
+    dashTab('verification');
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
 async function dashTab(tab) {
   currentDashTab = tab;
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
-    b.classList.toggle('active', ['mes-annonces','mes-contacts','favoris','alertes','profil'][i] === tab);
+    b.classList.toggle('active', ['mes-annonces','mes-contacts','favoris','alertes','profil','verification'][i] === tab);
   });
   const c = document.getElementById('dash-tab-content');
   c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  if (tab === 'verification') { await dashVerification(c); return; }
 
   if (tab === 'mes-annonces') {
     const data = await api('/properties/user/' + currentUser.id);

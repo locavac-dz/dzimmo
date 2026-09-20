@@ -19,6 +19,7 @@ function safe(u) {
     is_agent: u.is_agent, is_admin: u.is_admin || false,
     bio: u.bio || '', avatar: u.avatar || '',
     email_verified: u.email_verified || false,
+    verified_kind: u.verified_kind || null,
     created_at: u.created_at,
   };
 }
@@ -130,6 +131,7 @@ router.get('/verify-email', async (req, res) => {
 // DELETE /api/auth/me — suppression de compte (RGPD)
 router.delete('/me', require('../middleware/auth'), async (req, res) => {
   const uid = req.user.id;
+  await require('../verification').purgeUser(uid);   // justificatifs en attente : supprimés avec le compte
   await db.pool.query('DELETE FROM messages WHERE from_id = $1 OR to_id = $1', [uid]);
   await db.pool.query('DELETE FROM favorites WHERE user_id = $1', [uid]);
   await db.pool.query('DELETE FROM contact_requests WHERE user_id = $1', [uid]);
@@ -146,6 +148,7 @@ router.get('/users/:id', async (req, res) => {
   res.json({
     id: user.id, name: user.name, bio: user.bio || '',
     avatar: user.avatar || '', is_agent: user.is_agent,
+    verified_kind: user.verified_kind || null,
     created_at: user.created_at,
     property_count,
   });

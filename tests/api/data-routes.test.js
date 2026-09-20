@@ -229,7 +229,7 @@ test('profil public : compteur d\'annonces actives seulement', async () => {
   await s.request('PUT', `/api/admin/properties/${a}/moderate`, { token: admin.token, body: { decision: 'approve' } });
   const p = (await s.request('GET', `/api/auth/users/${o.id}`)).body;
   assert.equal(p.property_count, 1);
-  assert.deepEqual(Object.keys(p).sort(), ['avatar', 'bio', 'created_at', 'id', 'is_agent', 'name', 'property_count']);
+  assert.deepEqual(Object.keys(p).sort(), ['avatar', 'bio', 'created_at', 'id', 'is_agent', 'name', 'property_count', 'verified_kind']);
   assert.equal((await s.request('GET', '/api/auth/users/999999')).status, 404);
 });
 

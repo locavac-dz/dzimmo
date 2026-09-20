@@ -12,6 +12,20 @@ const AR = {
   'Erreur interne du serveur.': 'خطأ داخلي في الخادم.',
   'Route introuvable.': 'المسار غير موجود.',
 
+  // Vérification des annonceurs
+  'Type de vérification invalide.': 'نوع التوثيق غير صالح.',
+  'Type de document invalide.': 'نوع الوثيقة غير صالح.',
+  "Numéro du registre de commerce ou de l'agrément requis.": 'رقم السجل التجاري أو الاعتماد مطلوب.',
+  'Votre consentement est requis pour examiner le justificatif.': 'موافقتك مطلوبة لمراجعة الوثيقة.',
+  'Au moins un justificatif (photo) est requis.': 'وثيقة واحدة على الأقل (صورة) مطلوبة.',
+  'Fichier trop volumineux (8 Mo maximum).': 'الملف كبير جداً (8 ميغابايت كحد أقصى).',
+  'Trop de fichiers (2 maximum).': 'عدد الملفات كبير جداً (2 كحد أقصى).',
+  "Ce justificatif n'est pas une image valide.": 'هذه الوثيقة ليست صورة صالحة.',
+  'Votre compte est déjà vérifié.': 'حسابك موثَّق بالفعل.',
+  'Une demande de vérification est déjà en cours.': 'يوجد طلب توثيق قيد المعالجة بالفعل.',
+  'Justificatif introuvable.': 'الوثيقة غير موجودة.',
+  'Demande déjà traitée.': 'تمت معالجة هذا الطلب من قبل.',
+  "Ce compte n'est pas vérifié.": 'هذا الحساب غير موثَّق.',
   'Requête invalide (JSON mal formé).': 'طلب غير صالح (JSON غير سليم).',
   'Requête trop volumineuse.': 'الطلب كبير جداً.',
 

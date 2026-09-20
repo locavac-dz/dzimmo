@@ -70,7 +70,10 @@ test('toutes les clés T(\'…\') utilisées dans le JavaScript existent en fran
     // pluriels : unit(n, base) lit base_one / base_two / base_many
     u_room_: ['one', 'two', 'many'], u_bath_: ['one', 'two', 'many'], u_view_: ['one', 'two', 'many'], st_ad_: ['one', 'two', 'many'],
     u_req_: ['one', 'two', 'many'],
-    dash_t_: ['visite', 'offre', 'info'], dash_c_: ['pending', 'confirmed', 'rejected', 'done'] };
+    dash_t_: ['visite', 'offre', 'info'], dash_c_: ['pending', 'confirmed', 'rejected', 'done'],
+    // badges de vérification et types de justificatifs
+    adv_: ['identity', 'business', 'identity_tip', 'business_tip'], vf_ok_: ['identity', 'business'], vf_kind_: ['identity', 'business'],
+    vf_doc_: ['cni', 'passeport', 'permis', 'registre_commerce', 'agrement'] };
   for (const [prefix, list] of Object.entries(dyn))
     for (const v of list) for (const lang of ['fr', 'ar'])
       assert.ok((prefix + v) in T[lang], `${prefix}${v} manquante (${lang})`);
@@ -117,9 +120,9 @@ test('listes de prix : montants formatés avec séparateurs insécables (sinon i
   assert.match(html, /data-i18n="filter_no_limit">Sans limite/);
 });
 
-test('le site envoie sa langue à l\'API (en-tête X-Lang) sur les appels JSON et l\'envoi de photos', () => {
+test('le site envoie sa langue à l\'API (en-tête X-Lang) sur les appels JSON, l\'envoi de photos et de justificatifs', () => {
   const sent = html.match(/'X-Lang': currentLang/g) || [];
-  assert.equal(sent.length, 2, 'api() et l\'upload des photos doivent envoyer X-Lang');
+  assert.equal(sent.length, 3, 'api(), l\'upload des photos et l\'envoi des justificatifs doivent envoyer X-Lang');
 });
 
 test('la liste des wilayas du serveur est identique à celle du front', () => {

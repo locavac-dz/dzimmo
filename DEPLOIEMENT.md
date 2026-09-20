@@ -34,6 +34,11 @@ Valeurs à renseigner dans `.env` :
 | `CORS_ORIGINS` | `https://dzimmo.dz` |
 | `TRUST_PROXY` | `1` (Nginx devant l'application : sinon tous les visiteurs partagent la même limite de débit) |
 | `EMAIL_*` | compte SMTP : sans lui, aucun email de confirmation, de mot de passe oublié ni d'alerte |
+| `VERIFICATION_DIR` | dossier **privé** des justificatifs de vérification (défaut : `private/verification` dans le projet) |
+
+Le dossier des justificatifs ne doit jamais être servi par Nginx ni placé sous `public/`. L'utilisateur qui lance
+l'application doit pouvoir y écrire (`chmod 700`). Les fichiers y sont supprimés dès que l'administrateur décide : il
+n'y a rien à sauvegarder, et il ne faut pas l'inclure dans les sauvegardes du § 7.
 
 ## 3. pm2
 
@@ -110,7 +115,7 @@ Vérifier aussi qu'un email de confirmation arrive (inscription d'un compte de t
 
 ## 7. Sauvegardes
 
-À planifier (cron) : la base **et** les photos envoyées.
+À planifier (cron) : la base **et** les photos envoyées (pas le dossier des justificatifs, voir § 2).
 
 ```bash
 pg_dump -Fc dzimmo > /srv/backups/dzimmo-$(date +%F).dump

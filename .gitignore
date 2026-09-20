@@ -3,6 +3,7 @@ node_modules/
 .env.production
 dzimmo.json
 public/uploads/
+private/
 backups/
 *.log
 .DS_Store

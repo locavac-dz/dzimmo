@@ -22,6 +22,8 @@ async function withOwner(property) {
     owner_name:   owner ? owner.name   : 'Inconnu',
     owner_phone:  owner ? owner.phone  : null,
     owner_avatar: owner ? owner.avatar : null,
+    owner_verified_kind: owner ? owner.verified_kind || null : null,
+    agency_verified: agency ? !!agency.verified : false,
     agency_name:  agency ? agency.name  : null,
     agency_logo:  agency ? agency.logo  : null,
     agency_phone: agency ? agency.phone : null,
@@ -87,8 +89,8 @@ router.get('/', optionalAuth, async (req, res) => {
     pool.query(`SELECT COUNT(*) FROM properties p ${where}`, params),
     pool.query(
       `SELECT p.*,
-         u.name   AS owner_name,  u.phone  AS owner_phone,  u.avatar AS owner_avatar,
-         a.name   AS agency_name, a.logo   AS agency_logo,  a.phone  AS agency_phone
+         u.name   AS owner_name,  u.phone  AS owner_phone,  u.avatar AS owner_avatar,  u.verified_kind AS owner_verified_kind,
+         a.name   AS agency_name, a.logo   AS agency_logo,  a.phone  AS agency_phone,  COALESCE(a.verified, false) AS agency_verified
        FROM (SELECT p.* FROM properties p
               ${where}
               ORDER BY ${orderBy}

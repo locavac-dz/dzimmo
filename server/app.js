@@ -92,6 +92,7 @@ const uploadLimiter = rateLimit({
   skip: () => process.env.NODE_ENV === 'test',
 });
 app.use('/api/upload', uploadLimiter);
+app.use('/api/verification', uploadLimiter);   // justificatifs : mêmes limites que les photos
 
 const publicStatsLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -123,7 +124,9 @@ app.use('/api/upload',     require('./routes/upload'));
 app.use('/api/agencies',   require('./routes/agencies'));
 app.use('/api/favorites',  require('./routes/favorites'));
 app.use('/api/stats',      require('./routes/stats'));
+app.use('/api/admin/verifications', require('./routes/admin-verifications'));
 app.use('/api/admin',      require('./routes/admin'));
+app.use('/api/verification', require('./routes/verification'));
 app.use('/api/newsletter', require('./routes/newsletter'));
 app.use('/api/alerts',    require('./routes/alerts'));
 

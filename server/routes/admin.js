@@ -24,7 +24,7 @@ router.get('/users', admin, async (req, res) => {
   const cond = searchCondition(req.query.q, ['name', 'email'], params);
   // Colonnes listées : le hash du mot de passe ne quitte jamais la base
   res.json(await paginate(pool, {
-    columns: 'id, name, email, phone, is_agent, is_admin, email_verified, banned, created_at',
+    columns: 'id, name, email, phone, is_agent, is_admin, email_verified, verified_kind, banned, created_at',
     from: 'users', where: cond ? 'WHERE ' + cond : '', params, orderBy: 'id DESC', query: req.query }));
 });
 

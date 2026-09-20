@@ -67,6 +67,13 @@ Windows : `demarrer.bat`
 - Un bien peut être publié par un **particulier** ou une **agence**
 - Les demandes de contact (visite, renseignement, offre) remplacent les réservations
 - Avis sur les biens uniquement par des utilisateurs ayant soumis une demande de contact confirmée
+- **Vérification des annonceurs** (`server/verification.js`) : un utilisateur envoie une pièce d'identité (particulier)
+  ou un registre de commerce / agrément (professionnel) ; un admin l'examine (Administration → Vérifications).
+  Approuvé : `users.verified_kind` (`identity` | `business`) donne le badge public ; `business` vérifie aussi l'agence du
+  compte, qui publie alors sans modération. Le badge ne prouve **pas** la propriété d'un bien (l'infobulle le dit).
+  Les justificatifs sont des données sensibles (loi 18-07) : dossier privé `VERIFICATION_DIR` (jamais sous `public/`),
+  images ré-encodées sans métadonnées, consultables des seuls admins via l'API, **supprimés dès la décision** — ne jamais
+  les garder, les journaliser ni les inclure dans une sauvegarde ; on ne conserve que le résultat.
 - Interface bilingue FR / AR — toute nouvelle chaîne dans les deux langues
 - Montants en **DZD**
 - Conformité RGPD + loi algérienne 18-07

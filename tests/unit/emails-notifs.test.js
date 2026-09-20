@@ -22,6 +22,8 @@ const SAMPLES = {
   buildSearchAlert:        { name: 'Karim', properties: [{ title: 'Villa X', wilaya: 'Oran', price: 5000000 }], alertCriteria: { wilaya: 'Oran', mode: 'vente', type_bien: 'villa' } },
   buildModerationDecision: { name: 'Karim', propertyTitle: 'Villa X', approved: false, reason: 'Photos absentes ou de mauvaise qualité — Retirez le numéro', url: 'https://dzimmo.dz/annonce/1' },
   buildAdminPending:       { ownerName: 'Karim', propertyTitle: 'Villa X', url: 'https://dzimmo.dz/' },
+  buildVerificationDecision:      { name: 'Karim', kind: 'identity', approved: false, reason: 'Document expiré — Carte périmée en 2024', url: 'https://dzimmo.dz/' },
+  buildAdminVerificationPending:  { ownerName: 'Karim', kind: 'business', url: 'https://dzimmo.dz/' },
 };
 
 test('chaque gabarit d\'email existe et est couvert par un jeu de données', () => {

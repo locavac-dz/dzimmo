@@ -258,6 +258,62 @@ function buildAdminPending(lang, { ownerName, propertyTitle, url }) {
   };
 }
 
+
+// Vérification d'annonceur : résultat de l'examen du justificatif
+function buildVerificationDecision(lang, { name, kind, approved, reason, url }) {
+  const shownReason = translateReason(reason, lang);
+  const badge = kind === 'business'
+    ? pick(lang, 'Professionnel vérifié', 'مهني موثَّق')
+    : pick(lang, 'Identité vérifiée', 'الهوية موثَّقة');
+  return {
+    subject: approved
+      ? pick(lang, '✅ Votre compte est vérifié — DzImmo', '✅ تم توثيق حسابك — DzImmo')
+      : pick(lang, '❌ Vérification refusée — DzImmo', '❌ تم رفض طلب التوثيق — DzImmo'),
+    html: wrap(approved ? `
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Votre compte est vérifié ✅', 'تم توثيق حسابك ✅')}</h2>
+      <p>${ui(lang).hello} <strong>${esc(name)}</strong>${pick(lang, ',', '،')}</p>
+      <p>${pick(lang,
+        `Nous avons contrôlé votre justificatif : le badge <strong>« ${badge} »</strong> apparaît désormais sur vos annonces et sur votre profil.`,
+        `راجعنا وثيقتك: ستظهر شارة <strong>«${badge}»</strong> الآن على إعلاناتك وملفك الشخصي.`)}</p>
+      ${kind === 'business' ? `<p>${pick(lang,
+        'Si vous avez une agence enregistrée sur DzImmo, elle est désormais vérifiée et vos annonces sont publiées sans attendre la modération.',
+        'إذا كانت لديك وكالة مسجَّلة على DzImmo فقد أصبحت موثَّقة وتُنشر إعلاناتك دون انتظار المراجعة.')}</p>` : ''}
+      <p>${pick(lang, 'Votre document a été supprimé de nos serveurs : nous ne conservons que le résultat.', 'تم حذف وثيقتك من خوادمنا: نحتفظ بالنتيجة فقط.')}</p>
+      ${button(url, pick(lang, 'Ouvrir DzImmo', 'فتح DzImmo'), lang)}
+    ` : `
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Vérification refusée', 'تم رفض طلب التوثيق')}</h2>
+      <p>${ui(lang).hello} <strong>${esc(name)}</strong>${pick(lang, ',', '،')}</p>
+      <p>${pick(lang, 'Nous n\'avons pas pu valider votre justificatif.', 'تعذّر علينا قبول وثيقتك.')}</p>
+      <div style="background:#fef2f2;border-radius:10px;padding:16px;margin:20px 0;border-${lang === 'ar' ? 'right' : 'left'}:4px solid #dc2626">
+        <p style="margin:4px 0"><strong>${pick(lang, 'Motif :', 'السبب:')}</strong> ${esc(shownReason)}</p>
+      </div>
+      <p>${pick(lang,
+        'Votre document a été supprimé de nos serveurs. Vous pouvez en envoyer un nouveau depuis « Mon espace → Vérification ».',
+        'تم حذف وثيقتك من خوادمنا. يمكنك إرسال وثيقة جديدة من «مساحتي ← التوثيق».')}</p>
+      ${button(url, pick(lang, 'Ouvrir DzImmo', 'فتح DzImmo'), lang)}
+    `, lang),
+  };
+}
+
+function buildAdminVerificationPending(lang, { ownerName, kind, url }) {
+  const what = kind === 'business'
+    ? pick(lang, 'un justificatif professionnel', 'وثيقة مهنية')
+    : pick(lang, 'une pièce d\'identité', 'وثيقة هوية');
+  return {
+    subject: pick(lang, `🛡️ Vérification à traiter — ${ownerName}`, `🛡️ طلب توثيق للمراجعة — ${ownerName}`),
+    html: wrap(`
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Un justificatif attend votre examen 🛡️', 'وثيقة تنتظر مراجعتك 🛡️')}</h2>
+      <p>${pick(lang,
+        `<strong>${esc(ownerName)}</strong> a envoyé ${what}.`,
+        `أرسل <strong>${esc(ownerName)}</strong> ${what}.`)}</p>
+      <p>${pick(lang,
+        'Il est consultable dans Administration → Vérifications, et supprimé dès votre décision.',
+        'يمكن الاطلاع عليها في الإدارة ← التوثيق، وتُحذف فور اتخاذ قرارك.')}</p>
+      ${button(url, pick(lang, 'Ouvrir DzImmo', 'فتح DzImmo'), lang)}
+    `, lang),
+  };
+}
+
 // ── Envoi ────────────────────────────────────────────────────────────────────
 // Chaque fonction reçoit `lang` (langue du destinataire) ; sans lang : français.
 const send = (to, built) => sendMail({ to, ...built });
@@ -270,13 +326,16 @@ const mailNewMessage = d => send(d.to, buildNewMessage(d.lang, d));
 const mailSearchAlert = d => send(d.email, buildSearchAlert(d.lang, d));
 const mailModerationDecision = d => send(d.to, buildModerationDecision(d.lang, d));
 const mailAdminPending = d => send(d.to, buildAdminPending(d.lang, d));
+const mailVerificationDecision = d => send(d.to, buildVerificationDecision(d.lang, d));
+const mailAdminVerificationPending = d => send(d.to, buildAdminVerificationPending(d.lang, d));
 
 module.exports = {
   sendMail,
   mailWelcome, mailVerifyEmail, mailPasswordReset,
   mailContactRequest, mailNewMessage, mailSearchAlert,
-  mailModerationDecision, mailAdminPending,
+  mailModerationDecision, mailAdminPending, mailVerificationDecision, mailAdminVerificationPending,
   // gabarits purs (tests)
   build: { buildWelcome, buildVerifyEmail, buildPasswordReset, buildContactRequest, buildNewMessage,
-           buildSearchAlert, buildModerationDecision, buildAdminPending },
+           buildSearchAlert, buildModerationDecision, buildAdminPending,
+           buildVerificationDecision, buildAdminVerificationPending },
 };

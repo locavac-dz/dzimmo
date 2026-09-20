@@ -53,7 +53,7 @@ router.post('/', auth, async (req, res) => {
     description: description || null, phone: phone || null,
     address: address || null, wilaya,
     logo: logo || null, website: website || null,
-    verified: false,
+    verified: (await db.users.findById(req.user.id))?.verified_kind === 'business',
   });
   await db.users.update({ id: req.user.id }, { is_agent: true });
   res.status(201).json({ id: agency.id });

@@ -10,6 +10,9 @@ const NOTIFS = {
     mod_pending:       { title: 'Annonce à valider',           body: '« {title} » attend une validation.' },
     mod_approved:      { title: 'Annonce publiée',             body: '« {title} » est maintenant visible sur DzImmo.' },
     mod_rejected:      { title: 'Annonce refusée',             body: '« {title} » a été refusée : {reason}' },
+    verif_pending:     { title: 'Vérification à traiter',      body: '{name} a envoyé un justificatif à examiner.' },
+    verif_approved:    { title: 'Compte vérifié',              body: "{name}, votre compte est vérifié : le badge apparaît sur vos annonces." },
+    verif_rejected:    { title: 'Vérification refusée',        body: "{name}, votre demande de vérification a été refusée : {reason}" },
   },
   ar: {
     contact_new:       { title: 'طلب تواصل جديد',              body: 'أرسل {name} طلباً بخصوص « {title} »' },
@@ -18,6 +21,9 @@ const NOTIFS = {
     mod_pending:       { title: 'إعلان في انتظار المراجعة',    body: 'الإعلان « {title} » في انتظار المراجعة.' },
     mod_approved:      { title: 'تم نشر الإعلان',              body: 'الإعلان « {title} » ظاهر الآن على DzImmo.' },
     mod_rejected:      { title: 'تم رفض الإعلان',              body: 'تم رفض الإعلان « {title} »: {reason}' },
+    verif_pending:     { title: 'طلب توثيق للمراجعة',           body: 'أرسل {name} وثيقة للمراجعة.' },
+    verif_approved:    { title: 'تم توثيق الحساب',              body: '{name}، تم توثيق حسابك: ستظهر الشارة على إعلاناتك.' },
+    verif_rejected:    { title: 'تم رفض طلب التوثيق',           body: '{name}، تم رفض طلب التوثيق: {reason}' },
   },
 };
 
@@ -30,6 +36,12 @@ const REASONS_AR = {
   'Coordonnées personnelles dans le texte ou les photos': 'معلومات اتصال شخصية في النص أو الصور',
   'Annonce en double': 'إعلان مكرَّر',
   'Contenu non conforme aux CGU': 'محتوى مخالف لشروط الاستخدام',
+  'Justificatif illisible ou incomplet': 'الوثيقة غير مقروءة أو غير مكتملة',
+  'Document expiré': 'الوثيقة منتهية الصلاحية',
+  'Le nom du document ne correspond pas au compte': 'اسم الوثيقة لا يطابق اسم الحساب',
+  'Type de document non conforme': 'نوع الوثيقة غير مطابق',
+  'Registre de commerce sans activité immobilière': 'السجل التجاري لا يشمل نشاطاً عقارياً',
+  'Document non authentifiable': 'تعذّر التحقق من صحة الوثيقة',
 };
 
 const normalize = lang => (lang === 'ar' ? 'ar' : 'fr');
