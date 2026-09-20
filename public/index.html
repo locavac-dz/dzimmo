@@ -3294,7 +3294,7 @@ function cardHTML(p) {
   return `
   <div class="card-wrapper" onclick="showPage('detail', ${p.id})">
     <div class="card">
-      <img class="card-img" src="${esc(p.image || 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70')}" alt="${esc(p.title)}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70'">
+      <img class="card-img" ${imgAttrs(p.image || 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70', '(max-width: 640px) 100vw, 320px')} alt="${esc(p.title)}" loading="lazy" onerror="this.removeAttribute('srcset');this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70'">
       ${p.verified ? '<span class="verified-badge">' + T('verified_badge') + '</span>' : ''}
       ${token ? `<button class="card-fav" onclick="event.stopPropagation();toggleFav(${p.id},this)" title="${T('fav_tip')}">🤍</button>` : ''}
       <button class="card-cmp${isCmp ? ' active' : ''}" data-id="${p.id}"
@@ -3370,14 +3370,14 @@ function renderDetail(p) {
       ${modBanner}
       <div class="detail-gallery">
         <div style="position:relative">
-          <img src="${esc(photos[0] || '')}" alt="${esc(p.title)}"
+          <img ${imgAttrs(photos[0] || '', '(max-width: 900px) 100vw, 800px', [960])} alt="${esc(p.title)}"
                onclick="openLightbox(window._detailPhotos, 0)"
-               onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=800&q=70'">
+               onerror="this.removeAttribute('srcset');this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=800&q=70'">
           ${photos.length > 3 ? `<button class="gallery-more-btn" onclick="openLightbox(window._detailPhotos, 0)">${T('det_see_photos').replace('{n}', photos.length)}</button>` : ''}
         </div>
         <div class="detail-gallery-side">
-          ${photos[1] ? `<img src="${esc(photos[1])}" alt="Photo 2" onclick="openLightbox(window._detailPhotos, 1)" onerror="this.remove()">` : '<div style="background:var(--border)"></div>'}
-          ${photos[2] ? `<img src="${esc(photos[2])}" alt="Photo 3" onclick="openLightbox(window._detailPhotos, 2)" onerror="this.remove()">` : '<div style="background:var(--border)"></div>'}
+          ${photos[1] ? `<img ${imgAttrs(photos[1], '(max-width: 900px) 50vw, 400px')} alt="Photo 2" loading="lazy" onclick="openLightbox(window._detailPhotos, 1)" onerror="this.remove()">` : '<div style="background:var(--border)"></div>'}
+          ${photos[2] ? `<img ${imgAttrs(photos[2], '(max-width: 900px) 50vw, 400px')} alt="Photo 3" loading="lazy" onclick="openLightbox(window._detailPhotos, 2)" onerror="this.remove()">` : '<div style="background:var(--border)"></div>'}
         </div>
       </div>
       <div class="detail-body">
@@ -3853,13 +3853,14 @@ function lbGo(dir) {
 
 function lbRender() {
   const img = document.getElementById('lb-img');
-  img.src = _lbPhotos[_lbIdx] || '';
+  const big = _lbPhotos[_lbIdx] || '';
+  img.src = window.innerWidth <= 900 ? thumbUrl(big, 960) : big;   // petit écran : 960 px suffisent (l'original fait jusqu'à 1920 px)
   document.getElementById('lb-counter').textContent = `${_lbIdx + 1} / ${_lbPhotos.length}`;
   document.getElementById('lb-prev').style.display = _lbPhotos.length > 1 ? '' : 'none';
   document.getElementById('lb-next').style.display = _lbPhotos.length > 1 ? '' : 'none';
   const tc = document.getElementById('lb-thumbs');
   tc.innerHTML = _lbPhotos.map((src, i) =>
-    `<img src="${esc(src)}" class="${i === _lbIdx ? 'active' : ''}" onclick="lbGoTo(${i})" alt="Photo ${i+1}">`
+    `<img src="${esc(thumbUrl(src, 480))}" class="${i === _lbIdx ? 'active' : ''}" onclick="lbGoTo(${i})" alt="Photo ${i+1}" loading="lazy">`
   ).join('');
 }
 
@@ -3907,7 +3908,7 @@ function updateCompareBar() {
   bar.classList.add('visible');
   tc.innerHTML = _compareList.map(p => `
     <div class="cmp-thumb" title="${esc(p.title)}">
-      <img src="${esc(p.image||'')}" alt="" onerror="this.style.display='none'">
+      <img src="${esc(thumbUrl(p.image, 480) || '')}" alt="" loading="lazy" onerror="this.style.display='none'">
       <span>${esc(p.title)}</span>
       <button class="cmp-rm" onclick="toggleCompare(${p.id})" title="${T('cmp_remove')}" aria-label="${T('cmp_remove')} : ${esc(p.title)}">✕</button>
     </div>`).join('');
@@ -3936,7 +3937,7 @@ function openCompare() {
       <tr>
         <th></th>
         ${cols.map(p => `<th>
-          <img class="cmp-prop-img" src="${esc(p.image||'')}" alt="" onerror="this.style.display='none'">
+          <img class="cmp-prop-img" src="${esc(thumbUrl(p.image, 480) || '')}" alt="" loading="lazy" onerror="this.style.display='none'">
           <div style="font-size:.83rem;font-weight:700;margin:.35rem 0 .15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(p.title)}">${esc(p.title)}</div>
           <button class="btn btn-primary btn-sm" style="font-size:.77rem" onclick="showPage('detail',${p.id});closeCompare()">${T('cmp_view')}</button>
         </th>`).join('')}
@@ -4204,7 +4205,7 @@ async function adminLoadModeration(status = _modStatus, page = 1) {
         <a href="#" onclick="showPage('detail',${p.id});return false" style="color:var(--primary);font-weight:800;font-size:1rem">${esc(p.title)}</a>
         <div style="font-size:.85rem;color:var(--text-muted);margin:.2rem 0 .5rem">📍 ${esc([p.commune, p.wilaya].filter(Boolean).join(', '))} · <strong style="color:var(--primary)">${formatPrice(p.price)} DZD</strong>${p.surface_m2 ? ' · ' + Number(p.surface_m2) + ' m²' : ''}${p.rooms ? ' · ' + p.rooms + ' p.' : ''}</div>
         <div style="display:flex;gap:.4rem;overflow-x:auto;margin-bottom:.6rem">
-          ${photos.length ? photos.slice(0, 6).map((u, i) => `<img src="${esc(u)}" alt="" style="height:72px;width:104px;object-fit:cover;border-radius:8px;cursor:pointer;flex-shrink:0;background:var(--border)" onclick="openLightbox(window._modPhotos[${p.id}], ${i})" onerror="this.style.visibility='hidden'">`).join('')
+          ${photos.length ? photos.slice(0, 6).map((u, i) => `<img src="${esc(thumbUrl(u, 480))}" alt="" loading="lazy" style="height:72px;width:104px;object-fit:cover;border-radius:8px;cursor:pointer;flex-shrink:0;background:var(--border)" onclick="openLightbox(window._modPhotos[${p.id}], ${i})" onerror="this.style.visibility='hidden'">`).join('')
             : '<span style="font-size:.82rem;color:#dc2626">⚠ Aucune photo</span>'}
         </div>
         <div style="font-size:.85rem;line-height:1.55;margin-bottom:.6rem;white-space:pre-line">${esc((p.description || '').slice(0, 400)) || '<em style="color:var(--text-muted)">Aucune description</em>'}</div>
@@ -4929,7 +4930,7 @@ async function dashTab(tab) {
     c.innerHTML = `<div style="display:flex;flex-direction:column;gap:.7rem">
       ${data.map(p => `
         <div style="background:var(--white);border-radius:12px;border:1px solid var(--border);overflow:hidden;display:flex;box-shadow:var(--shadow)">
-          <img src="${esc(p.image||'')}" style="width:96px;min-height:80px;object-fit:cover;flex-shrink:0;background:var(--border)" onerror="this.style.background='var(--border)'">
+          <img src="${esc(thumbUrl(p.image, 480) || '')}" loading="lazy" style="width:96px;min-height:80px;object-fit:cover;flex-shrink:0;background:var(--border)" onerror="this.style.background='var(--border)'">
           <div style="flex:1;padding:.8rem 1rem;min-width:0">
             <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.3rem">
               <span class="card-mode mode-${p.mode}" style="font-size:.71rem;padding:.1rem .4rem">${MODES[p.mode]||p.mode}</span>
@@ -4966,7 +4967,7 @@ async function dashTab(tab) {
     if (!data.length) { c.innerHTML = '<div class="empty-state"><div class="icon">📩</div><h3>' + T('dash_no_req') + '</h3></div>'; return; }
     c.innerHTML = data.map(d => `
       <div style="background:var(--white);border-radius:10px;padding:1rem;margin-bottom:.75rem;box-shadow:var(--shadow);display:flex;align-items:center;gap:1rem">
-        <img src="${esc(d.property_image)}" style="width:64px;height:64px;border-radius:8px;object-fit:cover;background:var(--border)" onerror="this.style.background='#e2e8f0'">
+        <img src="${esc(thumbUrl(d.property_image, 480))}" loading="lazy" style="width:64px;height:64px;border-radius:8px;object-fit:cover;background:var(--border)" onerror="this.style.background='#e2e8f0'">
         <div style="flex:1">
           <div style="font-weight:700;font-size:.9rem">${esc(d.property_title)}</div>
           <div style="font-size:.83rem;color:var(--text-muted)">
@@ -5255,7 +5256,7 @@ async function loadMessages() {
     }
     list.innerHTML = data.map(c => `
       <div class="conv-item" onclick="loadThread(${c.property_id}, ${c.other_id})">
-        <img class="conv-thumb" src="${esc(c.property_img || '')}" alt="" onerror="this.style.background='#e2e8f0';this.src=''">
+        <img class="conv-thumb" src="${esc(thumbUrl(c.property_img, 480) || '')}" alt="" loading="lazy" onerror="this.style.background='#e2e8f0';this.src=''">
         <div class="conv-info">
           <div class="conv-name">${esc(c.other_name)}${c.unread > 0 ? ` <span class="badge">${c.unread}</span>` : ''}</div>
           <div class="conv-title">${esc(c.property_title)}</div>
@@ -5430,6 +5431,20 @@ document.querySelectorAll('.modal-overlay').forEach(o => {
 function formatPrice(n) {
   return Number(n).toLocaleString('fr-DZ');
 }
+// Miniatures (server/thumbs.js) : /uploads/x.webp → /uploads/thumbs/480/x.webp, créées à la première demande ; toute autre adresse est laissée telle quelle
+const UPLOAD_IMG = /^\/uploads\/([\w.-]+\.webp)$/i;
+function thumbUrl(url, w = 480) {
+  const m = UPLOAD_IMG.exec(url || '');
+  return m ? `/uploads/thumbs/${w}/${m[1]}` : url;
+}
+// Attributs src / srcset / sizes (déjà échappés) d'une photo affichée à `sizes` : le navigateur choisit la plus petite variante suffisante,
+// l'original (1920 px) reste la plus grande. Une adresse qui n'est pas un envoi du site n'a qu'un src.
+function imgAttrs(url, sizes, widths = [480, 960]) {
+  const m = UPLOAD_IMG.exec(url || '');
+  if (!m) return `src="${esc(url || '')}"`;
+  const set = widths.map(w => `/uploads/thumbs/${w}/${m[1]} ${w}w`).concat(`${url} 1920w`).join(', ');
+  return `src="${esc(thumbUrl(url, widths[widths.length - 1]))}" srcset="${esc(set)}" sizes="${esc(sizes)}" decoding="async"`;
+}
 function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -5527,7 +5542,7 @@ async function loadMapMarkers() {
       const img = p.image || 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=400&q=70';
       const popup = `
         <div style="width:220px">
-          <img src="${esc(img)}" onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=400&q=70'"
+          <img src="${esc(thumbUrl(img, 480))}" onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=400&q=70'"
                style="width:100%;height:115px;object-fit:cover;border-radius:7px;display:block;margin-bottom:8px">
           <div style="font-weight:700;font-size:.88rem;margin-bottom:3px;line-height:1.3">${esc(p.title)}</div>
           <div style="font-size:.78rem;color:#64748b;margin-bottom:5px">📍 ${esc(p.commune || wilayaName(p.wilaya))}, ${esc(wilayaName(p.wilaya))}</div>

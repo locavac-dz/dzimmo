@@ -22,7 +22,7 @@ function sandbox({ els = {}, lang = 'fr' } = {}) {
   };
   vm.createContext(ctx);
   vm.runInContext([
-    fn('esc'), fn('slugify'), fn('unit'), html.match(/const COUNTRY_CODES = \[[\s\S]*?\];/)[0], fn('parsePhone'),
+    fn('esc'), html.match(/const UPLOAD_IMG = [^\n]*/)[0], fn('thumbUrl'), fn('imgAttrs'), fn('slugify'), fn('unit'), html.match(/const COUNTRY_CODES = \[[\s\S]*?\];/)[0], fn('parsePhone'),
     pro.replace(/^const /gm, 'var '),   // les const de pro.js deviennent visibles depuis le contexte de test
   ].join('\n'), ctx);
   return ctx;

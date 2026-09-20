@@ -39,7 +39,7 @@ function starsHTML(rating) {
 function proLogoHTML(a, cls = '') {
   const initial = esc([...String(a.name || '?').trim()][0] || '?').toUpperCase();
   return a.logo
-    ? `<img class="pro-logo ${cls}" src="${esc(a.logo)}" alt="${esc(a.name)}" loading="lazy">`
+    ? `<img class="pro-logo ${cls}" src="${esc(thumbUrl(a.logo, 480))}" alt="${esc(a.name)}" loading="lazy">`
     : `<div class="pro-logo pro-logo-init ${cls}">${initial}</div>`;
 }
 
@@ -82,7 +82,7 @@ function proCardHTML(a) {
   ].filter(Boolean).join(' · ');
   return `
   <a class="pro-card" href="${esc(proPath(a))}" onclick="return proGo(event,'agency-detail',${a.id})">
-    ${a.cover ? `<img class="pro-cover" src="${esc(a.cover)}" alt="" loading="lazy">` : '<div class="pro-cover pro-cover-none"></div>'}
+    ${a.cover ? `<img class="pro-cover" ${imgAttrs(a.cover, '(max-width: 720px) 100vw, 330px')} alt="" loading="lazy">` : '<div class="pro-cover pro-cover-none"></div>'}
     ${proLogoHTML(a, 'pro-logo-card')}
     <div class="pro-card-body">
       <div class="pro-card-name">${esc(a.name)}</div>
@@ -143,7 +143,7 @@ const progStatusHTML = st => `<span class="pg-status pg-${esc(st)}">${T('pg_st_'
 function progCardHTML(p) {
   return `
   <a class="pro-card pg-card" href="${esc(progPath(p))}" onclick="return proGo(event,'programme-detail',${p.id})">
-    ${p.image ? `<img class="pro-cover" src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">` : '<div class="pro-cover pro-cover-none"></div>'}
+    ${p.image ? `<img class="pro-cover" ${imgAttrs(p.image, '(max-width: 720px) 100vw, 330px')} alt="${esc(p.name)}" loading="lazy">` : '<div class="pro-cover pro-cover-none"></div>'}
     <div class="pro-card-body">
       <div class="pg-card-top">${progStatusHTML(p.status)}${deliveryText(p) ? `<span class="pg-when">${esc(deliveryText(p))}</span>` : ''}</div>
       <div class="pro-card-name">${esc(p.name)}</div>
@@ -226,7 +226,7 @@ async function loadAgencyDetail(id) {
     c.innerHTML = `
     <div class="pro-page">
       <header class="pro-head">
-        ${a.cover ? `<img class="pro-head-cover" src="${esc(a.cover)}" alt="">` : '<div class="pro-head-cover pro-cover-none"></div>'}
+        ${a.cover ? `<img class="pro-head-cover" ${imgAttrs(a.cover, '(max-width: 1040px) 100vw, 1040px', [960])} alt="">` : '<div class="pro-head-cover pro-cover-none"></div>'}
         <div class="pro-head-body">
           ${proLogoHTML(a, 'pro-logo-lg')}
           <div class="pro-head-text">
@@ -346,7 +346,7 @@ async function loadProgrammeDetail(id) {
     <div class="pro-page">
       ${p.visible === false ? `<p class="pro-unverified">⚠ ${T('pg_hidden_note')}</p>` : ''}
       <div class="pg-gallery ${photos.length > 1 ? 'multi' : ''}">
-        ${photos.length ? photos.slice(0, 3).map((u, i) => `<img src="${esc(u)}" alt="${esc(p.name)}" onclick="openLightbox(window._pgPhotos, ${i})" loading="${i ? 'lazy' : 'eager'}">`).join('') : '<div class="pro-cover-none pg-nophoto"></div>'}
+        ${photos.length ? photos.slice(0, 3).map((u, i) => `<img ${imgAttrs(u, i ? '(max-width: 720px) 50vw, 33vw' : '(max-width: 720px) 100vw, 66vw', i ? [480, 960] : [960])} alt="${esc(p.name)}" onclick="openLightbox(window._pgPhotos, ${i})" loading="${i ? 'lazy' : 'eager'}">`).join('') : '<div class="pro-cover-none pg-nophoto"></div>'}
       </div>
       <div class="pg-head">
         <div>
@@ -510,7 +510,7 @@ function vtKindChanged() {
 
 function vtImgBoxHTML(which) {
   const url = _vt[which];
-  return `${url ? `<img src="${esc(url)}" alt="">` : `<div class="vt-img-empty">${which === 'logo' ? '🏢' : '🖼'}</div>`}
+  return `${url ? `<img src="${esc(thumbUrl(url, 480))}" alt="">` : `<div class="vt-img-empty">${which === 'logo' ? '🏢' : '🖼'}</div>`}
     <div class="vt-img-cap"><b>${T('vt_' + which)}</b><small>${T('vt_' + which + '_hint')}</small>
       <div><button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('vt-${which}-file').click()">${T('vt_upload')}</button>
       ${url ? `<button type="button" class="btn btn-outline btn-sm" onclick="vtClearImage('${which}')">${T('vt_remove')}</button>` : ''}</div>
@@ -585,7 +585,7 @@ async function pgRenderSection() {
     ${verified ? '' : `<p class="vt-note">🛡️ ${T('pg_needs_verif')}</p>`}
     ${list.length ? list.map(p => `
       <div class="pg-row ${p.visible ? '' : 'off'}">
-        ${p.image ? `<img src="${esc(p.image)}" alt="">` : '<div class="pro-cover-none"></div>'}
+        ${p.image ? `<img src="${esc(thumbUrl(p.image, 480))}" alt="" loading="lazy">` : '<div class="pro-cover-none"></div>'}
         <div class="pg-row-main">
           <b>${esc(p.name)}</b> ${progStatusHTML(p.status)}
           <div class="pg-row-meta">📍 ${esc(wilayaName(p.wilaya))} · ${p.available_count} ${unit(p.available_count, 'u_lot_avail')}${p.sold_count ? ' · ' + p.sold_count + ' ' + unit(p.sold_count, 'u_lot_sold') : ''}${p.visible ? '' : ' · <span class="pg-hidden">' + T('pg_hidden_short') + '</span>'}</div>
@@ -645,7 +645,7 @@ function pgToggleFeature(k, btn) {
 
 function pgRenderPhotos() {
   document.getElementById('pgf-photos').innerHTML = _pg.photos.map((u, i) =>
-    `<div class="pg-photo"><img src="${esc(u)}" alt=""><button type="button" onclick="pgRemovePhoto(${i})" aria-label="${esc(T('vt_remove'))}">✕</button></div>`).join('');
+    `<div class="pg-photo"><img src="${esc(thumbUrl(u, 480))}" alt=""><button type="button" onclick="pgRemovePhoto(${i})" aria-label="${esc(T('vt_remove'))}">✕</button></div>`).join('');
 }
 function pgRemovePhoto(i) { _pg.photos.splice(i, 1); pgRenderPhotos(); }
 async function pgAddPhotos(input) {

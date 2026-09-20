@@ -3,6 +3,7 @@
 // demandée pour que les moteurs de recherche et les aperçus de partage
 // (WhatsApp, Facebook…) voient le titre, la description et la photo.
 const fs   = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const db   = require('./db');
 const WILAYAS = require('./wilayas');
@@ -95,6 +96,24 @@ function template() {
   return cache.html;
 }
 
+// Adresses versionnées des scripts et feuilles de style : /pro.js → /pro.js?v=<empreinte du contenu>. L'adresse change dès que le fichier
+// change, ce qui permet de les mettre en cache un an (voir staticCache dans app.js) sans jamais servir une version périmée.
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+const versions = new Map();   // fichier -> { mtime, v }
+function assetVersion(file) {
+  let st;
+  try { st = fs.statSync(path.join(PUBLIC_DIR, file)); } catch { return null; }
+  const known = versions.get(file);
+  if (known && known.mtime === st.mtimeMs) return known.v;
+  const v = crypto.createHash('sha1').update(fs.readFileSync(path.join(PUBLIC_DIR, file))).digest('hex').slice(0, 10);
+  versions.set(file, { mtime: st.mtimeMs, v });
+  return v;
+}
+const versionAssets = html => html.replace(/(src|href)="\/([\w.-]+\.(?:js|css))"/g, (m, attr, file) => {
+  const v = assetVersion(file);
+  return v ? `${attr}="/${file}?v=${v}"` : m;
+});
+
 // Remplace title + description de index.html et insère les balises SEO
 function render({ title, description, canonical, image, robots, jsonLd, nav, landing }) {
   // Sans photo propre à la page : visuel de marque (généré par `npm run build-brand`)
@@ -121,7 +140,7 @@ function render({ title, description, canonical, image, robots, jsonLd, nav, lan
     jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>` : '',
   ].filter(Boolean).join('\n  ');
 
-  return template()
+  return versionAssets(template())
     .replace(/<title>[\s\S]*?<\/title>\s*/, '')
     .replace(/<meta name="description"[^>]*>\s*/, '')
     .replace('<!--SEO_HEAD-->', () => tags)
@@ -281,7 +300,8 @@ async function buildSitemap(base) {
 // Envoi d'une page : ajoute les liens du pied de page (facettes) puis rend le gabarit
 async function send(res, opts, status = 200) {
   const facets = await getFacets();
-  res.status(status).type('html').send(render({ ...opts, nav: navHtml(facets) }));
+  // no-cache = à valider à chaque visite : l'ETag d'Express répond « 304 » tant que la page n'a pas changé, sans jamais servir une page périmée
+  res.status(status).type('html').set('Cache-Control', 'no-cache').send(render({ ...opts, nav: navHtml(facets) }));
 }
 
 // ── Page de recherche : /vente/appartements/oran ─────────────────────────────

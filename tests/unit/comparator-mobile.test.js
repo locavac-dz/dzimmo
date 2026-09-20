@@ -58,7 +58,7 @@ function bar(list) {
   const ctx = { _compareList: list, document: { body, getElementById: id => els[id] }, T: k => ({ cmp_remove: 'Retirer' })[k] || k,
     esc: s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') };
   vm.createContext(ctx);
-  vm.runInContext(fn('updateCompareBar'), ctx);
+  vm.runInContext(html.match(/const UPLOAD_IMG = [^\n]*/)[0] + fn('thumbUrl') + fn('updateCompareBar'), ctx);   // thumbUrl : miniatures des photos
   return { ctx, cls, barCls, els };
 }
 

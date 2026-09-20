@@ -131,7 +131,25 @@ app.get('/sw.js', (_, res) => {
 });
 // SEO : /, /annonce/:id-slug, sitemap.xml, robots.txt (avant les fichiers statiques)
 require('./seo').mount(app);
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// Fichiers statiques : la politique de cache est décidée ici, fichier par fichier (express.static ne pose plus de max-age=0)
+//  • /uploads : noms uniques (horodatage + aléa) et miniatures dérivées d'un nom : le contenu ne change jamais → un an, « immuable » ;
+//  • .js / .css appelés avec ?v=<empreinte> (adresse versionnée par server/seo.js) : idem, l'adresse change dès que le fichier change ;
+//  • images et icônes du site : un jour ;
+//  • tout le reste (manifest, js/css sans version…) : validation à chaque visite par ETag (no-cache), donc jamais périmé.
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+const YEAR = 'public, max-age=31536000, immutable';
+function staticCache(res, file) {
+  const rel = path.relative(PUBLIC_DIR, file).split(path.sep).join('/');
+  const versioned = res.req && res.req.query && /^[\w-]{6,40}$/.test(String(res.req.query.v || ''));
+  res.setHeader('Cache-Control',
+    rel.startsWith('uploads/') ? YEAR
+    : versioned && /\.(?:js|css)$/.test(rel) ? YEAR
+    : /\.(?:svg|png|ico|webp|jpe?g|gif)$/.test(rel) ? 'public, max-age=86400'
+    : 'no-cache');
+}
+app.use(express.static(PUBLIC_DIR, { cacheControl: false, setHeaders: staticCache }));
+// Miniatures /uploads/thumbs/480/<nom>.webp : créées à la première demande, servies ensuite par express.static (voir server/thumbs.js)
+app.get('/uploads/thumbs/:width/:name', require('./thumbs').serve);
 
 app.use('/api/auth',       require('./routes/auth'));
 app.use('/api/properties', require('./routes/properties'));
