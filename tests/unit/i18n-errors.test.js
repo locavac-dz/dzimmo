@@ -38,6 +38,16 @@ test('tous les messages d\'erreur du serveur ont une traduction arabe', () => {
   assert.deepEqual(missing, [], 'messages sans traduction (à ajouter dans server/i18n.js)');
 });
 
+test('aucune réponse d\'erreur n\'est un gabarit dynamique (intraduisible) ; la limite du CSV suit MAX_LIGNES', () => {
+  const dynamic = jsFiles(SERVER).flatMap(file =>
+    [...fs.readFileSync(file, 'utf8').matchAll(/\.json\(\s*\{\s*error:\s*`[^`]*\$\{/g)].map(() => path.relative(SERVER, file)));
+  assert.deepEqual(dynamic, [], 'écrire le message en toutes lettres et l\'ajouter à server/i18n.js');
+  const src = fs.readFileSync(path.join(SERVER, 'routes', 'import.js'), 'utf8');
+  const max = src.match(/const MAX_LIGNES\s*=\s*(\d+)/)[1];
+  assert.ok(src.includes(`'CSV trop long (${max} lignes maximum).'`), 'le message doit citer MAX_LIGNES');
+  assert.ok(AR[`CSV trop long (${max} lignes maximum).`].includes(max));
+});
+
 test('messages techniques et d\'envoi de fichiers : traduits aussi', () => {
   for (const msg of ['Requête invalide (JSON mal formé).', 'Requête trop volumineuse.', 'Erreur interne du serveur.',
     'Fichier trop volumineux (10 Mo maximum).', 'Trop de fichiers (10 maximum).', 'Fichier inattendu.'])

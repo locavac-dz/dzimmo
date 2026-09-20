@@ -8,7 +8,7 @@ const { checkConfig, reportConfig } = require('../../server/config-check');
 const SECRET = 'b7f3a91c0d5e48269f1a3c7e8d2b46059a1f3e7c9b2d4860'; // 48 caractères, sans mot d'exemple
 const OK = {
   NODE_ENV: 'production', JWT_SECRET: SECRET, DATABASE_URL: 'postgresql://u:p@db:5432/dzimmo',
-  APP_URL: 'https://dzimmo.dz', CORS_ORIGINS: 'https://dzimmo.dz', TRUST_PROXY: '1', EMAIL_HOST: 'smtp.exemple.net', MODERATION: 'on',
+  APP_URL: 'https://dzimmo.dz', CORS_ORIGINS: 'https://dzimmo.dz', TRUST_PROXY: '1', EMAIL_HOST: 'smtp.exemple.net', EMAIL_USER: 'noreply@dzimmo.dz', MODERATION: 'on',
 };
 const check = over => checkConfig({ ...OK, ...over });
 
@@ -71,6 +71,40 @@ test('délais de reconfirmation : facultatifs ; une valeur invalide (que server/
     for (const bad of ['0', '366', '-5', '1e2', '1.5', 'abc', '30 jours', '0030x'])
       assert.match(check({ [name]: bad }).warnings.join(), new RegExp(name), `${name}=${bad}`);
     assert.deepEqual(check({ [name]: 'abc' }).errors, []);
+  }
+});
+
+test('JWT_EXPIRES_IN : facultatif (7d par défaut) ; illisible ou dérisoire → erreur, car plus personne ne pourrait se connecter', () => {
+  for (const ok of [undefined, '', ' ', '7d', ' 12h ', '30m', '2 days', '86400s']) assert.deepEqual(check({ JWT_EXPIRES_IN: ok }).errors, [], JSON.stringify(ok));
+  for (const bad of ['abc', '7 jours', 'd7', '-1d']) assert.match(check({ JWT_EXPIRES_IN: bad }).errors.join(), /JWT_EXPIRES_IN/, bad);
+  assert.match(check({ JWT_EXPIRES_IN: '3600' }).errors[0], /3 seconde/, 'sans unité : des millisecondes');
+  assert.match(check({ JWT_EXPIRES_IN: '0' }).errors[0], /JWT_EXPIRES_IN/);
+  // Le défaut appliqué par la route de connexion est lui-même une valeur acceptée
+  const src = require('node:fs').readFileSync(path.join(__dirname, '..', '..', 'server', 'routes', 'auth.js'), 'utf8');
+  assert.match(src, /JWT_EXPIRES_IN \|\| ''\)\.trim\(\) \|\| '7d'/);
+});
+
+test('VERIFICATION_DIR sous public/ → erreur : les pièces d\'identité seraient servies au public', () => {
+  const pub = path.join(__dirname, '..', '..', 'public');
+  for (const bad of [pub, path.join(pub, 'uploads', 'verification'), path.join(pub, 'x', '..', 'docs'), 'public/verification', pub.toUpperCase()])
+    assert.match(check({ VERIFICATION_DIR: bad }).errors.join(), /VERIFICATION_DIR est sous public/, bad);
+  for (const ok of [undefined, '', '/srv/dzimmo-private/verification', path.join(pub, '..', 'private', 'verification'), pub + '-prive'])
+    assert.deepEqual(check({ VERIFICATION_DIR: ok }).errors, [], String(ok));
+});
+
+test('emails : hôte d\'exemple, compte SMTP absent ou expéditeur invalide → avertissement (même règle que mailer.sender)', () => {
+  assert.match(check({ EMAIL_HOST: 'smtp.example.com' }).warnings.join(), /valeur d'exemple/);
+  assert.match(check({ EMAIL_USER: '' }).warnings.join(), /EMAIL_USER est absent/);
+  assert.equal(check({ EMAIL_HOST: '', EMAIL_USER: '' }).warnings.length, 1, 'un seul avertissement par cause');
+  const { sender } = require('../../server/mailer');
+  const fallback = sender({ EMAIL_USER: 'noreply@dzimmo.dz' });
+  for (const ok of [undefined, '', 'contact@dzimmo.dz', 'DzImmo <contact@dzimmo.dz>', '<contact@dzimmo.dz>']) {
+    assert.deepEqual(check({ EMAIL_FROM: ok }).warnings, [], String(ok));
+    if (ok) assert.equal(sender({ EMAIL_FROM: ok, EMAIL_USER: 'noreply@dzimmo.dz' }), ok);
+  }
+  for (const bad of ['DzImmo', 'a@b', 'DzImmo <contact@dzimmo.dz>\r\nBcc: tiers@exemple.com', 'a@b.dz, c@d.dz', '"x" <a@b.dz>']) {
+    assert.match(check({ EMAIL_FROM: bad }).warnings.join(), /EMAIL_FROM est invalide/, bad);
+    assert.equal(sender({ EMAIL_FROM: bad, EMAIL_USER: 'noreply@dzimmo.dz' }), fallback, 'mailer retombe sur le compte SMTP');
   }
 });
 

@@ -43,7 +43,7 @@ async function sendSearchAlerts() {
           alertCriteria: alert,
         });
         sent++;
-        console.log(`[cron] Alerte #${alert.id} → ${r.rows.length} annonce(s) → ${alert.email}`);
+        console.log(`[cron] Alerte #${alert.id} → ${r.rows.length} annonce(s)`);   // pas d'adresse email dans les journaux (loi 18-07)
       }
     }
     if (sent > 0) console.log(`[cron] ${sent} alerte(s) email envoyée(s).`);

@@ -20,16 +20,29 @@ function getTransporter() {
   return transporter;
 }
 
+// Adresse publique du site dans les emails : APP_URL (exigée en production par config-check), jamais un domaine écrit en dur
+// (une préproduction envoyait ses membres vers le site de production).
+const siteUrl = () => (process.env.APP_URL || 'http://localhost:3001').replace(/\/+$/, '');
+
+// Expéditeur : EMAIL_FROM (« Nom <adresse> » ou adresse seule) s'il est valide, sinon le compte SMTP. Un retour à la ligne y est refusé
+// (injection d'en-têtes) ; config-check signale une valeur invalide au démarrage.
+const FROM_OK = /^(?:[^<>\r\n"@,;]{1,80}\s)?<?[^\s<>@,;"]+@[^\s<>@,;"]+\.[^\s<>@,;"]+>?$/;
+function sender(env = process.env) {
+  const from = (env.EMAIL_FROM || '').trim();
+  return from && FROM_OK.test(from) ? from : `"DzImmo 🏢" <${env.EMAIL_USER}>`;
+}
+
 async function sendMail({ to, subject, html }) {
   const t = getTransporter();
   if (!t || !to) return;
   try {
     await t.sendMail({
-      from: `"DzImmo 🏢" <${process.env.EMAIL_USER}>`,
+      from: sender(),
       to, subject, html,
     });
   } catch (e) {
-    console.error('[Mailer]', e.message);
+    // Les erreurs SMTP citent souvent le destinataire : pas d'adresse email dans les journaux (loi 18-07)
+    console.error('[Mailer]', String(e.message).replace(/[^\s<>"']+@[^\s<>"']+/g, '<adresse>'));
   }
 }
 
@@ -74,7 +87,7 @@ function wrap(content, lang) {
   </div>
   <div style="padding:28px 32px">${content}</div>
   <div style="background:#f1f1f1;padding:16px 32px;font-size:12px;color:#999;text-align:center">
-    © 2026 DzImmo · ${u.country} · <a href="https://dzimmo.dz" style="color:#0C6E4F">${u.visit}</a>
+    © 2026 DzImmo · ${u.country} · <a href="${esc(siteUrl())}" style="color:#0C6E4F">${u.visit}</a>
   </div>
 </div></body></html>`;
 }
@@ -96,7 +109,7 @@ function buildWelcome(lang, { name }) {
       <h2 style="color:#222;margin-top:0">${pick(lang, `Bienvenue, ${esc(name)} ! 🎉`, `مرحباً بك، ${esc(name)}! 🎉`)}</h2>
       <p>${pick(lang, 'Votre compte DzImmo est prêt. Vous pouvez dès maintenant :', 'حسابك في DzImmo جاهز. يمكنك الآن:')}</p>
       <ul style="line-height:2;color:#444">${li.map(x => `<li>${x}</li>`).join('')}</ul>
-      ${button('https://dzimmo.dz', pick(lang, 'Découvrir les annonces', 'اكتشف الإعلانات'), lang)}
+      ${button(siteUrl(), pick(lang, 'Découvrir les annonces', 'اكتشف الإعلانات'), lang)}
     `, lang),
   };
 }
@@ -151,7 +164,7 @@ function buildContactRequest(lang, { ownerName, requesterName, propertyTitle, ty
         ${extra}
         ${message ? `<p style="margin:4px 0"><strong>${pick(lang, '💬 Message :', '💬 الرسالة:')}</strong> ${esc(message)}</p>` : ''}
       </div>
-      ${button('https://dzimmo.dz', pick(lang, 'Répondre sur DzImmo', 'الرد على DzImmo'), lang)}
+      ${button(siteUrl(), pick(lang, 'Répondre sur DzImmo', 'الرد على DzImmo'), lang)}
     `, lang),
   };
 }
@@ -168,7 +181,7 @@ function buildNewMessage(lang, { senderName, propertyTitle, preview }) {
       <div style="background:#f9f9f9;border-${lang === 'ar' ? 'right' : 'left'}:4px solid #0C6E4F;padding:12px 16px;border-radius:8px;margin:16px 0;font-style:italic;color:#444">
         "${esc(text)}"
       </div>
-      ${button('https://dzimmo.dz', pick(lang, 'Répondre sur DzImmo', 'الرد على DzImmo'), lang)}
+      ${button(siteUrl(), pick(lang, 'Répondre sur DzImmo', 'الرد على DzImmo'), lang)}
     `, lang),
   };
 }
@@ -205,7 +218,7 @@ function buildSearchAlert(lang, { name, properties, alertCriteria }) {
       </div>
       <table style="width:100%;border-collapse:collapse;margin:16px 0">${rows}</table>
       <div style="text-align:center;margin:20px 0">
-        ${button(process.env.APP_URL || 'https://dzimmo.dz', pick(lang, 'Voir toutes les annonces', 'عرض جميع الإعلانات'), lang)}
+        ${button(siteUrl(), pick(lang, 'Voir toutes les annonces', 'عرض جميع الإعلانات'), lang)}
       </div>
       <p style="font-size:.8rem;color:#aaa;margin-top:1.5rem">${pick(lang,
         'Vous recevez cet email car vous avez activé une alerte sur DzImmo. Gérez vos alertes depuis votre espace personnel.',
@@ -237,7 +250,7 @@ function buildModerationDecision(lang, { name, propertyTitle, approved, reason, 
         <p style="margin:4px 0"><strong>${pick(lang, 'Motif :', 'السبب:')}</strong> ${esc(shownReason)}</p>
       </div>
       <p>${pick(lang, 'Vous pouvez publier une nouvelle annonce corrigée depuis votre espace DzImmo.', 'يمكنك نشر إعلان جديد بعد تصحيحه من مساحتك في DzImmo.')}</p>
-      ${button('https://dzimmo.dz', pick(lang, 'Accéder à DzImmo', 'الدخول إلى DzImmo'), lang)}
+      ${button(siteUrl(), pick(lang, 'Accéder à DzImmo', 'الدخول إلى DzImmo'), lang)}
     `, lang),
   };
 }
@@ -366,7 +379,7 @@ const mailListingExpired = d => send(d.to, buildListingExpired(d.lang, d));
 const mailAdminVerificationPending = d => send(d.to, buildAdminVerificationPending(d.lang, d));
 
 module.exports = {
-  sendMail,
+  sendMail, sender, siteUrl, FROM_OK,
   mailWelcome, mailVerifyEmail, mailPasswordReset,
   mailContactRequest, mailNewMessage, mailSearchAlert,
   mailModerationDecision, mailAdminPending, mailVerificationDecision, mailAdminVerificationPending,

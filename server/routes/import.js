@@ -75,7 +75,7 @@ router.post('/', auth, (req, res) => {
     const dataRows = rows.filter(r => r.some(c => c.trim()));
     if (!dataRows.length) return res.status(400).json({ error: 'Fichier CSV vide ou invalide.' });
     if (dataRows.length > MAX_LIGNES)
-      return res.status(400).json({ error: `CSV trop long (${MAX_LIGNES} lignes maximum).` });
+      return res.status(400).json({ error: 'CSV trop long (200 lignes maximum).' });   // texte littéral pour la traduction : suit MAX_LIGNES (test)
 
     const get = (row, col) => {
       const i = headers.indexOf(col);

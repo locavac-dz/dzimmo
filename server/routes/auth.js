@@ -15,7 +15,8 @@ function sign(user) {
   return jwt.sign(
     { id: user.id, name: user.name, email: user.email, is_agent: user.is_agent, is_admin: user.is_admin || false },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN }
+    // Sans durée, jwt.sign() lève une erreur : un oubli dans .env ne doit pas empêcher toute connexion
+    { expiresIn: (process.env.JWT_EXPIRES_IN || '').trim() || '7d' }
   );
 }
 

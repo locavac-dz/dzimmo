@@ -135,3 +135,24 @@ test('les noms de wilayas arabes du serveur sont identiques à ceux du site', ()
   const front = vm.runInNewContext('(' + html.match(/const WILAYAS_AR = (\{[\s\S]*?\n\});/)[1] + ')');
   assert.deepEqual({ ...require(path.join(SERVER, 'wilayas-ar')) }, { ...front });
 });
+
+test('emails : les liens suivent APP_URL (jamais le site de production en dur) ; expéditeur EMAIL_FROM s\'il est valide', () => {
+  const mailer = require(path.join(SERVER, 'mailer'));
+  const src = fs.readFileSync(path.join(SERVER, 'mailer.js'), 'utf8');
+  assert.doesNotMatch(src, /https?:\/\/(www\.)?dzimmo\.dz/, 'une préproduction enverrait ses membres vers la production');
+  const before = process.env.APP_URL;
+  try {
+    process.env.APP_URL = 'https://preprod.exemple.dz/';
+    assert.equal(mailer.siteUrl(), 'https://preprod.exemple.dz', 'sans barre oblique finale');
+    for (const lang of ['fr', 'ar']) {
+      const { html } = build.buildWelcome(lang, { name: 'Karim' });
+      assert.match(html, /href="https:\/\/preprod\.exemple\.dz/);
+      assert.doesNotMatch(html, /dzimmo\.dz/);
+    }
+    delete process.env.APP_URL;
+    assert.equal(mailer.siteUrl(), 'http://localhost:3001');
+  } finally { if (before === undefined) delete process.env.APP_URL; else process.env.APP_URL = before; }
+  assert.equal(mailer.sender({ EMAIL_FROM: 'DzImmo <contact@dzimmo.dz>', EMAIL_USER: 'smtp@dzimmo.dz' }), 'DzImmo <contact@dzimmo.dz>');
+  assert.match(mailer.sender({ EMAIL_USER: 'smtp@dzimmo.dz' }), /<smtp@dzimmo\.dz>$/);
+  assert.match(mailer.sender({ EMAIL_FROM: 'x@y.dz\r\nBcc: tiers@exemple.com', EMAIL_USER: 'smtp@dzimmo.dz' }), /<smtp@dzimmo\.dz>$/, 'injection d\'en-tête refusée');
+});

@@ -485,7 +485,7 @@ router.post('/:id/click', optionalAuth, async (req, res) => {
   const channel = req.body && req.body.channel;
   if (!clicks.CHANNELS.includes(channel)) return res.status(400).json({ error: 'Action invalide.' });
   const p = await db.properties.findById(req.params.id);
-  if (p && p.status === 'active' && !(req.user && req.user.id === p.owner_id) && clicks.firstRecently(req.ip, p.id, channel))
+  if (p && p.status === 'active' && !(req.user && req.user.id === p.owner_id) && await clicks.firstRecently(req.ip, p.id, channel))
     await clicks.record(p.id, channel);
   res.status(204).end();
 });
@@ -614,6 +614,7 @@ router.post('/:id/signaler', auth, async (req, res) => {
 });
 
 // GET /api/properties/user/:id — annonces d'un utilisateur avec compteur de contacts
+const USER_LIST_MAX = 100;
 router.get('/user/:id', optionalAuth, async (req, res) => {
   const { pool } = db;
   const uid = db.toId(req.params.id);
@@ -622,7 +623,13 @@ router.get('/user/:id', optionalAuth, async (req, res) => {
   const self = req.user && (req.user.is_admin || req.user.id === uid);
   // L'annonceur voit aussi les annonces retirées automatiquement (pour les renouveler), pas celles qu'il a archivées lui-même
   const visible = self ? "(p.status != 'archived' OR p.expired_at IS NOT NULL)" : "p.status IN ('active','sold','rented')";
-  const params = [uid];
+  // Liste bornée (une agence importe des centaines d'annonces) : ?limit= (100 au plus) et ?offset= ; total dans X-Total-Count
+  const int = (v, def, max) => (/^\d{1,9}$/.test(String(v ?? '')) ? Math.min(Number(v), max) : def);
+  const limit  = Math.max(1, int(req.query.limit, USER_LIST_MAX, USER_LIST_MAX));
+  const offset = int(req.query.offset, 0, 1e9);
+  const total = await pool.query(`SELECT COUNT(*)::int AS n FROM properties p WHERE p.owner_id = $1 AND ${visible}`, [uid]);
+  res.set('X-Total-Count', String(total.rows[0].n));
+  const params = [uid, limit, offset];
   let ownerOnly = '';   // colonnes réservées à l'annonceur : clics, échéance du rappel, signaux de qualité
   if (self) {
     params.push(expiry.graceDays());
@@ -630,7 +637,7 @@ router.get('/user/:id', optionalAuth, async (req, res) => {
        (SELECT COALESCE(SUM(k.n), 0)::int FROM contact_clicks k WHERE k.property_id = p.id AND k.channel = 'call')     AS call_clicks,
        (SELECT COALESCE(SUM(k.n), 0)::int FROM contact_clicks k WHERE k.property_id = p.id AND k.channel = 'whatsapp') AS whatsapp_clicks,
        CASE WHEN p.status = 'active' AND p.expiry_notified_at IS NOT NULL
-            THEN p.expiry_notified_at + make_interval(days => $2) END                                                 AS expires_at,
+            THEN p.expiry_notified_at + make_interval(days => $4) END                                                AS expires_at,
        (SELECT flags FROM listing_quality WHERE property_id = p.id)                                                   AS quality_flags`;
   }
   const r = await pool.query(
@@ -644,7 +651,8 @@ router.get('/user/:id', optionalAuth, async (req, res) => {
      LEFT JOIN contact_requests c ON c.property_id = p.id
      WHERE p.owner_id = $1 AND ${visible}
      GROUP BY p.id, u.id, a.id
-     ORDER BY p.created_at DESC`,
+     ORDER BY p.created_at DESC, p.id DESC
+     LIMIT $2 OFFSET $3`,
     params
   );
   res.json(r.rows);

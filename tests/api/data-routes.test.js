@@ -599,3 +599,25 @@ test('Collection : update renvoie le nombre de lignes modifiées, sans changemen
   assert.equal(await users.delete({ id: u.id }), 1);
   assert.equal(await users.findById(u.id), null);
 });
+
+// ── Annonces d'un membre : liste bornée ──────────────────────────────────────
+test('annonces d\'un membre : 100 au plus par réponse, ?limit / ?offset, total dans X-Total-Count', async () => {
+  const u = await s.register('gros-annonceur');
+  await q(`INSERT INTO properties (owner_id, title, mode, type_bien, price, wilaya, status, created_at)
+           SELECT $1, 'Lot ' || g, 'vente', 'appartement', 1000000 + g, 'Oran', 'active', now() - make_interval(mins => g)
+           FROM generate_series(1, 130) g`, [u.id]);
+  const get = qs => s.request('GET', `/api/properties/user/${u.id}${qs}`);
+  const all = await get('');
+  assert.equal(all.body.length, 100, 'jamais plus de 100 annonces par réponse');
+  assert.equal(all.headers.get('x-total-count'), '130');
+  assert.equal(all.body[0].title, 'Lot 1', 'les plus récentes d\'abord');
+  const next = await get('?limit=100&offset=100');
+  assert.equal(next.body.length, 30);
+  assert.equal(next.body[0].title, 'Lot 101');
+  assert.equal(new Set([...all.body, ...next.body].map(p => p.id)).size, 130, 'aucun doublon ni oubli entre les pages');
+  assert.equal((await get('?limit=5')).body.length, 5);
+  for (const bad of ['?limit=0', '?limit=-4', '?limit=abc', '?limit=1e9', '?limit=99999', '?offset=-1', '?offset=abc', '?limit[]=3'])
+    assert.equal((await get(bad)).status, 200, bad);
+  assert.equal((await get('?limit=99999')).body.length, 100, 'la limite demandée est plafonnée');
+  assert.deepEqual((await get('?offset=5000')).body, []);
+});

@@ -8,7 +8,7 @@ let s, clicks, owner, other;
 const q = (sql, p) => s.db.pool.query(sql, p);
 const total = async (id, channel) => (await q(`SELECT COALESCE(SUM(n), 0)::int n FROM contact_clicks WHERE property_id = $1 AND channel = $2`, [id, channel])).rows[0].n;
 const click = (id, body, opts = {}) => s.request('POST', `/api/properties/${id}/click`, { body, ...opts });
-const forget = () => clicks._seen.clear();            // oublie les visiteurs déjà comptés (le dédoublonnage est en mémoire)
+const forget = () => q("DELETE FROM rate_limits WHERE key LIKE 'clic:%'");   // oublie les visiteurs déjà comptés (souvenir partagé, table rate_limits)
 let n = 0;
 async function listing(o, status = 'active') {
   return (await q(`INSERT INTO properties (owner_id, title, description, mode, type_bien, price, wilaya, status, published_at)
@@ -42,27 +42,27 @@ test('un même visiteur ne compte qu\'une fois par annonce et par canal ; un aut
   await click(b, { channel: 'call' });
   assert.deepEqual([await total(a, 'call'), await total(a, 'whatsapp'), await total(b, 'call')], [1, 1, 1]);
   // Visiteur différent (autre adresse) : compté
-  assert.equal(clicks.firstRecently('203.0.113.7', a, 'call'), true);
+  assert.equal(await clicks.firstRecently('203.0.113.7', a, 'call'), true);
   await clicks.record(a, 'call');
   assert.equal(await total(a, 'call'), 2);
 });
 
-test('dédoublonnage : de nouveau compté après 10 minutes ; purge de la mémoire au-delà de la limite', () => {
-  const t0 = 1_000_000;
-  assert.equal(clicks.firstRecently('1.1.1.1', 1, 'call', t0), true);
-  assert.equal(clicks.firstRecently('1.1.1.1', 1, 'call', t0 + 60_000), false);
-  assert.equal(clicks.firstRecently('1.1.1.1', 1, 'call', t0 + clicks.DEDUP_MS - 1), false);
-  assert.equal(clicks.firstRecently('1.1.1.1', 1, 'call', t0 + clicks.DEDUP_MS), true, 'après 10 minutes');
-  forget();
-  for (let i = 0; i < 50000; i++) clicks._seen.set(`ip${i}|1|call`, t0);          // mémoire pleine
-  assert.equal(clicks.firstRecently('nouveau', 1, 'call', t0 + 1), true);
-  assert.ok(clicks._seen.size <= 50000, 'jamais au-delà de la limite');
-  forget();
-  for (let i = 0; i < 50000; i++) clicks._seen.set(`ip${i}|1|call`, t0 + clicks.DEDUP_MS + 5);   // toutes récentes : la moitié est retirée
-  const sizeBefore = clicks._seen.size;
-  assert.equal(clicks.firstRecently('encore-un', 1, 'call', t0 + clicks.DEDUP_MS + 10), true);
-  assert.ok(clicks._seen.size < sizeBefore, 'purge partielle');
-  forget();
+test('dédoublonnage partagé entre les workers : de nouveau compté après 10 minutes ; aucune adresse IP en base ; purge', async () => {
+  const rateStore = require('../../server/rate-store');
+  assert.equal(await clicks.firstRecently('1.1.1.1', 1, 'call'), true);
+  assert.equal(await clicks.firstRecently('1.1.1.1', 1, 'call'), false);
+  // Vingt clics simultanés (autant de workers) : un seul est « le premier »
+  const burst = await Promise.all(Array.from({ length: 20 }, () => clicks.firstRecently('2.2.2.2', 1, 'call')));
+  assert.equal(burst.filter(Boolean).length, 1);
+  const rows = (await q("SELECT key FROM rate_limits WHERE key LIKE 'clic:%'")).rows;
+  assert.equal(rows.length, 2);
+  for (const r of rows) assert.doesNotMatch(r.key, /1\.1\.1\.1|2\.2\.2\.2/, 'la clé est un HMAC, pas l\'adresse');
+  // Fenêtre écoulée : le visiteur compte de nouveau, et la purge retire les fenêtres terminées
+  await q("UPDATE rate_limits SET reset_at = now() - interval '1 second' WHERE key = $1", [rateStore.hashKey('clic', '1.1.1.1|1|call')]);
+  assert.equal(await clicks.firstRecently('1.1.1.1', 1, 'call'), true, 'après 10 minutes');
+  await q("UPDATE rate_limits SET reset_at = now() - interval '1 second' WHERE key = $1", [rateStore.hashKey('clic', '2.2.2.2|1|call')]);
+  assert.equal(await rateStore.purge(), 1);
+  assert.equal((await q("SELECT 1 FROM rate_limits WHERE key LIKE 'clic:%'")).rowCount, 1);
 });
 
 test('rien n\'est compté pour sa propre annonce, ni pour une annonce non publique ou inconnue ; la réponse ne le révèle pas', async () => {

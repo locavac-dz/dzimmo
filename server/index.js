@@ -12,8 +12,6 @@ if (!require('./config-check').reportConfig()) process.exit(1);
 
 db.connect()
   .then(() => {
-    // Annonces antérieures à la détection des doublons : titre et texte normalisés, par lots (sans bloquer le démarrage)
-    (async () => { while (await require('./quality').backfill() > 0); })().catch(e => console.warn('[qualité] empreintes :', e.message));
     const server = http.createServer(app);
     wsModule.setup(server);
     // Notifications temps réel entre workers (pm2 en mode cluster) ; se reconnecte seul si la connexion tombe
@@ -24,7 +22,12 @@ db.connect()
       // pm2 en mode cluster lance N workers : les tâches planifiées ne tournent que dans le premier
       // (sinon chaque alerte email partirait N fois). NODE_APP_INSTANCE est absent hors pm2 : une seule instance.
       const instance = process.env.NODE_APP_INSTANCE;
-      if (instance === undefined || instance === '0') require('./cron');
+      if (instance === undefined || instance === '0') {
+        require('./cron');
+        // Annonces antérieures à la détection des doublons : titre et texte normalisés, par lots (sans bloquer le démarrage).
+        // Un seul worker s'en charge : lancés partout, ils recalculaient tous les mêmes lots.
+        (async () => { while (await require('./quality').backfill() > 0); })().catch(e => console.warn('[qualité] empreintes :', e.message));
+      }
     });
   })
   .catch(err => {

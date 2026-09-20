@@ -64,7 +64,7 @@ const TRANSLATIONS = {
     map_no_pos:'sans position', map_view:"Voir l'annonce →", map_error:'Erreur de chargement',
     ag_none:'Aucune agence enregistrée', ag_rating:'note', ag_website:'🌐 Site web',
     dash_chart:'📊 Vues par annonce (top 8)', dash_archive_confirm:'Archiver cette annonce ? Elle ne sera plus visible.',
-    dash_archived:'Annonce archivée.', dash_error:'Erreur', dash_none:'Aucune annonce', dash_first:'Publiez votre première annonce !',
+    dash_archived:'Annonce archivée.', dash_error:'Erreur', dash_none:'Aucune annonce', dash_more:'Afficher plus d’annonces', dash_first:'Publiez votre première annonce !',
     dash_view:'Voir', dash_archive:'Archiver', u_req_one:'demande', u_req_two:'demandes', u_req_many:'demandes',
     dash_no_req:'Aucune demande reçue', dash_t_visite:'🗓 Visite', dash_t_offre:'💰 Offre', dash_t_info:'ℹ️ Info',
     dash_c_pending:'En attente', dash_c_confirmed:'Confirmée', dash_c_rejected:'Refusée', dash_c_done:'Terminée',
@@ -407,7 +407,7 @@ const TRANSLATIONS = {
     map_no_pos:'بدون موقع', map_view:'عرض الإعلان ←', map_error:'خطأ في التحميل',
     ag_none:'لا توجد وكالات مسجّلة', ag_rating:'التقييم', ag_website:'🌐 الموقع الإلكتروني',
     dash_chart:'📊 المشاهدات حسب الإعلان (أفضل 8)', dash_archive_confirm:'هل تريد أرشفة هذا الإعلان؟ لن يعود ظاهراً.',
-    dash_archived:'تمت أرشفة الإعلان.', dash_error:'خطأ', dash_none:'لا توجد إعلانات', dash_first:'انشر إعلانك الأول!',
+    dash_archived:'تمت أرشفة الإعلان.', dash_error:'خطأ', dash_none:'لا توجد إعلانات', dash_more:'عرض المزيد من الإعلانات', dash_first:'انشر إعلانك الأول!',
     dash_view:'عرض', dash_archive:'أرشفة', u_req_one:'طلب', u_req_two:'طلبان', u_req_many:'طلبات',
     dash_no_req:'لا توجد طلبات مستلمة', dash_t_visite:'🗓 زيارة', dash_t_offre:'💰 عرض', dash_t_info:'ℹ️ معلومات',
     dash_c_pending:'في الانتظار', dash_c_confirmed:'مؤكَّد', dash_c_rejected:'مرفوض', dash_c_done:'منتهٍ',
@@ -3011,20 +3011,27 @@ async function cancelVerification(id) {
   } catch (e) { toast('❌ ' + e.message); }
 }
 
-async function dashTab(tab) {
+const DASH_PAGE = 100;      // annonces par page dans « Mes annonces » (maximum accepté par l'API)
+let dashListings = [];
+
+async function dashTab(tab, more = false) {
   currentDashTab = tab;
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
     b.classList.toggle('active', ['mes-annonces','mes-contacts','favoris','alertes','profil','vitrine','verification'][i] === tab);
   });
   document.querySelector('#page-dashboard .tab-btn.active')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });   // onglet actif visible (mobile)
   const c = document.getElementById('dash-tab-content');
-  c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  if (!more) c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';   // « Afficher plus » : la liste reste en place
 
   if (tab === 'verification') { await dashVerification(c); return; }
   if (tab === 'vitrine') { await dashVitrine(c); return; }
 
   if (tab === 'mes-annonces') {
-    const data = await api('/properties/user/' + currentUser.id);
+    // Liste chargée par pages (DASH_PAGE annonces) : « Afficher plus » ajoute la page suivante
+    if (!more) dashListings = [];
+    const page = await api('/properties/user/' + currentUser.id + '?limit=' + DASH_PAGE + '&offset=' + dashListings.length);
+    const data = dashListings = dashListings.concat(page);
+    const hasMore = page.length === DASH_PAGE;
     if (!data.length) {
       c.innerHTML = '<div class="empty-state"><div class="icon">🏠</div><h3>' + T('dash_none') + '</h3><p>' + T('dash_first') + '</p>'
         + '<div style="display:flex;gap:.75rem;justify-content:center;margin-top:1rem;flex-wrap:wrap">'
@@ -3078,7 +3085,9 @@ async function dashTab(tab) {
             ${p.status==='active'?`<button class="btn btn-outline btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap;border-color:#94a3b8;color:#64748b" onclick="ownerArchive(${p.id})">${T('dash_archive')}</button>`:''}
           </div>
         </div>`).join('')}
-    </div>` + buildViewsChart(data);
+    </div>`
+      + (hasMore ? `<div style="text-align:center;margin-top:1rem"><button class="btn btn-outline" onclick="dashTab('mes-annonces', true)">${T('dash_more')}</button></div>` : '')
+      + buildViewsChart(data);
   }
 
   if (tab === 'mes-contacts') {

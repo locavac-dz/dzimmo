@@ -137,6 +137,7 @@ const AR = {
 
   // Import CSV
   'Fichier CSV requis.': 'ملف CSV مطلوب.',
+  'CSV trop long (200 lignes maximum).': 'ملف CSV طويل جداً (200 سطر كحد أقصى).',
   'Fichier CSV vide ou invalide.': 'ملف CSV فارغ أو غير صالح.',
   'CSV trop volumineux (2 Mo maximum).': 'ملف CSV كبير جداً (2 ميغابايت كحد أقصى).',
   'Colonnes requises manquantes.': 'الأعمدة الإلزامية مفقودة.',

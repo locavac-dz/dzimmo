@@ -131,9 +131,11 @@ Vérifier aussi qu'un email de confirmation arrive (inscription d'un compte de t
 À planifier (cron) : la base **et** les photos envoyées (pas le dossier des justificatifs, voir § 2).
 
 ```bash
-pg_dump -Fc dzimmo > /srv/backups/dzimmo-$(date +%F).dump
+pg_dump -Fc --no-unlogged-table-data dzimmo > /srv/backups/dzimmo-$(date +%F).dump
 tar czf /srv/backups/uploads-$(date +%F).tgz --exclude=uploads/thumbs -C /srv/dzimmo/public uploads
 ```
+
+`--no-unlogged-table-data` écarte la table `rate_limits` (compteurs de limitation de débit, jetables).
 
 `uploads/thumbs` (miniatures des photos, créées à la première demande par l'application) est un cache : inutile de le sauvegarder,
 il se reconstruit tout seul. Nginx doit continuer à transmettre `/uploads/thumbs/…` à l'application (le `location /` ci-dessus le

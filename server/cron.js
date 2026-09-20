@@ -40,3 +40,9 @@ cron.schedule('30 3 * * *', async () => {
 
 // Envoi des alertes email — toutes les heures
 cron.schedule('0 * * * *', () => sendSearchAlerts());
+
+// Compteurs de limitation de débit : fenêtres terminées (server/rate-store.js)
+cron.schedule('17 * * * *', async () => {
+  try { await require('./rate-store').purge(); }
+  catch (e) { console.error('[cron] Erreur purge des compteurs :', e.message); }
+});

@@ -79,7 +79,12 @@ app.use(cors({
 app.use('/api', require('./i18n').middleware);
 
 // ── Rate limiting ────────────────────────────────────────────────
+// Compteurs dans PostgreSQL, communs à tous les workers pm2 (server/rate-store.js) : en mémoire, chaque limite était
+// multipliée par le nombre de workers. Base injoignable : la requête passe (passOnStoreError) plutôt que de rendre le site inutilisable.
+const { PgStore } = require('./rate-store');
+const shared = prefix => ({ store: new PgStore(prefix), passOnStoreError: true });
 const authLimiter = rateLimit({
+  ...shared('auth'),
   windowMs: 15 * 60 * 1000,
   max: 20,
   standardHeaders: true,
@@ -94,6 +99,7 @@ app.use('/api/auth/forgot-password', authLimiter);   // chaque appel peut envoye
 app.use('/api/auth/reset-password',  authLimiter);
 
 const uploadLimiter = rateLimit({
+  ...shared('upload'),
   windowMs: 60 * 60 * 1000,
   max: 50,
   standardHeaders: true,
@@ -107,6 +113,7 @@ app.use('/api/import', uploadLimiter);         // import CSV : même fenêtre qu
 
 // Clics « Appeler / WhatsApp » et liens de confirmation d'annonce (jeton de l'email) : publics, donc limités par adresse IP
 const clickLimiter = rateLimit({
+  ...shared('click'),
   windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false,
   message: { error: 'Trop de requêtes. Réessayez dans une minute.' },
   skip: () => process.env.NODE_ENV === 'test',
@@ -115,6 +122,7 @@ app.use('/api/properties/:id/click', clickLimiter);
 app.use('/api/properties/:id/confirm', authLimiter);
 
 const publicStatsLimiter = rateLimit({
+  ...shared('publicStats'),
   windowMs: 60 * 1000,
   max: 30,
   standardHeaders: true,
@@ -125,6 +133,7 @@ const publicStatsLimiter = rateLimit({
 app.use('/api/stats/public', publicStatsLimiter);
 
 const exportLimiter = rateLimit({
+  ...shared('export'),
   windowMs: 60 * 60 * 1000,
   max: 5,
   standardHeaders: true,

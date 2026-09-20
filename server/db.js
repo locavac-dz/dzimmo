@@ -11,9 +11,9 @@ const pool = new Pool({
 });
 
 // ── Initialisation du schéma ─────────────────────────────────
-async function initSchema() {
+async function initSchema(client = pool) {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
-  await pool.query(schema);
+  await client.query(schema);
 }
 
 // ── Helper : rows → plain objects ────────────────────────────
@@ -246,9 +246,12 @@ const favorites       = new Collection('favorites');
 
 async function connect() {
   await pool.query('SELECT 1');
-  await initSchema();
+  // Schéma puis migrations sur une seule connexion, sous verrou : un seul worker pm2 à la fois, chaque migration dans une vraie transaction
   const migrate = require('./migrate');
-  await migrate(pool);
+  await migrate.withStartupLock(pool, async client => {
+    await initSchema(client);
+    await migrate(client);
+  });
   await require('./search').sync(pool);   // lexique français ↔ arabe de la recherche (recalcule les textes s'il a changé)
   await seed();
   console.log('🐘 PostgreSQL connecté');

@@ -1,27 +1,16 @@
 // ── Clics « Appeler » / « WhatsApp » ─────────────────────────────────────────
 // Compteurs anonymes par annonce, jour et canal (table contact_clicks) : ni adresse IP ni identifiant de visiteur n'est stocké.
-// Pour qu'un compteur reste honnête, un même visiteur (adresse IP, connue seulement en mémoire) ne compte qu'une fois par annonce
+// Pour qu'un compteur reste honnête, un même visiteur (adresse IP, jamais stockée en clair) ne compte qu'une fois par annonce
 // et par canal pendant DEDUP_MS : recharger la page ou cliquer dix fois ne gonfle pas les chiffres.
 const db = require('./db');
+const rateStore = require('./rate-store');
 
 const CHANNELS = ['call', 'whatsapp'];
 const DEDUP_MS = 10 * 60 * 1000;
-const MAX_ENTRIES = 50000;
 
-const seen = new Map();   // « ip|annonce|canal » → date du dernier clic compté
-
-// true si ce visiteur n'a pas déjà été compté récemment (et le mémorise)
-function firstRecently(ip, propertyId, channel, now = Date.now()) {
-  const key = `${ip}|${propertyId}|${channel}`;
-  const last = seen.get(key);
-  if (last !== undefined && now - last < DEDUP_MS) return false;
-  if (seen.size >= MAX_ENTRIES) {                 // purge : d'abord les entrées périmées, sinon la moitié des plus anciennes
-    for (const [k, t] of seen) if (now - t >= DEDUP_MS) seen.delete(k);
-    if (seen.size >= MAX_ENTRIES) { let i = 0; for (const k of seen.keys()) { if (i++ >= MAX_ENTRIES / 2) break; seen.delete(k); } }
-  }
-  seen.set(key, now);
-  return true;
-}
+// true si ce visiteur n'a pas déjà été compté récemment. Le souvenir est partagé entre les workers pm2 (table rate_limits) :
+// en mémoire, un même visiteur était compté une fois par worker. Seul un HMAC de « adresse|annonce|canal » est gardé, dix minutes.
+const firstRecently = (ip, propertyId, channel) => rateStore.firstInWindow('clic', `${ip}|${propertyId}|${channel}`, DEDUP_MS);
 
 async function record(propertyId, channel) {
   await db.pool.query(
@@ -41,4 +30,4 @@ async function totalsForOwner(ownerId) {
   return r.rows[0];
 }
 
-module.exports = { CHANNELS, DEDUP_MS, firstRecently, record, totalsForOwner, _seen: seen };
+module.exports = { CHANNELS, DEDUP_MS, firstRecently, record, totalsForOwner };

@@ -56,6 +56,12 @@ Windows : `demarrer.bat`
 - pm2 tourne en mode cluster : rien ne doit dépendre de la mémoire d'un seul processus. Les tâches planifiées
   (`server/cron.js`) ne démarrent que dans l'instance 0 (`NODE_APP_INSTANCE`) ; les notifications temps réel
   (`server/ws.js`) passent d'un worker à l'autre par PostgreSQL `LISTEN / NOTIFY`.
+- **Compteurs partagés** (`server/rate-store.js`, table `rate_limits`) : tout limiteur `express-rate-limit` se crée avec
+  `...shared('préfixe')` (test `tests/api/rate-store.test.js`), et le dédoublonnage des clics y passe aussi. La clé stockée est un
+  HMAC, jamais l'adresse IP ; les lignes ne vivent que le temps de leur fenêtre (purge horaire). Base injoignable : la requête passe.
+- **Démarrage** (`server/migrate.js`) : schéma et migrations s'exécutent sous un verrou consultatif PostgreSQL (un seul worker à la
+  fois), chaque migration dans **une** transaction sur **une** connexion : pas de `BEGIN`/`COMMIT` ni de `CONCURRENTLY` dans un
+  fichier de migration. Tout rattrapage de données au démarrage se lance dans l'instance 0 seulement, comme les tâches planifiées.
 - `server/config-check.js` contrôle la configuration au démarrage (production) : un réglage dont l'absence est
   dangereux y reçoit une règle, en plus de figurer dans `.env.example`.
 - Un chemin inconnu renvoie une vraie 404 (`public/404.html`, bilingue), l'API inconnue un JSON 404 : pas de repli
@@ -99,7 +105,7 @@ Windows : `demarrer.bat`
   de confiance). Ne jamais exposer l'id d'une annonce d'un autre membre à un annonceur (`warningsFor`). Les empreintes des annonces
   existantes sont calculées au démarrage (`backfill`).
 - **Clics Appeler / WhatsApp** (`server/clicks.js`, table `contact_clicks`) : compteurs par annonce, jour et canal, **sans adresse IP
-  ni identifiant de visiteur** (le dédoublonnage de 10 min est en mémoire) ; visibles de l'annonceur seul ; `POST /:id/click` répond
+  ni identifiant de visiteur** (le dédoublonnage de 10 min garde un HMAC éphémère dans `rate_limits`, commun aux workers) ; visibles de l'annonceur seul ; `POST /:id/click` répond
   toujours 204 (ne révèle rien sur l'annonce).
 
 ## Vitrine des agences et des promoteurs
@@ -153,6 +159,9 @@ Windows : `demarrer.bat`
 
 - Ne jamais committer `.env`, `.env.production` ni `dzimmo.json`.
 - Toute variable de configuration nouvelle doit être ajoutée à `.env.example`.
+- Aucun lien vers le site en dur : `siteUrl()` (`server/mailer.js`) ou `APP_URL`. Aucune adresse email ni numéro de téléphone dans les journaux.
+- Une liste renvoyée par l'API est toujours bornée (`LIMIT`) : `GET /api/properties/user/:id` accepte `?limit=` (100 au plus) et `?offset=`,
+  le total est dans l'en-tête `X-Total-Count`.
 - Tout nouveau message d'erreur de l'API (`res.status(…).json({ error: '…' })`) doit être ajouté à `server/i18n.js`
   avec sa traduction arabe : le site envoie sa langue dans l'en-tête `X-Lang`, le serveur traduit à l'envoi.
   Un test (`tests/unit/i18n-errors.test.js`) échoue si un message n'a pas de traduction.

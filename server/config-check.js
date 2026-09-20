@@ -3,9 +3,23 @@
 // erronés (APP_URL). « warnings » sont affichés dans les logs : le site fonctionne mais dégradé.
 // Fonction pure (reçoit l'environnement) pour être testée sans démarrer le serveur.
 
+const path = require('path');
+const jwt  = require('jsonwebtoken');
+
+const { FROM_OK } = require('./mailer');   // la règle qu'applique réellement l'envoi (sender)
 const SECRET_MIN = 32;
 const PLACEHOLDER_SECRET = /changez|change[-_ ]?me|secret-de-test|example|exemple/i;
 const LOCAL = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/i;
+
+const MIN_SESSION_SECONDS = 300;
+
+// Durée réelle d'une session pour cette valeur, calculée par jsonwebtoken lui-même (null : il la refuse)
+function sessionSeconds(ttl) {
+  try {
+    const { iat, exp } = jwt.decode(jwt.sign({}, 'controle-de-configuration', { expiresIn: ttl }));
+    return exp - iat;
+  } catch { return null; }
+}
 
 function checkConfig(env = process.env) {
   const errors = [], warnings = [];
@@ -18,7 +32,24 @@ function checkConfig(env = process.env) {
   else if (secret.length < SECRET_MIN)
     errors.push(`JWT_SECRET est trop court (${secret.length} caractères, ${SECRET_MIN} minimum) : générez-en un avec « node -e "console.log(require('crypto').randomBytes(48).toString('hex'))" ».`);
 
+  // Durée des sessions (7d par défaut) : avec une valeur illisible, jwt.sign() échoue et plus personne ne peut se connecter
+  const ttl = (env.JWT_EXPIRES_IN || '').trim();
+  if (ttl) {
+    const seconds = sessionSeconds(ttl);
+    if (seconds === null)
+      errors.push(`JWT_EXPIRES_IN est illisible (« ${ttl} ») : attendu une durée comme 7d, 12h ou 30m.`);
+    else if (seconds < MIN_SESSION_SECONDS)   // piège : « 3600 » sans unité vaut 3600 millisecondes
+      errors.push(`JWT_EXPIRES_IN (« ${ttl} ») donne des sessions de ${seconds} seconde(s) : les membres seraient déconnectés aussitôt. Préciser l'unité, par exemple 7d.`);
+  }
+
   if (!env.DATABASE_URL) errors.push('DATABASE_URL est absent.');
+
+  // Justificatifs d'identité (loi 18-07) : jamais dans un dossier servi au public
+  if (env.VERIFICATION_DIR) {
+    const pub = path.resolve(__dirname, '..', 'public') + path.sep;
+    if ((path.resolve(env.VERIFICATION_DIR) + path.sep).toLowerCase().startsWith(pub.toLowerCase()))
+      errors.push('VERIFICATION_DIR est sous public/ : les pièces d\'identité des annonceurs seraient téléchargeables par n\'importe qui.');
+  }
 
   const app = env.APP_URL || '';
   if (!app) errors.push('APP_URL est absent : les liens des emails, le sitemap et les URL canoniques pointeraient vers le serveur interne.');
@@ -45,7 +76,13 @@ function checkConfig(env = process.env) {
       warnings.push(`${name} doit être un nombre entier de jours entre 1 et 365 (« ${v} » ignoré : ${def} jours utilisés).`);
   }
 
-  if (!env.EMAIL_HOST) warnings.push('EMAIL_HOST est absent : aucun email (confirmation, mot de passe oublié, alertes) ne sera envoyé.');
+  const NO_MAIL = 'aucun email (confirmation, mot de passe oublié, alertes) ne sera envoyé.';
+  if (!env.EMAIL_HOST) warnings.push('EMAIL_HOST est absent : ' + NO_MAIL);
+  else if (/(^|\.)example\.(com|org|net)$/i.test(env.EMAIL_HOST.trim())) warnings.push(`EMAIL_HOST est encore la valeur d'exemple (${env.EMAIL_HOST}) : ` + NO_MAIL);
+  else if (!env.EMAIL_USER) warnings.push('EMAIL_USER est absent : ' + NO_MAIL);
+  const from = (env.EMAIL_FROM || '').trim();
+  if (from && !FROM_OK.test(from))
+    warnings.push('EMAIL_FROM est invalide (attendu « Nom <adresse@domaine> » ou une adresse seule) : le compte SMTP sert d\'expéditeur.');
   if ((env.MODERATION || 'on').toLowerCase() === 'off') warnings.push('MODERATION=off : les annonces sont publiées sans validation.');
 
   return { errors, warnings };
