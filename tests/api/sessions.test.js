@@ -6,8 +6,10 @@ const http   = require('node:http');
 const jwt    = require('jsonwebtoken');
 const WebSocket = require('ws');
 const { startServer } = require('../helpers/server');
-const { revokeSessions, isRevoked } = require('../../server/sessions');
 
+// Ces modules ouvrent la connexion à la base au chargement : ils ne se chargent qu'APRÈS startServer(), qui redirige la
+// base vers un schéma jetable (chargés avant, les tests écrivaient dans la base de développement).
+let revokeSessions, isRevoked;
 let s, server, wsUrl, wsHub, admin;
 const q = (sql, p) => s.db.pool.query(sql, p);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -16,6 +18,7 @@ const login = (user, password = 'motdepasse1') => s.request('POST', '/api/auth/l
 
 test.before(async () => {
   s = await startServer();
+  ({ revokeSessions, isRevoked } = require('../../server/sessions'));
   admin = await s.makeAdmin(await s.register('admin'));
   // Serveur HTTP + WebSocket réels (le helper ne démarre pas les WebSocket)
   wsHub = require('../../server/ws');

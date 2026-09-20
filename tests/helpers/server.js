@@ -9,6 +9,11 @@ const ROOT   = path.join(__dirname, '..', '..');
 require('dotenv').config({ path: path.join(ROOT, '.env') });
 
 async function startServer() {
+  // Garde-fou : si server/db.js est déjà chargé, sa connexion vise la base de développement (le schéma jetable ci-dessous
+  // n'aurait aucun effet) et les tests y écriraient leurs données. Charger les modules du serveur APRÈS startServer().
+  if (require.cache[require.resolve(path.join(ROOT, 'server', 'db'))])
+    throw new Error('server/db.js est chargé avant startServer() : les tests écriraient dans la base de développement. ' +
+      "Requérir les modules du serveur (sessions, verification, moderation…) à l'intérieur de test.before, après startServer().");
   const baseUrl = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL;
   if (!baseUrl) throw new Error('DATABASE_URL (ou TEST_DATABASE_URL) requis pour les tests d\'API.');
 
