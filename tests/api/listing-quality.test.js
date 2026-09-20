@@ -214,6 +214,30 @@ test('modifier le prix d\'une annonce publiée vers une valeur aberrante la reme
   assert.deepEqual((await flagsOf(id)).flags, ['price_low']);
 });
 
+test('archiver, baisser le prix hors ligne puis réactiver : la remise en ligne est réévaluée et bloquée', async () => {
+  await reset(); await market(6);
+  const ag = await trusted('archive-prix');
+  const id = (await post(ag)).body.id;
+  const put = body => s.request('PUT', `/api/properties/${id}`, { token: ag.token, body });
+  assert.equal((await put({ status: 'archived' })).body.status, 'archived');
+  // Hors ligne, le prix aberrant est signalé mais l'annonce reste simplement archivée
+  const low = await put({ price: 900000 });
+  assert.equal(low.body.status, 'archived');
+  assert.deepEqual(low.body.warnings.map(w => w.code), ['price_low']);
+  // La réactivation seule (aucun champ de prix dans la requête) est réévaluée : signal bloquant → modération
+  const back = await put({ status: 'active' });
+  assert.equal(back.status, 200);
+  assert.equal(back.body.status, 'pending');
+  assert.deepEqual(back.body.warnings.map(w => w.code), ['price_low']);
+  assert.equal(await statusOf(id), 'pending');
+  // Prix normal : la réactivation d'une annonce archivée passe
+  await q(`UPDATE properties SET status = 'archived' WHERE id = $1`, [id]);
+  assert.equal((await put({ price: 10000000 })).body.status, 'archived');
+  const ok = await put({ status: 'active' });
+  assert.equal(ok.body.status, 'active');
+  assert.deepEqual(ok.body.warnings, []);
+});
+
 // ── Doublons ─────────────────────────────────────────────────────────────────
 test('doublon du même annonceur : avertissement (titre ou texte identique, prix à ±5 %), sans blocage', async () => {
   await reset();

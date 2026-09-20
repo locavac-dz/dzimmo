@@ -7,6 +7,9 @@ const mailer = require('../mailer');
 const google = require('../google-auth');
 const { revokeSessions } = require('../sessions');
 
+// Emails de réinitialisation du mot de passe acceptés par compte et par heure (au-delà : réponse identique, aucun envoi)
+const RESET_MAX_PER_HOUR = 3;
+
 function sign(user) {
   return jwt.sign(
     { id: user.id, name: user.name, email: user.email, is_agent: user.is_agent, is_admin: user.is_admin || false },
@@ -152,6 +155,11 @@ router.post('/forgot-password', async (req, res) => {
   if (!email) return res.status(400).json({ error: 'Email requis.' });
   const user = await db.users.findOne({ email: email.toLowerCase().trim() });
   if (!user) return res.json({ ok: true }); // anti-énumération
+  // Au plus RESET_MAX_PER_HOUR emails par compte et par heure, quelle que soit l'adresse IP : au-delà, même réponse,
+  // aucun envoi (un tiers ne peut pas inonder la boîte d'un membre ni faire passer le site pour un expéditeur de spam)
+  const recent = await db.pool.query(
+    `SELECT COUNT(*)::int AS n FROM password_reset_tokens WHERE user_id = $1 AND created_at > NOW() - interval '1 hour'`, [user.id]);
+  if (recent.rows[0].n >= RESET_MAX_PER_HOUR) return res.json({ ok: true });
   const token = crypto.randomBytes(32).toString('hex');
   const expires = new Date(Date.now() + 60 * 60 * 1000);
   await db.pool.query(

@@ -90,6 +90,20 @@ test('mot de passe oublié : email dans la langue de la demande', async () => {
   await s.request('POST', '/api/auth/forgot-password', { body: { email: u.email } });
   await settle(() => mailsTo(u.email).length >= 1);
   assert.match(mailsTo(u.email)[0].subject, /إعادة تعيين/);
+
+  // Trois emails dans l'heure ont été envoyés : le suivant ne part pas, la réponse reste identique (anti-énumération)
+  mails.length = 0;
+  const fourth = await s.request('POST', '/api/auth/forgot-password', { body: { email: u.email } });
+  assert.deepEqual(fourth.body, { ok: true });
+  await new Promise(r => setTimeout(r, 300));
+  assert.equal(mailsTo(u.email).length, 0, 'aucun email au-delà du plafond horaire');
+  const tokens = await s.db.pool.query('SELECT COUNT(*)::int AS n FROM password_reset_tokens WHERE user_id = $1', [u.id]);
+  assert.equal(tokens.rows[0].n, 3, 'aucun jeton créé non plus');
+  // Le plafond est glissant : des demandes vieilles d'une heure ne comptent plus
+  await s.db.pool.query(`UPDATE password_reset_tokens SET created_at = NOW() - interval '61 minutes' WHERE user_id = $1`, [u.id]);
+  await s.request('POST', '/api/auth/forgot-password', { body: { email: u.email } });
+  await settle(() => mailsTo(u.email).length >= 1);
+  assert.equal(mailsTo(u.email).length, 1);
 });
 
 test('demande de contact : email et notification pour le propriétaire dans sa langue, réponse dans celle du demandeur', async () => {

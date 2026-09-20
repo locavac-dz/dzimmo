@@ -129,6 +129,7 @@ const AR = {
   'Destinataire, annonce et message requis.': 'المستلم والإعلان والرسالة مطلوبة.',
   'Le message ne peut pas dépasser 2000 caractères.': 'لا يمكن أن تتجاوز الرسالة 2000 حرف.',
   'Vous ne pouvez pas vous envoyer un message.': 'لا يمكنك إرسال رسالة إلى نفسك.',
+  'Vous ne pouvez écrire qu\'à l\'annonceur, ou répondre à une personne qui vous a écrit.': 'لا يمكنك المراسلة إلا مع صاحب الإعلان، أو الرد على شخص راسلك.',
 
   // Recherche géographique
   'Coordonnées invalides.': 'الإحداثيات غير صالحة.',

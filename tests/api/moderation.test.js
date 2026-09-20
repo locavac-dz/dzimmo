@@ -104,6 +104,46 @@ test('annonce active : modifier le contenu la remet en attente, pas le prix', as
   assert.equal((await s.request('GET', `/api/properties/${id}`)).status, 404, 'plus visible tant que non revalidée');
 });
 
+test('archiver, réécrire puis réactiver ne contourne pas la modération', async () => {
+  const approve = id => s.request('PUT', `/api/admin/properties/${id}/moderate`, { token: admin.token, body: { decision: 'approve' } });
+  const put = (id, body) => s.request('PUT', `/api/properties/${id}`, { token: owner.token, body });
+  const dbStatus = async id => (await s.db.pool.query('SELECT status, title FROM properties WHERE id = $1', [id])).rows[0];
+
+  // 1. Contenu réécrit pendant l'archivage : l'annonce repasse en attente, jamais directement en ligne
+  const { body: { id } } = await create(owner, 'Annonce validée');
+  await approve(id);
+  assert.equal((await put(id, { status: 'archived' })).body.status, 'archived');
+  const rewritten = await put(id, { title: 'Titre réécrit hors ligne' });
+  assert.equal(rewritten.body.status, 'pending', 'le contenu modifié est à revalider');
+  assert.equal((await put(id, { status: 'active' })).status, 400, 'et ne se réactive pas sans validation');
+  assert.equal((await s.request('GET', `/api/properties/${id}`)).status, 404);
+  await approve(id);
+  assert.deepEqual(await dbStatus(id), { status: 'active', title: 'Titre réécrit hors ligne' });
+
+  // 2. Réécriture et réactivation dans la même requête
+  assert.equal((await put(id, { status: 'archived' })).body.status, 'archived');
+  const both = await put(id, { status: 'active', description: 'Description réécrite' });
+  assert.equal(both.body.status, 'pending');
+  assert.equal((await dbStatus(id)).status, 'pending');
+  await approve(id);
+
+  // 3. Sans changement de contenu, archiver puis réactiver reste libre (le contenu a déjà été validé)
+  assert.equal((await put(id, { status: 'archived' })).body.status, 'archived');
+  assert.equal((await put(id, { price: 11500000 })).body.status, 'archived', 'le prix n\'est pas du contenu');
+  assert.equal((await put(id, { status: 'active' })).body.status, 'active');
+  assert.equal((await s.request('GET', `/api/properties/${id}`)).status, 200);
+
+  // 4. Une annonce vendue reste publique : son contenu réécrit repasse aussi en validation
+  assert.equal((await put(id, { status: 'sold' })).body.status, 'sold');
+  assert.equal((await put(id, { title: 'Réécrite après la vente' })).body.status, 'pending');
+
+  // 5. Agence vérifiée : jamais concernée
+  const t = await create(trusted, 'Annonce agence archivée');
+  await s.request('PUT', `/api/properties/${t.body.id}`, { token: trusted.token, body: { status: 'archived' } });
+  const edit = await s.request('PUT', `/api/properties/${t.body.id}`, { token: trusted.token, body: { title: 'Titre agence réécrit', status: 'active' } });
+  assert.equal(edit.body.status, 'active');
+});
+
 test('admin et agence vérifiée publient directement, sans se remettre en attente', async () => {
   const a = await create(trusted, 'Annonce agence');
   assert.equal(a.body.status, 'active');

@@ -54,6 +54,26 @@ router.get('/:property_id/:other_id', auth, async (req, res) => {
   res.json({ thread: threadRes.rows, other: { id: otherId, name: other?.name }, property: { id: pid, title: property?.title, image: property?.image } });
 });
 
+// Statuts d'annonce pour lesquels un visiteur peut engager la conversation avec l'annonceur
+const CONTACTABLE = ['active', 'sold', 'rented'];
+
+// Le destinataire d'un premier message est forcément l'annonceur ; ensuite chacun répond dans le fil existant.
+// L'annonceur peut aussi écrire à quelqu'un qui lui a envoyé une demande de contact sur cette annonce.
+// Sans cette règle, n'importe quel compte pouvait écrire (et faire envoyer un email) à n'importe quel identifiant.
+async function canWrite(senderId, recipientId, property) {
+  if (recipientId === property.owner_id) {
+    if (CONTACTABLE.includes(property.status)) return true;
+  }
+  const r = await db.pool.query(
+    `SELECT 1 FROM messages
+      WHERE property_id = $1 AND ((from_id = $2 AND to_id = $3) OR (from_id = $3 AND to_id = $2))
+      UNION ALL
+     SELECT 1 FROM contact_requests
+      WHERE property_id = $1 AND user_id = $3 AND $2 = $4
+      LIMIT 1`, [property.id, senderId, recipientId, property.owner_id]);
+  return r.rowCount > 0;
+}
+
 // POST /api/messages
 router.post('/', auth, async (req, res) => {
   const { to_id, property_id, body } = req.body;
@@ -61,25 +81,30 @@ router.post('/', auth, async (req, res) => {
     return res.status(400).json({ error: 'Destinataire, annonce et message requis.' });
   if (body.length > 2000)
     return res.status(400).json({ error: 'Le message ne peut pas dépasser 2000 caractères.' });
-  if (Number(to_id) === req.user.id)
+  const recipientId = db.toId(to_id);
+  if (recipientId === req.user.id)
     return res.status(400).json({ error: 'Vous ne pouvez pas vous envoyer un message.' });
 
-  const property = await db.properties.findById(property_id);
+  const [property, recipient, sender] = await Promise.all([
+    db.properties.findById(property_id), recipientId ? db.users.findById(recipientId) : null, db.users.findById(req.user.id),
+  ]);
   if (!property) return res.status(404).json({ error: 'Annonce introuvable.' });
+  if (!recipient || recipient.banned) return res.status(404).json({ error: 'Utilisateur introuvable.' });
+  if (!(await canWrite(req.user.id, recipientId, property)))
+    return res.status(403).json({ error: 'Vous ne pouvez écrire qu\'à l\'annonceur, ou répondre à une personne qui vous a écrit.' });
 
   const msg = await db.messages.insert({
-    from_id: req.user.id, to_id: Number(to_id),
-    property_id: Number(property_id), body: body.trim(), read: false,
+    from_id: req.user.id, to_id: recipientId,
+    property_id: property.id, body: body.trim(), read: false,
   });
 
-  const [recipient, sender] = await Promise.all([db.users.findById(to_id), db.users.findById(req.user.id)]);
-  if (recipient?.email) {
+  if (recipient.email) {
     require('../mailer').mailNewMessage({
       to: recipient.email, lang: recipient.lang, senderName: sender.name,
       propertyTitle: property.title, preview: body.trim(),
     });
   }
-  ws.send(to_id, {
+  ws.send(recipientId, {
     type: 'message',
     msg: { ...msg, sender_name: sender.name, property_title: property.title },
   });

@@ -26,12 +26,14 @@ async function listing(title = 'Annonce de test', extra = {}) {
 
 // ── Messagerie ───────────────────────────────────────────────────────────────
 test('messagerie : envoi, conversations, fil de discussion, lu / non lu', async () => {
+  // A est l'annonceur : B et C lui écrivent, A répond à B
   const [a, b, c] = [await s.register('a'), await s.register('b'), await s.register('c')];
   const p = await listing('Bien de la messagerie');
+  await q('UPDATE properties SET owner_id = $1 WHERE id = $2', [a.id, p]);
   const send = (from, to, body) => s.request('POST', '/api/messages', { token: from.token, body: { to_id: to.id, property_id: p, body } });
-  const m1 = await send(a, b, 'Bonjour B');
-  const m2 = await send(a, b, 'Toujours disponible ?');
-  const m3 = await send(b, a, 'Oui, disponible');
+  const m1 = await send(b, a, 'Bonjour A');
+  const m2 = await send(b, a, 'Toujours disponible ?');
+  const m3 = await send(a, b, 'Oui, disponible');
   const m4 = await send(c, a, 'Salut A, je suis C');
   for (const m of [m1, m2, m3, m4]) assert.equal(m.status, 201);
   await at('messages', m1.body.id, '2026-05-01T10:00:00Z'); await at('messages', m2.body.id, '2026-05-01T10:05:00Z');
@@ -44,7 +46,7 @@ test('messagerie : envoi, conversations, fil de discussion, lu / non lu', async 
   assert.equal(convs[0].unread, 1);
   assert.equal(convs[1].other_id, b.id);
   assert.equal(convs[1].last_msg, 'Oui, disponible');
-  assert.equal(convs[1].unread, 1, 'le message de B à A est non lu');
+  assert.equal(convs[1].unread, 2, 'les deux messages de B à A sont non lus');
   assert.equal(convs[1].property_id, p);
   assert.equal(convs[1].property_title, 'Bien de la messagerie');
   assert.equal(convs[1].other_name, 'Test b');
@@ -53,19 +55,66 @@ test('messagerie : envoi, conversations, fil de discussion, lu / non lu', async 
 
   const bConvs = (await s.request('GET', '/api/messages', { token: b.token })).body;
   assert.equal(bConvs.length, 1);
-  assert.equal(bConvs[0].unread, 2, 'B a deux messages non lus de A');
-  assert.equal((await s.request('GET', '/api/messages/unread-count', { token: b.token })).body.count, 2);
-  assert.equal((await s.request('GET', '/api/messages/unread-count', { token: a.token })).body.count, 2);
+  assert.equal(bConvs[0].unread, 1, 'B a un message non lu de A');
+  assert.equal((await s.request('GET', '/api/messages/unread-count', { token: b.token })).body.count, 1);
+  assert.equal((await s.request('GET', '/api/messages/unread-count', { token: a.token })).body.count, 3);
 
   const thread = await s.request('GET', `/api/messages/${p}/${b.id}`, { token: a.token });
-  assert.deepEqual(thread.body.thread.map(m => m.body), ['Bonjour B', 'Toujours disponible ?', 'Oui, disponible'], 'ordre chronologique');
+  assert.deepEqual(thread.body.thread.map(m => m.body), ['Bonjour A', 'Toujours disponible ?', 'Oui, disponible'], 'ordre chronologique');
   assert.deepEqual(thread.body.other, { id: b.id, name: 'Test b' });
   assert.equal(thread.body.property.id, p);
   assert.equal(thread.body.property.title, 'Bien de la messagerie');
   assert.equal((await s.request('GET', '/api/messages/unread-count', { token: a.token })).body.count, 1, 'le fil est marqué lu (C reste non lu)');
-  assert.equal((await s.request('GET', '/api/messages/unread-count', { token: b.token })).body.count, 2, 'les messages de A à B restent non lus');
+  assert.equal((await s.request('GET', '/api/messages/unread-count', { token: b.token })).body.count, 1, 'le message de A à B reste non lu');
   const stranger = await s.request('GET', `/api/messages/${p}/${a.id}`, { token: c.token });
   assert.deepEqual(stranger.body.thread.map(m => m.body), ['Salut A, je suis C'], 'C ne voit que ses propres échanges avec A');
+});
+
+test('messagerie : un premier message ne va qu\'à l\'annonceur ; on répond ensuite dans le fil', async () => {
+  const [owner, visitor, third, banned] = [await s.register('m-owner'), await s.register('m-visitor'), await s.register('m-third'), await s.register('m-banned')];
+  const p = await listing('Bien contactable');
+  await q('UPDATE properties SET owner_id = $1 WHERE id = $2', [owner.id, p]);
+  await q('UPDATE users SET banned = true WHERE id = $1', [banned.id]);
+  const send = (from, to_id, property_id, body = 'Bonjour') => s.request('POST', '/api/messages', { token: from.token, body: { to_id, property_id, body } });
+  const REFUS = 'Vous ne pouvez écrire qu\'à l\'annonceur, ou répondre à une personne qui vous a écrit.';
+
+  // Un visiteur ne peut pas écrire à un autre membre à propos d'une annonce qui n'est pas la sienne
+  const toThird = await send(visitor, third.id, p);
+  assert.equal(toThird.status, 403);
+  assert.equal(toThird.body.error, REFUS);
+  const ar = await s.request('POST', '/api/messages', { token: visitor.token, headers: { 'X-Lang': 'ar' }, body: { to_id: third.id, property_id: p, body: 'x' } });
+  assert.match(ar.body.error, /[؀-ۿ]/, 'refus traduit');
+  // L'annonceur ne peut pas non plus écrire à quelqu'un qui ne l'a jamais contacté
+  assert.equal((await send(owner, third.id, p)).status, 403);
+  // Destinataire inexistant ou suspendu : introuvable (aucun email envoyé)
+  assert.equal((await send(visitor, 999999, p)).status, 404);
+  assert.equal((await send(visitor, 'abc', p)).status, 404);
+  assert.equal((await send(visitor, banned.id, p)).status, 404);
+  assert.equal((await q('SELECT COUNT(*)::int AS n FROM messages WHERE property_id = $1', [p])).rows[0].n, 0, 'rien n\'a été enregistré');
+
+  // Visiteur → annonceur : premier contact autorisé ; l'annonceur répond ; le visiteur relance
+  assert.equal((await send(visitor, owner.id, p, 'Toujours disponible ?')).status, 201);
+  assert.equal((await send(owner, visitor.id, p, 'Oui')).status, 201);
+  assert.equal((await send(visitor, owner.id, p, 'Je passe demain')).status, 201);
+  // Le fil ne vaut que pour cette annonce : sur une autre annonce, le visiteur reste un inconnu pour un tiers
+  const p2 = await listing('Autre bien');
+  assert.equal((await send(visitor, third.id, p2)).status, 403);
+
+  // Une demande de contact permet à l'annonceur d'écrire le premier
+  assert.equal((await s.request('POST', '/api/contacts', { token: third.token, body: { property_id: p, type: 'info' } })).status, 201);
+  assert.equal((await send(owner, third.id, p, 'Merci pour votre demande')).status, 201);
+  assert.equal((await send(third, owner.id, p, 'Avec plaisir')).status, 201);
+
+  // Annonce en attente de modération : l'annonceur n'est pas encore joignable par un inconnu
+  const pending = await s.request('POST', '/api/properties', { token: owner.token, body: {
+    title: 'Bien en attente', mode: 'vente', type_bien: 'appartement', price: 10000000, wilaya: 'Oran', photos: [] } });
+  assert.equal(pending.body.status, 'pending');
+  assert.equal((await send(visitor, owner.id, pending.body.id)).status, 403);
+  // Annonce archivée : plus de premier contact, mais un fil existant continue
+  await q(`UPDATE properties SET status = 'archived' WHERE id = $1`, [p]);
+  assert.equal((await send(third, owner.id, p, 'Encore dispo ?')).status, 201, 'fil existant');
+  const newcomer = await s.register('m-newcomer');
+  assert.equal((await send(newcomer, owner.id, p)).status, 403, 'premier contact sur une annonce archivée');
 });
 
 test('messagerie : validations', async () => {
@@ -426,6 +475,7 @@ test('compteur de vues : incrément atomique sous des visites simultanées', asy
 test('conversations : dernier message par annonce et interlocuteur, non-lus par conversation', async () => {
   const [a, b] = [await s.register('conv-a'), await s.register('conv-b')];
   const [p1, p2] = [await listing('Conv 1'), await listing('Conv 2')];
+  await q('UPDATE properties SET owner_id = $1 WHERE id = ANY($2)', [b.id, [p1, p2]]);
   const send = (from, to, p, body) => s.request('POST', '/api/messages', { token: from.token, body: { to_id: to.id, property_id: p, body } });
   const ids = [];
   for (const [from, to, p, body] of [[a, b, p1, 'p1-a1'], [b, a, p1, 'p1-b1'], [a, b, p2, 'p2-a1'], [a, b, p2, 'p2-a2']])

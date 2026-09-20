@@ -409,22 +409,26 @@ router.put('/:id', auth, async (req, res) => {
   if (aff.error) return res.status(aff.status).json({ error: aff.error });
   Object.assign(changes, aff.values);
 
-  // Qualité : un changement de prix, de surface, de titre ou de texte recalcule les signaux (doublon, prix aberrant)
+  // Qualité : un changement de prix, de surface, de titre ou de texte recalcule les signaux (doublon, prix aberrant).
+  // Une remise en ligne est réévaluée aussi : modifier le prix d'une annonce archivée puis la réactiver n'échappe pas au contrôle.
   let assessed = null;
-  if (property.status !== 'archived' && ['title', 'description', 'price', 'surface_m2'].some(k => changes[k] !== undefined)) {
+  const reactivating = changes.status === 'active' && property.status !== 'active';
+  if (reactivating || ['title', 'description', 'price', 'surface_m2'].some(k => changes[k] !== undefined)) {
     assessed = await quality.assess({
       owner_id: property.owner_id, title: changes.title ?? property.title, description: changes.description ?? property.description,
       mode: property.mode, type_bien: property.type_bien, wilaya: property.wilaya,
       price: changes.price ?? property.price, surface_m2: changes.surface_m2 ?? property.surface_m2 }, { excludeId: property.id });
   }
 
-  // Modération : une annonce refusée qu'on corrige est renvoyée en validation ; une annonce active dont
-  // le contenu (titre, description, photos) change repasse en attente. Admins et agences vérifiées exemptés.
+  // Modération : une annonce refusée qu'on corrige est renvoyée en validation ; une annonce déjà validée
+  // (active, vendue, louée ou archivée) dont le contenu (titre, description, photos) change repasse en attente,
+  // même archivée : sinon il suffirait d'archiver, de réécrire le texte puis de réactiver pour publier sans contrôle.
+  // Admins et agences vérifiées exemptés.
   let resubmitted = false;
   if (changes.status !== 'archived' && !(await moderation.isTrusted(req.user))) {
     const edited = Object.keys(changes).some(k => k !== 'status');
     if ((property.status === 'rejected' && edited)
-        || (property.status === 'active' && moderation.contentChanged(property, changes))) {
+        || (!moderation.HIDDEN_STATUSES.includes(property.status) && moderation.contentChanged(property, changes))) {
       changes.status = 'pending';
       resubmitted = true;
     }

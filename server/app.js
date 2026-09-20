@@ -87,9 +87,11 @@ const authLimiter = rateLimit({
   message: { error: 'Trop de tentatives. Réessayez dans 15 minutes.' },
   skip: () => process.env.NODE_ENV === 'test',
 });
-app.use('/api/auth/login',    authLimiter);
-app.use('/api/auth/register', authLimiter);
-app.use('/api/auth/google',   authLimiter);
+app.use('/api/auth/login',           authLimiter);
+app.use('/api/auth/register',        authLimiter);
+app.use('/api/auth/google',          authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);   // chaque appel peut envoyer un email (voir aussi le plafond par compte dans la route)
+app.use('/api/auth/reset-password',  authLimiter);
 
 const uploadLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
