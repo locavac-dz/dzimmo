@@ -6,7 +6,7 @@ const path   = require('node:path');
 const crypto = require('node:crypto');
 const { Pool } = require('pg');
 
-require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
+require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env'), quiet: true });
 const { createHub } = require('../../server/ws');
 
 const pool = new Pool({ connectionString: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL });

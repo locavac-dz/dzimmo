@@ -11,10 +11,10 @@
     "build-brand": "node scripts/build-brand.js"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
+    "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
+    "dotenv": "^18.0.1",
     "express": "^4.19.2",
     "express-async-errors": "^3.1.1",
     "express-rate-limit": "^8.7.0",
@@ -22,7 +22,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.1.1",
     "node-cron": "^4.6.0",
-    "nodemailer": "^9.0.6",
+    "nodemailer": "^10.0.10",
     "pg": "^8.23.0",
     "sharp": "^0.35.4",
     "ws": "^8.21.3"

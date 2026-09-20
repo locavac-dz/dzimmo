@@ -6,7 +6,7 @@ const path   = require('path');
 const crypto = require('crypto');
 const ROOT   = path.join(__dirname, '..', '..');
 
-require('dotenv').config({ path: path.join(ROOT, '.env') });
+require('dotenv').config({ path: path.join(ROOT, '.env'), quiet: true });
 
 async function startServer() {
   // Garde-fou : si server/db.js est déjà chargé, sa connexion vise la base de développement (le schéma jetable ci-dessous

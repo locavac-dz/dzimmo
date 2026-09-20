@@ -1,5 +1,5 @@
 // Application Express (sans démarrage) : importée par server/index.js et par les tests.
-require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env'), quiet: true });
 require('express-async-errors');
 
 const express     = require('express');
