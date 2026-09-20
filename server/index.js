@@ -12,6 +12,8 @@ if (!require('./config-check').reportConfig()) process.exit(1);
 
 db.connect()
   .then(() => {
+    // Annonces antérieures à la détection des doublons : titre et texte normalisés, par lots (sans bloquer le démarrage)
+    (async () => { while (await require('./quality').backfill() > 0); })().catch(e => console.warn('[qualité] empreintes :', e.message));
     const server = http.createServer(app);
     wsModule.setup(server);
     // Notifications temps réel entre workers (pm2 en mode cluster) ; se reconnecte seul si la connexion tombe

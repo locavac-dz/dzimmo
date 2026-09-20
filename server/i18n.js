@@ -12,7 +12,8 @@ const AR = {
   'Erreur interne du serveur.': 'خطأ داخلي في الخادم.',
   'Route introuvable.': 'المسار غير موجود.',
 
-  // Expiration des annonces
+  // Expiration et qualité des annonces
+  'Vous avez déjà publié cette annonce.': 'لقد نشرت هذا الإعلان بالفعل.',
   'Ce lien de confirmation est invalide ou a expiré.': 'رابط التأكيد غير صالح أو منتهي الصلاحية.',
   'Cette annonce ne peut pas être renouvelée.': 'لا يمكن تجديد هذا الإعلان.',
   'Action invalide.': 'إجراء غير صالح.',

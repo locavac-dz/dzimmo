@@ -282,7 +282,7 @@ test('liste de l\'annonceur : annonces retirées automatiquement visibles (à re
   assert.equal(Math.round(days), 14);
   assert.equal(p0.expires_at, null);
   assert.ok(e.expired_at);
-  assert.ok('expires_at' in r);
+  assert.ok('expires_at' in r && 'quality_flags' in r);
   // Vue publique du même annonceur : ni annonces retirées, ni compteurs, ni échéances, ni signaux de qualité
   const pub = (await s.request('GET', `/api/properties/user/${o.id}`)).body;
   assert.deepEqual(pub.map(p => p.title).sort(), ['Normale', 'Rappelée']);

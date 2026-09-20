@@ -58,11 +58,13 @@ router.get('/moderation', admin, async (req, res) => {
             p.moderation_reason, p.moderated_at, p.published_at,
             u.id AS owner_id, u.name AS owner_name, u.email AS owner_email, u.phone AS owner_phone,
             u.email_verified AS owner_verified, u.created_at AS owner_since,
+            lq.flags AS quality_flags, lq.details AS quality_details,
             (SELECT COUNT(*)::int FROM properties x WHERE x.owner_id = p.owner_id AND x.status = 'active') AS owner_active,
             a.name AS agency_name`,
     from: `properties p
        LEFT JOIN users u    ON u.id = p.owner_id
-       LEFT JOIN agencies a ON a.id = p.agency_id` });
+       LEFT JOIN agencies a ON a.id = p.agency_id
+       LEFT JOIN listing_quality lq ON lq.property_id = p.id` });
   const counts = await pool.query(
     `SELECT COUNT(*) FILTER (WHERE status = 'pending')::int AS pending,
             COUNT(*) FILTER (WHERE status = 'rejected')::int AS rejected FROM properties`);

@@ -67,6 +67,8 @@ test('toutes les clés T(\'…\') utilisées dans le JavaScript existent en fran
     seo_t_: ['appartement', 'villa', 'maison', 'bureau', 'local_commercial', 'terrain', 'ferme', 'entrepot', 'all'],
     seo_m_: ['vente', 'location_longue', 'location_courte'],
     dash_st_: ['active', 'sold', 'rented', 'archived', 'pending', 'rejected', 'expired'],
+    // avertissements de qualité à la publication (table QW de la page)
+    q_: ['dup_own', 'dup_other', 'price_low', 'price_high'],
     // pluriels : unit(n, base) lit base_one / base_two / base_many
     u_room_: ['one', 'two', 'many'], u_bath_: ['one', 'two', 'many'], u_view_: ['one', 'two', 'many'], st_ad_: ['one', 'two', 'many'],
     u_req_: ['one', 'two', 'many'],

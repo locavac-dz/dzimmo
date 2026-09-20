@@ -5,6 +5,7 @@ const optionalAuth = require('../middleware/optionalAuth');
 const moderation   = require('../moderation');
 const { likePattern } = require('../pagination');
 const { isRevoked } = require('../sessions');
+const quality = require('../quality');
 const expiry  = require('../expiry');
 
 const MODES_VALIDES    = ['vente', 'location_longue', 'location_courte'];
@@ -228,8 +229,17 @@ router.post('/', auth, async (req, res) => {
   const finalImage  = image || (Array.isArray(photos) && photos[0]) || '';
   const finalPhotos = Array.isArray(photos) && photos.length ? photos : (finalImage ? [finalImage] : []);
 
-  // Modération : publication directe pour les admins / agences vérifiées, sinon en attente de validation
+  // Qualité : doublons et prix aberrants (server/quality.js)
+  const assessment = await quality.assess({
+    owner_id: req.user.id, title: title.trim(), description: description || '', mode, type_bien, wilaya,
+    price: Number(price), surface_m2: surface_m2 ? Number(surface_m2) : null });
+  if (assessment.doubleSubmit) return res.status(409).json({ error: 'Vous avez déjà publié cette annonce.' });
+
+  // Modération : publication directe pour les admins / agences vérifiées, sinon en attente de validation.
+  // Un signal de qualité bloquant (prix très éloigné du marché, texte copié) envoie l'annonce en validation, même pour une agence
+  // vérifiée ; seuls les administrateurs (et le mode MODERATION=off) publient sans contrôle.
   const trusted = await moderation.isTrusted(req.user);
+  const direct  = trusted && (req.user.is_admin || !moderation.enabled() || !assessment.blocking);
 
   const property = await db.properties.insert({
     owner_id:     req.user.id,
@@ -245,9 +255,10 @@ router.post('/', auth, async (req, res) => {
     lat: lat ? Number(lat) : null, lng: lng ? Number(lng) : null,
     image: finalImage, photos: JSON.stringify(finalPhotos),
     features: JSON.stringify(Array.isArray(features) ? features : []),
-    status:       trusted ? 'active' : 'pending',
-    published_at: trusted ? new Date() : null,
+    status:       direct ? 'active' : 'pending',
+    published_at: direct ? new Date() : null,
   });
+  await quality.save(property.id, assessment);
 
   // Enregistrer le prix initial dans l'historique
   await db.pool.query(
@@ -257,11 +268,12 @@ router.post('/', auth, async (req, res) => {
 
   await db.users.update({ id: req.user.id }, { is_agent: true });
 
-  if (!trusted) {
+  if (!direct) {
     const owner = await db.users.findById(req.user.id);
     moderation.notifyAdminsPending(property, owner ? owner.name : 'Un utilisateur').catch(() => {});
   }
-  res.status(201).json({ id: property.id, status: property.status });
+  // warnings : à afficher à l'annonceur ; held : compte de confiance dont l'annonce est tout de même vérifiée (signal de qualité)
+  res.status(201).json({ id: property.id, status: property.status, warnings: quality.warningsFor(assessment), held: trusted && !direct });
 });
 
 // PUT /api/properties/:id
@@ -292,6 +304,15 @@ router.put('/:id', auth, async (req, res) => {
   if (Array.isArray(features))   changes.features    = JSON.stringify(features);
   if (Array.isArray(photos))     changes.photos      = JSON.stringify(photos);
 
+  // Qualité : un changement de prix, de surface, de titre ou de texte recalcule les signaux (doublon, prix aberrant)
+  let assessed = null;
+  if (property.status !== 'archived' && ['title', 'description', 'price', 'surface_m2'].some(k => changes[k] !== undefined)) {
+    assessed = await quality.assess({
+      owner_id: property.owner_id, title: changes.title ?? property.title, description: changes.description ?? property.description,
+      mode: property.mode, type_bien: property.type_bien, wilaya: property.wilaya,
+      price: changes.price ?? property.price, surface_m2: changes.surface_m2 ?? property.surface_m2 }, { excludeId: property.id });
+  }
+
   // Modération : une annonce refusée qu'on corrige est renvoyée en validation ; une annonce active dont
   // le contenu (titre, description, photos) change repasse en attente. Admins et agences vérifiées exemptés.
   let resubmitted = false;
@@ -304,11 +325,17 @@ router.put('/:id', auth, async (req, res) => {
     }
   }
 
+  // Publier d'abord un prix normal puis le modifier n'échappe pas au contrôle : un signal bloquant remet l'annonce en validation
+  if (assessed && assessed.blocking && !req.user.is_admin && moderation.enabled() && (changes.status || property.status) === 'active') {
+    changes.status = 'pending';
+    resubmitted = true;
+  }
   // Une modification par son propriétaire vaut confirmation de disponibilité ; remettre l'annonce en ligne annule son expiration
   if (property.owner_id === req.user.id) { changes.last_confirmed_at = new Date(); changes.expiry_notified_at = null; }
   if (changes.status === 'active') changes.expired_at = null;
 
   await db.properties.update({ id: property.id }, changes);
+  if (assessed) await quality.save(property.id, assessed);
   if (resubmitted) {
     const owner = await db.users.findById(property.owner_id);
     moderation.notifyAdminsPending({ ...property, ...changes }, owner ? owner.name : 'Un utilisateur').catch(() => {});
@@ -322,7 +349,7 @@ router.put('/:id', auth, async (req, res) => {
     );
   }
 
-  res.json({ ok: true, status: changes.status || property.status });
+  res.json({ ok: true, status: changes.status || property.status, warnings: assessed ? quality.warningsFor(assessed) : [] });
 });
 
 // POST /api/properties/:id/renew — « toujours disponible » (annonce active) ou renouvellement (annonce retirée faute de confirmation)
@@ -452,12 +479,13 @@ router.get('/user/:id', optionalAuth, async (req, res) => {
   // L'annonceur voit aussi les annonces retirées automatiquement (pour les renouveler), pas celles qu'il a archivées lui-même
   const visible = self ? "(p.status != 'archived' OR p.expired_at IS NOT NULL)" : "p.status IN ('active','sold','rented')";
   const params = [uid];
-  let ownerOnly = '';   // colonnes réservées à l'annonceur : échéance du rappel
+  let ownerOnly = '';   // colonnes réservées à l'annonceur : échéance du rappel, signaux de qualité
   if (self) {
     params.push(expiry.graceDays());
     ownerOnly = `,
        CASE WHEN p.status = 'active' AND p.expiry_notified_at IS NOT NULL
-            THEN p.expiry_notified_at + make_interval(days => $2) END                                                 AS expires_at`;
+            THEN p.expiry_notified_at + make_interval(days => $2) END                                                 AS expires_at,
+       (SELECT flags FROM listing_quality WHERE property_id = p.id)                                                   AS quality_flags`;
   }
   const r = await pool.query(
     `SELECT p.*,

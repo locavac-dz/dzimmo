@@ -278,13 +278,14 @@
     .google-btn { display: flex; justify-content: center; min-height: 44px; }
     .google-terms { text-align: center; margin: .6rem 0 0; }
     .google-terms a { color: var(--primary); text-decoration: underline; }
-    /* Reconfirmation d'annonce (lien de l'email) */
+    /* Reconfirmation d'annonce (lien de l'email) et signaux de qualité */
     .renew-banner {
       background: #fffbeb; color: #78350f; border: 1.5px solid #f59e0b; border-radius: 12px;
       padding: 1rem 1.15rem; margin-bottom: 1.25rem;
     }
     .renew-banner strong { display: block; font-size: 1.02rem; margin-bottom: .6rem; }
     .renew-banner .renew-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .q-list { margin: .5rem 0 0; padding-inline-start: 1.2rem; text-align: start; font-size: .88rem; }
     .field-hint { font-size: .76rem; color: var(--text-muted); margin-top: .3rem; line-height: 1.5; }
     /* Badge « annonceur vérifié » (identité ou professionnel) */
     .adv-badge {
@@ -1842,6 +1843,12 @@ const TRANSLATIONS = {
     det_confirmed:'Disponibilité confirmée le',
     rn_title:"L'annonce est-elle toujours disponible ?", rn_yes:'✓ Oui, toujours disponible', rn_no:'Non, elle est vendue / louée',
     rn_done:'Merci ! Votre annonce reste en ligne.', rn_closed:'Annonce retirée : elle est marquée comme vendue / louée.',
+    q_price_low:"Le prix au m² est très inférieur à celui des biens comparables : notre équipe vérifiera l'annonce avant de la publier.",
+    q_price_high:"Le prix au m² est très supérieur à celui des biens comparables : notre équipe vérifiera l'annonce avant de la publier.",
+    q_dup_own:'Vous avez déjà publié une annonce très semblable (« {title} »).',
+    q_dup_other:"Le texte de cette annonce est identique à celui d'une annonce déjà publiée : notre équipe la vérifiera avant de la publier.",
+    q_held:"Votre compte est de confiance, mais cette annonce est vérifiée avant publication à cause de l'avertissement ci-dessus.",
+    q_pending_flag:'En vérification : prix inhabituel ou texte identique à une autre annonce.',
     g_terms:'En continuant avec Google, vous acceptez les <a href="#" data-p="cgu" onclick="return goLegal(this)">CGU</a> et la <a href="#" data-p="confidentialite" onclick="return goLegal(this)">politique de confidentialité</a>.',
     g_created:'Compte créé avec Google. Bienvenue, {name} !', g_connected:'Connecté avec Google : {name}',
     m_phone_hint:"Ce numéro est affiché sur vos annonces (boutons Appeler et WhatsApp). Depuis l'étranger : commencez par + et l'indicatif du pays (ex. <bdi dir=\"ltr\">+33 6 12 34 56 78</bdi>).",
@@ -2101,6 +2108,12 @@ const TRANSLATIONS = {
     det_confirmed:'تم تأكيد التوفر في',
     rn_title:'هل ما زال الإعلان متاحاً؟', rn_yes:'✓ نعم، ما زال متاحاً', rn_no:'لا، تم بيعه / تأجيره',
     rn_done:'شكراً! يبقى إعلانك منشوراً.', rn_closed:'تم سحب الإعلان: سُجِّل على أنه مباع / مؤجَّر.',
+    q_price_low:'سعر المتر المربع أقل بكثير من العقارات المماثلة: سيراجع فريقنا الإعلان قبل نشره.',
+    q_price_high:'سعر المتر المربع أعلى بكثير من العقارات المماثلة: سيراجع فريقنا الإعلان قبل نشره.',
+    q_dup_own:'لقد نشرت من قبل إعلاناً مشابهاً جداً («{title}»).',
+    q_dup_other:'نص هذا الإعلان مطابق لنص إعلان منشور من قبل: سيراجعه فريقنا قبل نشره.',
+    q_held:'حسابك موثوق، لكن هذا الإعلان يُراجَع قبل النشر بسبب التنبيه أعلاه.',
+    q_pending_flag:'قيد المراجعة: سعر غير معتاد أو نص مطابق لإعلان آخر.',
     g_terms:'بالمتابعة عبر Google فإنك توافق على <a href="#" data-p="cgu" onclick="return goLegal(this)">شروط الاستخدام</a> و<a href="#" data-p="confidentialite" onclick="return goLegal(this)">سياسة الخصوصية</a>.',
     g_created:'تم إنشاء الحساب عبر Google. مرحباً {name}!', g_connected:'تم تسجيل الدخول عبر Google: {name}',
     m_phone_hint:'يظهر هذا الرقم على إعلاناتك (زرّا الاتصال والواتساب). من الخارج: ابدأ بـ + ثم رمز البلد (مثال: <bdi dir="ltr">+33 6 12 34 56 78</bdi>).',
@@ -3810,6 +3823,15 @@ async function refreshModerationBadge() {
   try { setModerationBadge((await api('/admin/moderation?per_page=1')).counts.pending); } catch { /* badge facultatif */ }
 }
 
+// Signaux de qualité (server/quality.js) montrés aux modérateurs, avec le détail en infobulle
+const QUALITY_LABELS = { duplicate_own: 'Doublon (même annonceur)', duplicate_other: 'Texte identique à une autre annonce', price_low: 'Prix au m² très bas', price_high: 'Prix au m² très élevé' };
+function qualityHint(flag, d) {
+  if (flag === 'duplicate_other') return d.duplicate_other ? 'Même texte que l\'annonce #' + d.duplicate_other.id : '';
+  if (flag === 'duplicate_own') return d.duplicate_own ? 'Très semblable à l\'annonce #' + d.duplicate_own.id + ' (« ' + d.duplicate_own.title + ' »)' : '';
+  const x = d.price;
+  return x ? formatPrice(x.ppm2) + ' DA/m² contre une médiane de ' + formatPrice(x.median) + ' (×' + x.ratio + ', ' + x.sample + ' annonces comparables, ' + (x.scope === 'pays' ? 'tout le pays' : 'même wilaya') + ')' : '';
+}
+
 async function adminLoadModeration(status = _modStatus, page = 1) {
   _modStatus = status;
   const c = document.getElementById('admin-content');
@@ -3842,6 +3864,8 @@ async function adminLoadModeration(status = _modStatus, page = 1) {
           · ${p.owner_verified ? '✅ email vérifié' : '⚠ email non vérifié'} · ${p.owner_active} annonce${p.owner_active > 1 ? 's' : ''} active${p.owner_active > 1 ? 's' : ''}
           · inscrit le ${new Date(p.owner_since).toLocaleDateString('fr-DZ')}${p.agency_name ? ' · 🏢 ' + esc(p.agency_name) : ''}
         </div>
+        ${(p.quality_flags || []).length ? `<div style="margin-bottom:.6rem;display:flex;gap:.35rem;flex-wrap:wrap">${p.quality_flags.map(f =>
+          `<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:.15rem .6rem;font-size:.76rem;font-weight:700" title="${esc(qualityHint(f, p.quality_details || {}))}">⚠ ${esc(QUALITY_LABELS[f] || f)}</span>`).join('')}</div>` : ''}
         ${status === 'rejected' ? `<div style="font-size:.83rem;color:#dc2626;margin-bottom:.6rem">❌ Refusée : ${esc(p.moderation_reason || '')}</div>` : ''}
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
           <button class="btn btn-primary btn-sm" onclick="adminModerate(${p.id},'approve')">✅ Approuver</button>
@@ -4547,6 +4571,7 @@ async function dashTab(tab) {
     // « Retirée » : archivée automatiquement faute de confirmation (l'annonceur peut la renouveler)
     const stOf = p => (p.status === 'archived' && p.expired_at) ? 'expired' : p.status;
     const day = d => new Date(d).toLocaleDateString('fr-DZ');
+    const FLAGGED = ['price_low', 'price_high', 'duplicate_other'];
 
     c.innerHTML = `<div style="display:flex;flex-direction:column;gap:.7rem">
       ${data.map(p => `
@@ -4564,6 +4589,7 @@ async function dashTab(tab) {
             ${p.status === 'active' && p.last_confirmed_at ? `<div style="font-size:.76rem;margin-top:.3rem;color:${p.expires_at ? '#b45309' : 'var(--text-muted)'};font-weight:${p.expires_at ? 700 : 400}">${p.expires_at
               ? T('dash_expires').replace('{date}', day(p.expires_at)) : T('dash_confirmed').replace('{date}', day(p.last_confirmed_at))}</div>` : ''}
             ${stOf(p) === 'expired' ? `<div style="font-size:.78rem;color:#b45309;margin-top:.3rem">${T('dash_expired_note')}</div>` : ''}
+            ${p.status === 'pending' && (p.quality_flags || []).some(f => FLAGGED.includes(f)) ? `<div style="font-size:.78rem;color:#b45309;margin-top:.3rem">⚠ ${T('q_pending_flag')}</div>` : ''}
             <div style="display:flex;gap:1.1rem;margin-top:.4rem;flex-wrap:wrap">
               <span style="font-size:.79rem;color:var(--text-muted)">👁 <strong>${p.views||0}</strong> ${unit(p.views||0, 'u_view')}</span>
               <span style="font-size:.79rem;color:var(--text-muted)">📩 <strong>${p.contact_count||0}</strong> ${unit(p.contact_count||0, 'u_req')}</span>
@@ -4844,10 +4870,15 @@ async function submitProperty() {
     // Modération : une annonce « pending » n'est pas encore publique, on renvoie vers le tableau de bord
     const pending = r.status === 'pending';
     sucEl.textContent = pending ? '⏳ ' + T('mod_pending_ok') : '✅ Annonce publiée avec succès !';
+    // Avertissements de qualité (prix inhabituel, doublon, texte copié) : lus avant la redirection
+    const QW = { duplicate_own: 'q_dup_own', duplicate_other: 'q_dup_other', price_low: 'q_price_low', price_high: 'q_price_high' };
+    const warns = (r.warnings || []).map(w => T(QW[w.code] || 'q_price_low').replace('{title}', w.title || ''));
+    if (r.held) warns.push(T('q_held'));
+    if (warns.length) sucEl.innerHTML = esc(sucEl.textContent) + '<ul class="q-list">' + warns.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
     sucEl.classList.remove('hidden');
     uploadedPhotos = [];
     renderPhotoPreviews();
-    setTimeout(() => pending ? showPage('dashboard') : showPage('detail', r.id), pending ? 3500 : 1500);
+    setTimeout(() => pending ? showPage('dashboard') : showPage('detail', r.id), warns.length ? 9000 : pending ? 3500 : 1500);
   } catch (e) {
     errEl.textContent = e.message;
     errEl.classList.remove('hidden');
