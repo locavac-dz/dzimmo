@@ -5,9 +5,10 @@ const assert = require('node:assert/strict');
 const fs     = require('node:fs');
 const path   = require('node:path');
 const vm     = require('node:vm');
+const { readFront } = require('../helpers/front');
 
 const ROOT = path.join(__dirname, '..', '..');
-const html = fs.readFileSync(path.join(ROOT, 'public', 'index.html'), 'utf8');
+const html = readFront();
 const pro  = fs.readFileSync(path.join(ROOT, 'public', 'pro.js'), 'utf8');
 const fn = name => html.match(new RegExp(`function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`))[0];
 

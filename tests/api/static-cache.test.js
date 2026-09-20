@@ -39,18 +39,21 @@ test('pages inexistantes (404) : jamais mises en cache non plus', async () => {
   assert.deepEqual([r.status, r.headers['cache-control']], [404, 'no-cache']);   // pas de 304 : Express ne revalide que les réponses 2xx
 });
 
-test('pages : styles et scripts appelés par une adresse versionnée (empreinte du contenu)', async () => {
+test('pages : styles et scripts appelés par une adresse versionnée (empreinte du contenu), Leaflet et CDN absents', async () => {
   const html = (await raw('/')).body.toString('utf8');
-  for (const f of ['pro.js', 'contrats.js']) {
+  for (const f of ['app.css', 'app.js', 'pro.js', 'contrats.js']) {
     assert.ok(html.includes(`"/${f}?v=${sha10(f)}"`), `${f} référencé avec ?v=${sha10(f)}`);
     assert.doesNotMatch(html, new RegExp(`"/${f.replace('.', '\\.')}"`), `${f} : plus d'adresse sans version`);
   }
+  assert.match(html, /<link rel="preload" href="\/app\.js\?v=[a-f0-9]{10}" as="script">/, 'app.js préchargé dès l\'en-tête');
+  assert.doesNotMatch(html, /cdnjs|leaflet/i, 'Leaflet n\'est plus chargé avec la page (voir loadLeaflet)');
+  assert.doesNotMatch(html, /<style>|<script>/, 'ni CSS ni JS en ligne : tout est dans des fichiers mis en cache');
   // Une page dynamique (annonce inconnue, 404 indexable) est versionnée aussi
-  assert.ok((await raw('/annonce/999999')).body.toString('utf8').includes(`"/pro.js?v=${sha10('pro.js')}"`));
+  assert.ok((await raw('/annonce/999999')).body.toString('utf8').includes(`"/app.js?v=${sha10('app.js')}"`));
 });
 
 test('ressources versionnées : un an, immuables ; sans version (ou version invalide) : validation par ETag', async () => {
-  for (const f of ['pro.js', 'contrats.js']) {
+  for (const f of ['app.css', 'app.js', 'pro.js', 'contrats.js']) {
     const v = await raw(`/${f}?v=${sha10(f)}`);
     assert.equal(v.status, 200, f);
     assert.equal(v.headers['cache-control'], YEAR, f);
@@ -72,9 +75,14 @@ test('autres fichiers : images du site un jour, manifest à valider, service wor
 });
 
 test('compression : le code du site est servi compressé (gzip), très en dessous de sa taille brute', async () => {
-  for (const f of ['pro.js', 'contrats.js']) {
+  for (const f of ['app.js', 'app.css']) {
     const r = await raw(`/${f}?v=${sha10(f)}`, { 'Accept-Encoding': 'gzip' });
     assert.equal(r.headers['content-encoding'], 'gzip', f);
     assert.ok(r.body.length < fs.statSync(path.join(PUBLIC, f)).size * 0.35, `${f} : ${r.body.length} octets compressés`);
   }
+});
+
+test('taille de la page : index.html reste léger (le code est dans app.js et app.css, pas dedans)', () => {
+  const size = fs.statSync(path.join(PUBLIC, 'index.html')).size;
+  assert.ok(size < 120 * 1024, `index.html pèse ${Math.round(size / 1024)} Ko : ne pas y remettre de CSS ni de JS en ligne`);
 });

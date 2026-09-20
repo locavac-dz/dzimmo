@@ -5,9 +5,10 @@ const assert = require('node:assert/strict');
 const fs     = require('node:fs');
 const path   = require('node:path');
 const vm     = require('node:vm');
+const { readFront } = require('../helpers/front');
 
 const ROOT = path.join(__dirname, '..', '..');
-const html = fs.readFileSync(path.join(ROOT, 'public', 'index.html'), 'utf8');
+const html = readFront();
 const V    = require(path.join(ROOT, 'server', 'verification'));
 const { REASONS_AR } = require(path.join(ROOT, 'server', 'messages'));
 

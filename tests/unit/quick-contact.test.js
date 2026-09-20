@@ -5,8 +5,9 @@ const assert = require('node:assert/strict');
 const fs     = require('node:fs');
 const path   = require('node:path');
 const vm     = require('node:vm');
+const { readFront } = require('../helpers/front');
 
-const html = fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'index.html'), 'utf8');
+const html = readFront();
 const fn = name => html.match(new RegExp(`function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`))[0];
 
 // Contexte minimal : T() renvoie la clé, annonceUrl() une URL fixe, currentUser réglable

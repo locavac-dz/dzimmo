@@ -44,7 +44,8 @@ Windows : `demarrer.bat`
 ## Structure
 
 - `server/` — API Express
-- `public/` — front SPA ; `public/uploads/` est ignoré par Git
+- `public/` — front SPA : `index.html` (structure seule, ~75 Ko), `app.css`, `app.js` (script principal), `pro.js` (vitrine),
+  `contrats.js` ; `public/uploads/` (photos et miniatures) est ignoré par Git
 - `backups/` — sauvegardes locales, hors Git
 - `dzimmo.json` — configuration locale, hors Git
 - `DEPLOIEMENT.md` — mise en production (PostgreSQL, pm2, Nginx, sauvegardes)
@@ -119,6 +120,19 @@ Windows : `demarrer.bat`
   `public/pro.js`, chargé **avant** le script principal (un lien direct appelle `showPage` dès `init`).
 - **Front** : toute donnée affichée passe par `esc()` ; aucune donnée de la page dans un attribut `onclick` (utiliser `data-*` et `this.dataset`,
   test `tests/unit/pro-front.test.js`). Les onglets du tableau de bord sont repérés par position : ajouter un bouton = ajouter sa clé dans `dashTab`.
+
+## Vitesse des pages
+
+- **Rien de lourd dans `index.html`** : le CSS et le JS vivent dans `app.css` / `app.js`, appelés avec une adresse versionnée
+  (`/app.js?v=<empreinte>`, ajoutée par `server/seo.js`) donc mis en cache **un an, immuables** ; la page, elle, se revalide par ETag (304).
+  Un test refuse une `index.html` de plus de 120 Ko. Les tests du front lisent la page recomposée avec `readFront()`
+  (`tests/helpers/front.js`), pas `index.html` seul. Ne pas mettre de `<style>` ni de `<script>` en ligne.
+- **Cache HTTP** (`staticCache` dans `server/app.js`) : `/uploads` immuable (noms uniques), images du site un jour, le reste `no-cache`.
+  Un nouveau type de fichier statique doit y trouver sa place.
+- **Photos** : afficher une photo en petit avec `imgAttrs(url, sizes)` (carte, fiche, vitrine) ou `thumbUrl(url, 480)` (vignette), jamais
+  l'original de 1920 px. `server/thumbs.js` génère `/uploads/thumbs/480|960/<nom>.webp` à la première demande (largeurs de liste blanche,
+  stockage borné) ; ce dossier est un cache régénérable, à exclure des sauvegardes.
+- **Leaflet** (150 Ko) n'est chargé qu'à la première ouverture de la carte (`loadLeaflet`) : ne pas le remettre dans la page.
 
 ## Consignes
 

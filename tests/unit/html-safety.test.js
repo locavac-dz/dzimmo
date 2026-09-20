@@ -3,8 +3,9 @@ const test   = require('node:test');
 const assert = require('node:assert/strict');
 const fs     = require('node:fs');
 const path   = require('node:path');
+const { readFront } = require('../helpers/front');
 
-const html = fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'index.html'), 'utf8');
+const html = readFront();
 
 test('les images du site sont échappées dans les gabarits d\'annonces (src issu des données)', () => {
   assert.doesNotMatch(html, /src="\$\{(?:p\.image|photos\[\d\]|d\.property_image|c\.property_img|img)\b/, 'src non échappé');

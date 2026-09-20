@@ -8,6 +8,7 @@ const vm     = require('node:vm');
 const SERVER = path.join(__dirname, '..', '..', 'server');
 const { build } = require(path.join(SERVER, 'mailer'));
 const { notif, translateReason, NOTIFS, REASONS_AR } = require(path.join(SERVER, 'messages'));
+const { readFront } = require('../helpers/front');
 
 const textOf = html => html.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ');
 const ARABIC = /[؀-ۿ]/;
@@ -101,7 +102,7 @@ test('motif de refus : motifs proposés traduits, précision libre conservée', 
 });
 
 test('les motifs de refus de l\'interface d\'administration ont tous une traduction arabe', () => {
-  const html = fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'index.html'), 'utf8');
+  const html = readFront();
   const literal = html.match(/const MOD_REASONS = (\[[\s\S]*?\]);/)[1];
   const reasons = Array.from(vm.runInNewContext(literal));
   assert.equal(reasons.length, 6);
@@ -109,7 +110,7 @@ test('les motifs de refus de l\'interface d\'administration ont tous une traduct
 });
 
 test('la table des motifs traduits du site est identique à celle du serveur', () => {
-  const html = fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'index.html'), 'utf8');
+  const html = readFront();
   const front = vm.runInNewContext('(' + html.match(/const MOD_REASONS_AR = (\{[\s\S]*?\n\});/)[1] + ')');
   assert.deepEqual({ ...front }, { ...REASONS_AR });
 });
@@ -130,7 +131,7 @@ test('notifications : toutes les clés existent dans les deux langues, paramètr
 });
 
 test('les noms de wilayas arabes du serveur sont identiques à ceux du site', () => {
-  const html = fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'index.html'), 'utf8');
+  const html = readFront();
   const front = vm.runInNewContext('(' + html.match(/const WILAYAS_AR = (\{[\s\S]*?\n\});/)[1] + ')');
   assert.deepEqual({ ...require(path.join(SERVER, 'wilayas-ar')) }, { ...front });
 });

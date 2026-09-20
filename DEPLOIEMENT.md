@@ -132,10 +132,20 @@ Vérifier aussi qu'un email de confirmation arrive (inscription d'un compte de t
 
 ```bash
 pg_dump -Fc dzimmo > /srv/backups/dzimmo-$(date +%F).dump
-tar czf /srv/backups/uploads-$(date +%F).tgz -C /srv/dzimmo/public uploads
+tar czf /srv/backups/uploads-$(date +%F).tgz --exclude=uploads/thumbs -C /srv/dzimmo/public uploads
 ```
 
+`uploads/thumbs` (miniatures des photos, créées à la première demande par l'application) est un cache : inutile de le sauvegarder,
+il se reconstruit tout seul. Nginx doit continuer à transmettre `/uploads/thumbs/…` à l'application (le `location /` ci-dessus le
+fait) : c'est elle qui crée la miniature manquante ; les suivantes sont servies par les fichiers eux-mêmes.
+
 Restauration : `pg_restore -d dzimmo --clean dzimmo-AAAA-MM-JJ.dump`.
+
+## 8. Cache du navigateur
+
+L'application pose elle-même les en-têtes de cache (rien à ajouter dans Nginx) : photos et miniatures `immutable` pendant un an,
+`app.js` / `app.css` / `pro.js` / `contrats.js` versionnés par empreinte (`?v=…`) donc immuables, pages revalidées par ETag.
+Un déploiement n'exige aucune purge : l'adresse des scripts change dès que leur contenu change.
 
 ## 8. Mises à jour
 
