@@ -2893,7 +2893,7 @@ function cardHTML(p) {
   return `
   <div class="card-wrapper" onclick="showPage('detail', ${p.id})">
     <div class="card">
-      <img class="card-img" src="${p.image || 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70'}" alt="${esc(p.title)}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70'">
+      <img class="card-img" src="${esc(p.image || 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70')}" alt="${esc(p.title)}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70'">
       ${p.verified ? '<span class="verified-badge">' + T('verified_badge') + '</span>' : ''}
       ${token ? `<button class="card-fav" onclick="event.stopPropagation();toggleFav(${p.id},this)" title="${T('fav_tip')}">🤍</button>` : ''}
       <button class="card-cmp${isCmp ? ' active' : ''}" data-id="${p.id}"
@@ -2962,21 +2962,21 @@ function renderDetail(p) {
     const feats  = Array.isArray(p.features) ? p.features : [];
 
     let featuresHTML = feats.map(f => `<span class="feature-chip">${FEATURES[f] || f}</span>`).join('');
-    const photosJSON = JSON.stringify(photos).replace(/</g,'\\u003c').replace(/>/g,'\\u003e');
+    window._detailPhotos = photos;   // lue par la visionneuse : du JSON dans un attribut onclick casserait l'attribut (guillemets)
 
     container.innerHTML = `
       ${renewBannerHTML(p)}
       ${modBanner}
       <div class="detail-gallery">
         <div style="position:relative">
-          <img src="${photos[0] || ''}" alt="${esc(p.title)}"
-               onclick="openLightbox(${photosJSON}, 0)"
+          <img src="${esc(photos[0] || '')}" alt="${esc(p.title)}"
+               onclick="openLightbox(window._detailPhotos, 0)"
                onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=800&q=70'">
-          ${photos.length > 3 ? `<button class="gallery-more-btn" onclick="openLightbox(${photosJSON}, 0)">${T('det_see_photos').replace('{n}', photos.length)}</button>` : ''}
+          ${photos.length > 3 ? `<button class="gallery-more-btn" onclick="openLightbox(window._detailPhotos, 0)">${T('det_see_photos').replace('{n}', photos.length)}</button>` : ''}
         </div>
         <div class="detail-gallery-side">
-          ${photos[1] ? `<img src="${photos[1]}" alt="Photo 2" onclick="openLightbox(${photosJSON}, 1)" onerror="this.remove()">` : '<div style="background:var(--border)"></div>'}
-          ${photos[2] ? `<img src="${photos[2]}" alt="Photo 3" onclick="openLightbox(${photosJSON}, 2)" onerror="this.remove()">` : '<div style="background:var(--border)"></div>'}
+          ${photos[1] ? `<img src="${esc(photos[1])}" alt="Photo 2" onclick="openLightbox(window._detailPhotos, 1)" onerror="this.remove()">` : '<div style="background:var(--border)"></div>'}
+          ${photos[2] ? `<img src="${esc(photos[2])}" alt="Photo 3" onclick="openLightbox(window._detailPhotos, 2)" onerror="this.remove()">` : '<div style="background:var(--border)"></div>'}
         </div>
       </div>
       <div class="detail-body">
@@ -4627,7 +4627,7 @@ async function dashTab(tab) {
     if (!data.length) { c.innerHTML = '<div class="empty-state"><div class="icon">📩</div><h3>' + T('dash_no_req') + '</h3></div>'; return; }
     c.innerHTML = data.map(d => `
       <div style="background:var(--white);border-radius:10px;padding:1rem;margin-bottom:.75rem;box-shadow:var(--shadow);display:flex;align-items:center;gap:1rem">
-        <img src="${d.property_image}" style="width:64px;height:64px;border-radius:8px;object-fit:cover;background:var(--border)" onerror="this.style.background='#e2e8f0'">
+        <img src="${esc(d.property_image)}" style="width:64px;height:64px;border-radius:8px;object-fit:cover;background:var(--border)" onerror="this.style.background='#e2e8f0'">
         <div style="flex:1">
           <div style="font-weight:700;font-size:.9rem">${esc(d.property_title)}</div>
           <div style="font-size:.83rem;color:var(--text-muted)">
@@ -4915,7 +4915,7 @@ async function loadMessages() {
     }
     list.innerHTML = data.map(c => `
       <div class="conv-item" onclick="loadThread(${c.property_id}, ${c.other_id})">
-        <img class="conv-thumb" src="${c.property_img || ''}" alt="" onerror="this.style.background='#e2e8f0';this.src=''">
+        <img class="conv-thumb" src="${esc(c.property_img || '')}" alt="" onerror="this.style.background='#e2e8f0';this.src=''">
         <div class="conv-info">
           <div class="conv-name">${esc(c.other_name)}${c.unread > 0 ? ` <span class="badge">${c.unread}</span>` : ''}</div>
           <div class="conv-title">${esc(c.property_title)}</div>
@@ -5187,7 +5187,7 @@ async function loadMapMarkers() {
       const img = p.image || 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=400&q=70';
       const popup = `
         <div style="width:220px">
-          <img src="${img}" onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=400&q=70'"
+          <img src="${esc(img)}" onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=400&q=70'"
                style="width:100%;height:115px;object-fit:cover;border-radius:7px;display:block;margin-bottom:8px">
           <div style="font-weight:700;font-size:.88rem;margin-bottom:3px;line-height:1.3">${esc(p.title)}</div>
           <div style="font-size:.78rem;color:#64748b;margin-bottom:5px">📍 ${esc(p.commune || wilayaName(p.wilaya))}, ${esc(wilayaName(p.wilaya))}</div>
