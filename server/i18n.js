@@ -132,6 +132,7 @@ const AR = {
 
   // Recherche géographique
   'Coordonnées invalides.': 'الإحداثيات غير صالحة.',
+  'Équipements invalides.': 'التجهيزات غير صالحة.',
 
   // Import CSV
   'Fichier CSV requis.': 'ملف CSV مطلوب.',

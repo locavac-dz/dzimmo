@@ -16,6 +16,17 @@ const TYPES_VALIDES    = ['appartement','villa','maison','bureau','local_commerc
 const STATUTS_VALIDES  = ['active','sold','rented','archived'];
 // Statuts consultables par le public dans les listes
 const STATUTS_PUBLICS  = ['active','sold','rented'];
+// Équipements d'une annonce : clés fermées (traduites par le front), jamais du texte libre — elles finissent dans innerHTML
+const FEATURES_VALIDES = ['meuble','parking','balcon','terrasse','ascenseur','gardien','piscine','climatisation','chauffage',
+  'wifi','cave','jardin','alarme','interphone','eau','electricite','gaz','route','fibre','vitrine'];
+
+// Tableau d'équipements nettoyé (dédoublonné), ou null si une valeur n'est pas une clé connue
+function cleanFeatures(features) {
+  if (features === undefined || features === null) return [];
+  if (!Array.isArray(features) || features.length > FEATURES_VALIDES.length) return null;
+  if (features.some(f => typeof f !== 'string' || !FEATURES_VALIDES.includes(f))) return null;
+  return [...new Set(features)];
+}
 
 async function withOwner(property) {
   const [owner, agency, project] = await Promise.all([
@@ -305,6 +316,8 @@ router.post('/', auth, async (req, res) => {
   // image et photos sont rendues dans des attributs src : uniquement nos envois (voir server/images.js)
   const imageError = images.invalid({ image, photos });
   if (imageError) return res.status(400).json({ error: imageError });
+  const cleanFeats = cleanFeatures(features);
+  if (!cleanFeats) return res.status(400).json({ error: 'Équipements invalides.' });
 
   const finalImage  = image || (Array.isArray(photos) && photos[0]) || '';
   const finalPhotos = Array.isArray(photos) && photos.length ? photos : (finalImage ? [finalImage] : []);
@@ -338,7 +351,7 @@ router.post('/', auth, async (req, res) => {
     wilaya, commune: commune || null, address: address || null,
     lat: lat ? Number(lat) : null, lng: lng ? Number(lng) : null,
     image: finalImage, photos: JSON.stringify(finalPhotos),
-    features: JSON.stringify(Array.isArray(features) ? features : []),
+    features: JSON.stringify(cleanFeats),
     status:       direct ? 'active' : 'pending',
     published_at: direct ? new Date() : null,
   });
@@ -370,6 +383,8 @@ router.put('/:id', auth, async (req, res) => {
   const { title, description, price, surface_m2, rooms, baths, status, features, image, photos } = req.body;
   const imageError = images.invalid({ image, photos });
   if (imageError) return res.status(400).json({ error: imageError });
+  const cleanFeats = features !== undefined ? cleanFeatures(features) : undefined;
+  if (cleanFeats === null) return res.status(400).json({ error: 'Équipements invalides.' });
   const changes = {};
   if (title       !== undefined) changes.title       = title.trim();
   if (description !== undefined) changes.description = description;
@@ -387,7 +402,7 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(400).json({ error: 'Cette annonce doit d\'abord être validée par la modération.' });
     changes.status = status;
   }
-  if (Array.isArray(features))   changes.features    = JSON.stringify(features);
+  if (cleanFeats !== undefined)  changes.features    = JSON.stringify(cleanFeats);
   if (Array.isArray(photos))     changes.photos      = JSON.stringify(photos);
 
   const aff = await affiliation(req.user, req.body, property);
