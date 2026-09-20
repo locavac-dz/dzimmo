@@ -37,6 +37,7 @@
       --radius: 12px;
       --shadow: 0 2px 12px rgba(0,0,0,.08);
       --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
+      --qc-h: 72px;                   /* hauteur de la barre Appeler / WhatsApp de la fiche, sur mobile */
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
@@ -541,6 +542,7 @@
       .detail-body { grid-template-columns: 1fr; }
       .quick-contact {
         position: fixed; left: 0; right: 0; bottom: 0; z-index: 801; margin: 0;
+        min-height: calc(var(--qc-h) + env(safe-area-inset-bottom, 0px));
         padding: .6rem 1rem calc(.6rem + env(safe-area-inset-bottom, 0px));
         background: var(--white); border-top: 1px solid var(--border); box-shadow: 0 -4px 20px rgba(0,0,0,.12);
       }
@@ -607,6 +609,7 @@
       box-shadow: 0 -4px 20px rgba(0,0,0,.12);
     }
     #compare-bar.visible { display: flex; }
+    #compare-thumbs { display: flex; gap: .5rem; flex: 1; flex-wrap: wrap; }
     #compare-bar .cmp-thumb {
       display: flex; align-items: center; gap: .5rem;
       background: var(--bg); border: 1px solid var(--border);
@@ -643,7 +646,7 @@
       font-size: .87rem; vertical-align: top; text-align: center;
     }
     #compare-modal th { background: var(--bg); font-weight: 700; }
-    #compare-modal td:first-child { text-align: left; color: var(--text-muted); font-weight: 600; width: 130px; }
+    #compare-modal td:first-child { text-align: start; color: var(--text-muted); font-weight: 600; width: 130px; }
     #compare-modal .cmp-prop-img { width: 100%; height: 110px; object-fit: cover; border-radius: 8px 8px 0 0; }
     .card-cmp {
       position: absolute; top: .5rem; left: .5rem;
@@ -653,6 +656,40 @@
       transition: background .15s;
     }
     .card-cmp.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+    /* Comparateur sur mobile : barre compacte (miniatures seules, plus de bouton coupé), posée au-dessus de la barre
+       d'appel d'une fiche, tableau à colonne des critères fixe, boutons plus faciles à toucher */
+    @media (max-width: 768px) {
+      body.cmp-on { padding-bottom: 4.5rem; }                 /* la barre ne masque pas le bas des pages */
+      body.qc-on.cmp-on { padding-bottom: calc(4.5rem + var(--qc-h)); }
+      #compare-bar {
+        flex-wrap: wrap; justify-content: space-between; gap: .5rem;
+        padding: .55rem .6rem calc(.55rem + env(safe-area-inset-bottom, 0px));
+      }
+      body.qc-on #compare-bar { bottom: calc(var(--qc-h) + env(safe-area-inset-bottom, 0px)); padding-bottom: .55rem; }
+      #compare-thumbs { flex: 0 1 auto; flex-wrap: nowrap; gap: .5rem; }
+      /* Tuile de taille fixe : sans photo (ou photo cassée) on garde une pastille grise, le titre est dans l'infobulle */
+      #compare-bar .cmp-thumb { position: relative; width: 46px; height: 38px; padding: 0; border: none; background: var(--border); border-radius: 6px; max-width: none; }
+      #compare-bar .cmp-thumb img { width: 100%; height: 100%; border-radius: 6px; }
+      #compare-bar .cmp-thumb span { display: none; }
+      #compare-bar .cmp-rm {
+        position: absolute; top: -9px; inset-inline-end: -9px; width: 24px; height: 24px; border-radius: 50%;
+        background: var(--white); border: 1px solid var(--border); font-size: .7rem;
+        display: flex; align-items: center; justify-content: center;
+      }
+      #compare-bar .btn { padding: .5rem .6rem; font-size: .85rem; }
+      #compare-modal { padding: .5rem; }
+      #compare-modal th, #compare-modal td { padding: .5rem .55rem; font-size: .8rem; }
+      #compare-modal th:not(:first-child), #compare-modal td:not(:first-child) { min-width: 118px; }
+      #compare-modal th:first-child, #compare-modal td:first-child {
+        position: sticky; inset-inline-start: 0; z-index: 1; width: 84px; min-width: 84px; box-shadow: 1px 0 0 var(--border);
+      }
+      #compare-modal td:first-child { background: var(--white); }
+      #compare-modal th:first-child { background: var(--bg); }
+      #compare-modal .cmp-prop-img { height: 80px; }
+      .card-cmp, .card-fav { width: 38px; height: 38px; }
+      .card-cmp { font-size: 1.05rem; }
+    }
 
     .gallery-more-btn {
       position: absolute; bottom: .5rem; right: .5rem;
@@ -677,7 +714,7 @@
 
 <!-- ═══════════════════ COMPARATEUR ═══════════════════ -->
 <div id="compare-bar">
-  <div id="compare-thumbs" style="display:flex;gap:.5rem;flex:1;flex-wrap:wrap"></div>
+  <div id="compare-thumbs"></div>
   <button class="btn btn-primary" style="white-space:nowrap;flex-shrink:0" onclick="openCompare()" data-i18n="cmp_compare">⚖ Comparer</button>
   <button class="btn btn-outline btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="clearCompare()" data-i18n="cmp_clear">✕ Vider</button>
 </div>
@@ -2425,6 +2462,7 @@ function relabelSeo() {
 }
 
 function showPage(page, data = null) {
+  document.body.classList.remove('qc-on');   // la barre d'appel n'existe que sur une fiche (renderDetail la remet)
   // Hors fiche annonce, on quitte l'URL /annonce/… (les filtres d'annonces réécrivent ensuite la query)
   if (page !== 'detail') {
     if (location.pathname !== '/') history.replaceState(null, '', '/');
@@ -2801,6 +2839,7 @@ function renderDetail(p) {
       </div>`;
 
     container.classList.toggle('has-qc', !!container.querySelector('.quick-contact'));
+    document.body.classList.toggle('qc-on', !!container.querySelector('.quick-contact'));   // le comparateur se pose au-dessus
 
     // Gestion des champs conditionnels
     const ctype = document.getElementById('ctype-' + p.id);
@@ -3304,13 +3343,14 @@ function clearCompare() {
 function updateCompareBar() {
   const bar = document.getElementById('compare-bar');
   const tc  = document.getElementById('compare-thumbs');
+  document.body.classList.toggle('cmp-on', _compareList.length > 0);   // marge basse de la page (mobile)
   if (!_compareList.length) { bar.classList.remove('visible'); return; }
   bar.classList.add('visible');
   tc.innerHTML = _compareList.map(p => `
-    <div class="cmp-thumb">
+    <div class="cmp-thumb" title="${esc(p.title)}">
       <img src="${esc(p.image||'')}" alt="" onerror="this.style.display='none'">
       <span>${esc(p.title)}</span>
-      <button class="cmp-rm" onclick="toggleCompare(${p.id})" title="${T('cmp_remove')}">✕</button>
+      <button class="cmp-rm" onclick="toggleCompare(${p.id})" title="${T('cmp_remove')}" aria-label="${T('cmp_remove')} : ${esc(p.title)}">✕</button>
     </div>`).join('');
 }
 
