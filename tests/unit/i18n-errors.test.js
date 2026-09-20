@@ -22,7 +22,7 @@ function serverMessages() {
     for (const re of patterns) for (const m of src.matchAll(re)) {
       const msg = m[2].replace(/\\(['"`\\])/g, '$1');
       if (msg.includes('${')) continue;                                   // gabarit dynamique
-      if (/^(CORS:|\[migrate\])/.test(msg)) continue;                     // erreurs internes, jamais montrées au visiteur
+      if (/^(CORS:|\[migrate\]|\[google\])/.test(msg)) continue;                     // erreurs internes, jamais montrées au visiteur
       found.set(msg, path.relative(SERVER, file));
     }
   }

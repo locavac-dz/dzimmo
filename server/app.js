@@ -26,17 +26,22 @@ if (TRUST_PROXY && TRUST_PROXY !== '0' && TRUST_PROXY !== 'false') {
 // styles externes limités à cdnjs (Leaflet), images https (photos, tuiles OpenStreetMap),
 // aucun objet / iframe étranger, WebSocket vers notre propre origine uniquement.
 const isProd = process.env.NODE_ENV === 'production';
+// Connexion avec Google (facultative) : le bouton officiel exige son script, son cadre, ses appels et sa feuille de style
+// (https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid#content_security_policy),
+// et une fenêtre d'ouverture qui autorise les popups. Rien de tout cela n'est ouvert tant que GOOGLE_CLIENT_ID est absent.
+const GOOGLE_ON = !!process.env.GOOGLE_CLIENT_ID;
 app.use(helmet({
   contentSecurityPolicy: {
     useDefaults: false,
     directives: {
       defaultSrc:     ["'self'"],
-      scriptSrc:      ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
+      scriptSrc:      ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com', ...(GOOGLE_ON ? ['https://accounts.google.com/gsi/client'] : [])],
       scriptSrcAttr:  ["'unsafe-inline'"],
-      styleSrc:       ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
+      styleSrc:       ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com', ...(GOOGLE_ON ? ['https://accounts.google.com/gsi/style'] : [])],
       imgSrc:         ["'self'", 'data:', 'blob:', 'https:'],
       fontSrc:        ["'self'", 'data:'],
-      connectSrc:     ["'self'"],
+      connectSrc:     ["'self'", ...(GOOGLE_ON ? ['https://accounts.google.com/gsi/'] : [])],
+      ...(GOOGLE_ON ? { frameSrc: ["'self'", 'https://accounts.google.com/gsi/'] } : {}),
       objectSrc:      ["'none'"],
       baseUri:        ["'self'"],
       formAction:     ["'self'"],
@@ -47,6 +52,8 @@ app.use(helmet({
   },
   // Les photos /uploads doivent pouvoir être affichées ailleurs (aperçus WhatsApp / Facebook)
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  // Le bouton Google ouvre une fenêtre qui répond à la nôtre : « same-origin » (défaut de helmet) la couperait
+  ...(GOOGLE_ON ? { crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' } } : {}),
   // OpenStreetMap exige un Referer pour ses tuiles : on garde le comportement standard des navigateurs
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   // HSTS seulement en production (HTTPS derrière Nginx)
@@ -82,6 +89,7 @@ const authLimiter = rateLimit({
 });
 app.use('/api/auth/login',    authLimiter);
 app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/google',   authLimiter);
 
 const uploadLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,

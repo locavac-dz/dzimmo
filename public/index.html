@@ -273,6 +273,11 @@
       box-shadow: var(--shadow); padding: 1.25rem; position: sticky; top: 80px;
     }
     .contact-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+    /* Connexion avec Google : le bouton officiel se dessine dans ce cadre (masqué tant que Google n'est pas prêt) */
+    .google-wrap { margin-bottom: .25rem; }
+    .google-btn { display: flex; justify-content: center; min-height: 44px; }
+    .google-terms { text-align: center; margin: .6rem 0 0; }
+    .google-terms a { color: var(--primary); text-decoration: underline; }
     .field-hint { font-size: .76rem; color: var(--text-muted); margin-top: .3rem; line-height: 1.5; }
     /* Badge « annonceur vérifié » (identité ou professionnel) */
     .adv-badge {
@@ -1237,6 +1242,9 @@
 
     <h2 style="font-size:1.1rem;font-weight:800;margin:1.5rem 0 .5rem" data-i18n="priv_h8">8. Vérification des annonceurs</h2>
     <p style="line-height:1.7;color:var(--text-secondary)" data-i18n="priv_p8"></p>
+
+    <h2 style="font-size:1.1rem;font-weight:800;margin:1.5rem 0 .5rem" data-i18n="priv_h9">9. Connexion avec Google</h2>
+    <p style="line-height:1.7;color:var(--text-secondary)" data-i18n="priv_p9"></p>
   </div>
 </div>
 
@@ -1643,6 +1651,10 @@
     <button class="modal-close" onclick="closeModal('login')">×</button>
     <h2 data-i18n="m_login">Connexion</h2>
     <div id="login-error" class="error-msg hidden"></div>
+    <div class="google-wrap hidden" data-google>
+      <div class="google-btn" id="g-btn-login"></div>
+      <div class="form-divider" data-i18n="m_or">ou</div>
+    </div>
     <div class="form-row"><label data-i18n="m_email">Email</label><input id="login-email" type="email" placeholder="vous@exemple.dz"></div>
     <div class="form-row"><label data-i18n="m_pass">Mot de passe</label><input id="login-pass" type="password" placeholder="••••••••"></div>
     <button class="btn btn-primary" style="width:100%;padding:.75rem;margin-top:.5rem" onclick="doLogin()" data-i18n="m_connect">Se connecter</button>
@@ -1660,6 +1672,11 @@
     <button class="modal-close" onclick="closeModal('register')">×</button>
     <h2 data-i18n="m_register">Créer un compte</h2>
     <div id="register-error" class="error-msg hidden"></div>
+    <div class="google-wrap hidden" data-google>
+      <div class="google-btn" id="g-btn-register"></div>
+      <div class="field-hint google-terms" data-i18n-html="g_terms"></div>
+      <div class="form-divider" data-i18n="m_or">ou</div>
+    </div>
     <div class="form-row"><label data-i18n="m_name">Nom complet</label><input id="reg-name" type="text" placeholder="Prénom Nom"></div>
     <div class="form-row"><label data-i18n="m_email">Email</label><input id="reg-email" type="email" placeholder="vous@exemple.dz"></div>
     <div class="form-row"><label data-i18n="m_phone">Téléphone</label><input id="reg-phone" type="tel" placeholder="+213 6XX XX XX XX"><div class="field-hint" data-i18n-html="m_phone_hint"></div></div>
@@ -1811,6 +1828,8 @@ const TRANSLATIONS = {
     dash_tab_annonces:'Mes annonces', dash_tab_contacts:'Demandes reçues',
     dash_tab_favoris:'Favoris', dash_tab_alertes:'Alertes email', dash_tab_profil:'Profil',
     dash_tab_verif:'Vérification',
+    g_terms:'En continuant avec Google, vous acceptez les <a href="#" data-p="cgu" onclick="return goLegal(this)">CGU</a> et la <a href="#" data-p="confidentialite" onclick="return goLegal(this)">politique de confidentialité</a>.',
+    g_created:'Compte créé avec Google. Bienvenue, {name} !', g_connected:'Connecté avec Google : {name}',
     m_phone_hint:"Ce numéro est affiché sur vos annonces (boutons Appeler et WhatsApp). Depuis l'étranger : commencez par + et l'indicatif du pays (ex. <bdi dir=\"ltr\">+33 6 12 34 56 78</bdi>).",
     adv_identity:'Identité vérifiée', adv_business:'Professionnel vérifié',
     adv_identity_tip:"DzImmo a contrôlé une pièce d'identité de cet annonceur. Cela ne prouve pas qu'il est propriétaire du bien.",
@@ -1863,6 +1882,8 @@ const TRANSLATIONS = {
     cgu_p6:"DzImmo se réserve le droit de modifier les présentes CGU à tout moment. Les utilisateurs en seront informés par email. La poursuite de l'utilisation de la plateforme après notification vaut acceptation des nouvelles CGU. Tout compte peut être résilié par l'utilisateur depuis son espace personnel.",
     cgu_p7:'Les présentes CGU sont soumises au droit algérien. Tout litige relève de la compétence exclusive des juridictions algériennes.',
     priv_sub:'Dernière mise à jour : 20 septembre 2026',
+    priv_h9:'9. Connexion avec Google',
+    priv_p9:"Si vous choisissez « Continuer avec Google », Google nous transmet votre nom, votre adresse email (que Google a vérifiée) et votre photo de profil. Nous ne recevons pas votre mot de passe Google et nous n'accédons ni à vos contacts ni à vos autres données Google. Google traite ces informations selon sa propre politique de confidentialité. Si cette adresse email était déjà inscrite chez nous sans avoir été confirmée, sa confirmation par Google nous permet de la rattacher à votre compte. Vous pouvez toujours utiliser un email et un mot de passe à la place.",
     priv_h8:'8. Vérification des annonceurs',
     priv_p8:"Si vous demandez la vérification de votre compte, vous nous transmettez une pièce d'identité (particulier) ou un justificatif professionnel (registre de commerce, agrément). Ces documents servent uniquement à contrôler l'identité ou l'activité de l'annonceur : ils ne sont consultables que par les administrateurs de DzImmo, sont stockés à l'écart des données publiques du site et sont supprimés dès la décision (acceptation ou refus). Nous conservons seulement le résultat (compte vérifié ou non, date, numéro du registre de commerce ou de l'agrément pour un professionnel, motif d'un refus). Cette démarche est facultative et repose sur votre consentement ; vous pouvez demander à tout moment le retrait de la vérification.",
     priv_h1:'1. Données collectées', priv_h2:'2. Finalités du traitement',
@@ -2059,6 +2080,8 @@ const TRANSLATIONS = {
     dash_tab_annonces:'إعلاناتي', dash_tab_contacts:'الطلبات المستلمة',
     dash_tab_favoris:'المفضلة', dash_tab_alertes:'تنبيهات البريد', dash_tab_profil:'الملف الشخصي',
     dash_tab_verif:'التوثيق',
+    g_terms:'بالمتابعة عبر Google فإنك توافق على <a href="#" data-p="cgu" onclick="return goLegal(this)">شروط الاستخدام</a> و<a href="#" data-p="confidentialite" onclick="return goLegal(this)">سياسة الخصوصية</a>.',
+    g_created:'تم إنشاء الحساب عبر Google. مرحباً {name}!', g_connected:'تم تسجيل الدخول عبر Google: {name}',
     m_phone_hint:'يظهر هذا الرقم على إعلاناتك (زرّا الاتصال والواتساب). من الخارج: ابدأ بـ + ثم رمز البلد (مثال: <bdi dir="ltr">+33 6 12 34 56 78</bdi>).',
     adv_identity:'الهوية موثَّقة', adv_business:'مهني موثَّق',
     adv_identity_tip:'تحقق DzImmo من وثيقة هوية هذا المعلن. وهذا لا يثبت أنه مالك العقار.',
@@ -2111,6 +2134,8 @@ const TRANSLATIONS = {
     cgu_p6:'تحتفظ DzImmo بحق تعديل هذه الشروط في أي وقت. سيتم إخطار المستخدمين عبر البريد الإلكتروني. يُعدّ الاستمرار في استخدام المنصة بعد الإخطار قبولًا للشروط الجديدة. يمكن للمستخدم إنهاء حسابه من مساحته الشخصية.',
     cgu_p7:'تخضع هذه الشروط للقانون الجزائري. يختص القضاء الجزائري حصريًا بالنظر في أي نزاع.',
     priv_sub:'آخر تحديث: 20 سبتمبر 2026',
+    priv_h9:'9. الدخول عبر Google',
+    priv_p9:'إذا اخترتَ «المتابعة عبر Google» فإن Google ترسل إلينا اسمك وعنوان بريدك الإلكتروني (الذي تحقق منه) وصورة ملفك الشخصي. لا نتلقى كلمة مرور Google الخاصة بك ولا نطّلع على جهات اتصالك أو على بياناتك الأخرى في Google. تعالج Google هذه المعلومات وفق سياسة الخصوصية الخاصة بها. وإذا كان هذا البريد مسجَّلاً لدينا من قبل دون تأكيد، فإن تأكيده من Google يتيح لنا ربطه بحسابك. يمكنك دائماً استعمال البريد الإلكتروني وكلمة المرور بدلاً من ذلك.',
     priv_h8:'8. توثيق المعلنين',
     priv_p8:'إذا طلبتَ توثيق حسابك فإنك ترسل إلينا وثيقة هوية (للأفراد) أو وثيقة مهنية (سجل تجاري، اعتماد). تُستعمل هذه الوثائق حصراً للتحقق من هوية المعلن أو نشاطه: لا يطّلع عليها إلا مشرفو DzImmo، وتُخزَّن بمعزل عن البيانات العلنية للموقع، وتُحذف فور اتخاذ القرار (قبولاً أو رفضاً). نحتفظ بالنتيجة فقط (حساب موثَّق أو غير موثَّق، التاريخ، رقم السجل التجاري أو الاعتماد بالنسبة للمهني، وسبب الرفض). هذا الإجراء اختياري ويقوم على موافقتك، ويمكنك في أي وقت طلب سحب التوثيق.',
     priv_h1:'1. البيانات المجمعة', priv_h2:'2. أغراض المعالجة',
@@ -2212,6 +2237,7 @@ function applyLang(lang) {
     el.innerHTML = T(el.getAttribute('data-i18n-html'));
   });
   document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  renderGoogleButtons();
   rebuildSelects();
   if (currentPage === 'home') loadHomeProperties();
   else if (currentPage === 'annonces') loadAnnonces();
@@ -2328,6 +2354,7 @@ function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   localStorage.setItem('dzimmo_theme', t);
   document.querySelectorAll('.theme-btn').forEach(b => { b.textContent = t === 'dark' ? '☀️' : '🌙'; });
+  renderGoogleButtons();
 }
 
 // ── Menu mobile ──────────────────────────────────────
@@ -2357,6 +2384,7 @@ async function init() {
   else if (window.matchMedia('(prefers-color-scheme: dark)').matches) applyTheme('dark');
 
   populateWilayas();
+  initGoogle();
   if (token) await loadCurrentUser();
   loadHomeProperties();
 
@@ -2414,6 +2442,66 @@ async function loadCurrentUser() {
     loadNotifsFromStorage();
     updateNotifBadge();
   } catch { token = null; localStorage.removeItem('dzimmo_token'); }
+}
+
+// ── Connexion avec Google ────────────────────────────
+// Le bouton n'apparaît que si le serveur a un GOOGLE_CLIENT_ID (GET /api/auth/config). Google renvoie un jeton d'identité
+// signé, que le serveur vérifie (POST /api/auth/google) avant de créer ou de retrouver le compte.
+let googleReady = false;
+
+function loadGoogleScript() {
+  if (window.google && window.google.accounts && window.google.accounts.id) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const sc = document.createElement('script');
+    sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true; sc.defer = true;
+    sc.onload = resolve; sc.onerror = reject;
+    document.head.appendChild(sc);
+  });
+}
+
+async function initGoogle() {
+  try {
+    const cfg = await api('/auth/config');
+    if (!cfg.google_client_id) return;
+    await loadGoogleScript();
+    google.accounts.id.initialize({ client_id: cfg.google_client_id, callback: onGoogleCredential, ux_mode: 'popup', cancel_on_tap_outside: true });
+    googleReady = true;
+    document.querySelectorAll('[data-google]').forEach(w => w.classList.remove('hidden'));
+    renderGoogleButtons();
+  } catch { /* Google injoignable (réseau, bloqueur de publicité) : email et mot de passe restent disponibles */ }
+}
+
+// Dessine le bouton officiel à la largeur de la fenêtre ouverte (0 tant qu'elle est fermée : rendu à l'ouverture)
+function renderGoogleButtons() {
+  if (!googleReady) return;
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  for (const [id, text] of [['g-btn-login', 'signin_with'], ['g-btn-register', 'signup_with']]) {
+    const el = document.getElementById(id);
+    const width = el ? Math.round(el.getBoundingClientRect().width) : 0;
+    if (width < 200) continue;
+    el.innerHTML = '';
+    google.accounts.id.renderButton(el, { type: 'standard', theme: dark ? 'filled_black' : 'outline', size: 'large', text,
+      shape: 'rectangular', logo_alignment: 'left', width: Math.min(400, width), locale: currentLang });
+  }
+}
+
+async function onGoogleCredential(resp) {
+  const errId = document.getElementById('modal-register').classList.contains('hidden') ? 'login-error' : 'register-error';
+  try {
+    const r = await api('/auth/google', 'POST', { credential: resp.credential });
+    token = r.token; localStorage.setItem('dzimmo_token', token);
+    currentUser = r.user;
+    closeModal('login'); closeModal('register');
+    await loadCurrentUser();
+    toast(T(r.created ? 'g_created' : 'g_connected').replace('{name}', r.user.name));
+  } catch (e) { showError(errId, e.message); }
+}
+
+// Liens des conditions et de la confidentialité, sous le bouton d'inscription
+function goLegal(a) {
+  closeModal('login'); closeModal('register');
+  showPage(a.dataset.p);
+  return false;
 }
 
 async function doLogin() {
@@ -4877,6 +4965,7 @@ async function loadUnreadCount() {
 // ── Modals ─────────────────────────────────────────
 function openModal(name) {
   document.getElementById('modal-' + name)?.classList.remove('hidden');
+  if (name === 'login' || name === 'register') renderGoogleButtons();   // largeur mesurable seulement une fois la fenêtre affichée
 }
 function closeModal(name) {
   document.getElementById('modal-' + name)?.classList.add('hidden');

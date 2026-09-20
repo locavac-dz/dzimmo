@@ -74,6 +74,10 @@ Windows : `demarrer.bat`
   Les justificatifs sont des données sensibles (loi 18-07) : dossier privé `VERIFICATION_DIR` (jamais sous `public/`),
   images ré-encodées sans métadonnées, consultables des seuls admins via l'API, **supprimés dès la décision** — ne jamais
   les garder, les journaliser ni les inclure dans une sauvegarde ; on ne conserve que le résultat.
+- **Connexion avec Google** (facultative, `GOOGLE_CLIENT_ID`) : `POST /api/auth/google` vérifie le jeton d'identité (`server/google-auth.js`,
+  RS256 imposé, audience, émetteur, `email_verified === true`). Rattachement : identifiant Google connu → ce compte ; adresse déjà
+  inscrite → rattachement (si elle n'avait jamais été confirmée, mot de passe remplacé et sessions révoquées : c'est peut-être une
+  pré-inscription par un tiers) ; sinon nouveau compte. La CSP et le COOP ne s'ouvrent à Google que si la variable est définie.
 - **Sessions révocables** (`server/sessions.js`) : `users.sessions_valid_after` refuse les jetons émis avant cette date. Toute action qui
   change qui contrôle un compte (réinitialisation du mot de passe, reprise d'un compte) doit appeler `revokeSessions(userId)`. Les
   middlewares `auth` et `admin`, la fiche non publique et le WebSocket relisent le compte en base ; le rôle admin vient de la base, pas du jeton.

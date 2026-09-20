@@ -91,7 +91,7 @@ test('le menu se referme : changement de page, clic ailleurs, Échap, passage en
 test('thème : les deux boutons (en-tête et menu) montrent la même icône', () => {
   const btns = [el({ text: '🌙' }), el({ text: '🌙' })];
   const root = { attrs: {}, setAttribute(k, v) { this.attrs[k] = v; } };
-  const ctx = { document: { documentElement: root, querySelectorAll: sel => (sel === '.theme-btn' ? btns : []) }, localStorage: { setItem() {} } };
+  const ctx = { document: { documentElement: root, querySelectorAll: sel => (sel === '.theme-btn' ? btns : []) }, localStorage: { setItem() {} }, renderGoogleButtons() {} };
   vm.createContext(ctx); vm.runInContext(fn('applyTheme'), ctx);
   ctx.applyTheme('dark');
   assert.deepEqual(btns.map(b => b.textContent), ['☀️', '☀️']);

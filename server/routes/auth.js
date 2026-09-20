@@ -4,6 +4,7 @@ const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
 const db     = require('../db');
 const mailer = require('../mailer');
+const google = require('../google-auth');
 const { revokeSessions } = require('../sessions');
 
 function sign(user) {
@@ -61,6 +62,66 @@ router.post('/login', async (req, res) => {
     return res.status(403).json({ error: 'Ce compte a été suspendu. Contactez le support.' });
   if (req.langExplicit && user.lang !== req.lang) await db.pool.query('UPDATE users SET lang = $1 WHERE id = $2', [req.lang, user.id]);
   res.json({ token: sign(user), user: safe(user) });
+});
+
+// GET /api/auth/config — réglages publics du site (identifiant client Google : public par nature, absent = bouton masqué)
+router.get('/config', (req, res) => {
+  res.json({ google_client_id: process.env.GOOGLE_CLIENT_ID || null });
+});
+
+// POST /api/auth/google — { credential } : jeton d'identité fourni par le bouton « Se connecter avec Google »
+// Rattachement au compte, dans cet ordre :
+//  1. identifiant Google déjà connu → ce compte ;
+//  2. adresse déjà inscrite → on rattache Google à ce compte. Si l'adresse n'y avait jamais été confirmée, le compte a peut-être
+//     été créé par un tiers (pré-inscription de l'adresse d'autrui) : son mot de passe est remplacé et ses sessions révoquées ;
+//  3. sinon → nouveau compte (adresse confirmée par Google, mot de passe aléatoire : « mot de passe oublié » permet d'en définir un).
+router.post('/google', async (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) return res.status(503).json({ error: 'Connexion Google indisponible.' });
+  const credential = req.body && req.body.credential;
+  if (typeof credential !== 'string' || !credential || credential.length > 4096)
+    return res.status(400).json({ error: 'Jeton Google invalide.' });
+
+  let g;
+  try { g = await google.verifyIdToken(credential, clientId); }
+  catch (e) { return res.status(401).json({ error: 'Jeton Google invalide.' }); }
+  if (g.email_verified !== true) return res.status(401).json({ error: 'Adresse Google non vérifiée.' });
+
+  const email = g.email.toLowerCase().trim();
+  let user = null, created = false;
+  for (let attempt = 0; attempt < 2 && !user; attempt++) {
+    try {
+      user = await db.users.findOne({ google_id: g.sub });
+      if (user) break;
+      const existing = await db.users.findOne({ email });
+      if (existing) {
+        if (existing.google_id) return res.status(409).json({ error: 'Un autre compte Google est déjà associé à cette adresse.' });
+        const changes = { google_id: g.sub, email_verified: true, verification_token: null };
+        if (!existing.email_verified) {
+          changes.password = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
+          changes.sessions_valid_after = new Date(Math.floor(Date.now() / 1000) * 1000);
+        }
+        await db.users.update({ id: existing.id }, changes);
+        user = { ...existing, ...changes };
+      } else {
+        user = await db.users.insert({
+          name: String(g.name || email.split('@')[0]).trim().slice(0, 100), email, google_id: g.sub,
+          password: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10),
+          avatar: typeof g.picture === 'string' && /^https:\/\//.test(g.picture) ? g.picture.slice(0, 500) : null,
+          is_agent: false, lang: req.lang, email_verified: true,
+        });
+        created = true;
+      }
+    } catch (e) {
+      if (e.code !== '23505') throw e;   // deux premières connexions simultanées : la seconde retrouve le compte créé par la première
+      user = null;
+    }
+  }
+  if (!user) return res.status(500).json({ error: 'Erreur interne du serveur.' });
+  if (user.banned) return res.status(403).json({ error: 'Ce compte a été suspendu. Contactez le support.' });
+  if (created) mailer.mailWelcome({ name: user.name, email: user.email, lang: user.lang });
+  else if (req.langExplicit && user.lang !== req.lang) await db.pool.query('UPDATE users SET lang = $1 WHERE id = $2', [req.lang, user.id]);
+  res.json({ token: sign(user), user: safe(user), created });
 });
 
 // GET /api/auth/me

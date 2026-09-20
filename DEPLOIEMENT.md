@@ -40,6 +40,19 @@ Le dossier des justificatifs ne doit jamais être servi par Nginx ni placé sous
 l'application doit pouvoir y écrire (`chmod 700`). Les fichiers y sont supprimés dès que l'administrateur décide : il
 n'y a rien à sauvegarder, et il ne faut pas l'inclure dans les sauvegardes du § 7.
 
+### Connexion avec Google (facultative)
+
+Sans cette étape le site fonctionne avec email et mot de passe, sans bouton Google et sans aucun accès à Google.
+
+1. Console Google Cloud (console.cloud.google.com) → créer un projet → **API et services → Écran de consentement OAuth** :
+   type *Externe*, nom « DzImmo », email d'assistance, domaine autorisé `dzimmo.dz`, champs `openid`, `email`, `profile`
+   (aucune validation Google n'est demandée pour ces champs), puis **Publier l'application** (sinon seuls les comptes de test peuvent se connecter).
+2. **Identifiants → Créer des identifiants → ID client OAuth**, type *Application Web*. Origines JavaScript autorisées :
+   `https://dzimmo.dz` (et `http://localhost:3001` pour essayer en local). **Aucun URI de redirection** n'est nécessaire.
+3. Copier l'ID client (`…apps.googleusercontent.com`) dans `.env` : `GOOGLE_CLIENT_ID=…`, puis `pm2 reload dzimmo`.
+   Il n'y a **pas de « secret client »** à stocker : le serveur vérifie la signature du jeton avec les clés publiques de Google.
+4. Vérifier : la fenêtre « Connexion » affiche le bouton Google ; au démarrage, aucun avertissement `GOOGLE_CLIENT_ID` dans `pm2 logs`.
+
 ## 3. pm2
 
 ```bash

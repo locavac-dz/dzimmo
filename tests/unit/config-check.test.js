@@ -56,6 +56,15 @@ test('réglages dégradés → avertissements sans bloquer', () => {
   assert.deepEqual(check({ TRUST_PROXY: '0', EMAIL_HOST: '' }).errors, [], 'aucun de ces réglages n\'est bloquant');
 });
 
+test('GOOGLE_CLIENT_ID : facultatif ; s\'il est défini, il doit avoir la forme d\'un identifiant client Google', () => {
+  assert.deepEqual(check({ GOOGLE_CLIENT_ID: undefined }).warnings, [], 'absent : rien à signaler');
+  assert.deepEqual(check({ GOOGLE_CLIENT_ID: '' }).warnings, [], 'vide : comme absent');
+  assert.deepEqual(check({ GOOGLE_CLIENT_ID: '1234567890-abc_DEF.apps.googleusercontent.com' }).warnings, []);
+  for (const bad of ['mon-identifiant', 'https://accounts.google.com', '123.apps.googleusercontent.com.evil.com', '.apps.googleusercontent.com', 'a b.apps.googleusercontent.com'])
+    assert.match(check({ GOOGLE_CLIENT_ID: bad }).warnings.join(), /GOOGLE_CLIENT_ID/, bad);
+  assert.deepEqual(check({ GOOGLE_CLIENT_ID: 'mon-identifiant' }).errors, [], 'jamais bloquant : le site fonctionne sans Google');
+});
+
 test('erreurs et avertissements s\'accumulent, chacun expliqué en français', () => {
   const { errors, warnings } = checkConfig({ NODE_ENV: 'production' });
   assert.equal(errors.length, 3, 'secret, base, APP_URL');

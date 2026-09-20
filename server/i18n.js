@@ -12,6 +12,12 @@ const AR = {
   'Erreur interne du serveur.': 'خطأ داخلي في الخادم.',
   'Route introuvable.': 'المسار غير موجود.',
 
+  // Connexion avec Google
+  'Connexion Google indisponible.': 'الدخول عبر Google غير متاح.',
+  'Jeton Google invalide.': 'رمز Google غير صالح.',
+  'Adresse Google non vérifiée.': 'لم يتم التحقق من عنوان البريد في Google.',
+  'Un autre compte Google est déjà associé à cette adresse.': 'يوجد حساب Google آخر مرتبط بهذا العنوان.',
+
   // Vérification des annonceurs
   'Type de vérification invalide.': 'نوع التوثيق غير صالح.',
   'Type de document invalide.': 'نوع الوثيقة غير صالح.',

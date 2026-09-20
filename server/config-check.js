@@ -32,6 +32,10 @@ function checkConfig(env = process.env) {
   if (!env.TRUST_PROXY || env.TRUST_PROXY === '0' || env.TRUST_PROXY === 'false')
     warnings.push('TRUST_PROXY n\'est pas défini : derrière Nginx, tous les visiteurs partagent la même limite de débit (l\'IP du proxy). Mettre TRUST_PROXY=1.');
 
+  const gid = (env.GOOGLE_CLIENT_ID || '').trim();
+  if (env.GOOGLE_CLIENT_ID !== undefined && env.GOOGLE_CLIENT_ID !== '' && !/^[\w-]+\.apps\.googleusercontent\.com$/.test(gid))
+    warnings.push("GOOGLE_CLIENT_ID n'a pas la forme d'un identifiant client Google (« …apps.googleusercontent.com ») : la connexion Google ne fonctionnera pas.");
+
   if (!env.EMAIL_HOST) warnings.push('EMAIL_HOST est absent : aucun email (confirmation, mot de passe oublié, alertes) ne sera envoyé.');
   if ((env.MODERATION || 'on').toLowerCase() === 'off') warnings.push('MODERATION=off : les annonces sont publiées sans validation.');
 
