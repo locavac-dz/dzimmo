@@ -12,6 +12,27 @@ const AR = {
   'Erreur interne du serveur.': 'خطأ داخلي في الخادم.',
   'Route introuvable.': 'المسار غير موجود.',
 
+  // Vitrine des agences et des promoteurs, programmes neufs
+  'Nom invalide (2 à 80 caractères).': 'الاسم غير صالح (من حرفين إلى 80 حرفاً).',
+  'Type de professionnel invalide.': 'نوع المهني غير صالح.',
+  'Wilaya invalide.': 'الولاية غير صالحة.',
+  'Texte trop long.': 'النص طويل جداً.',
+  'Numéro de téléphone invalide.': 'رقم الهاتف غير صالح.',
+  'Adresse web invalide (http:// ou https:// attendu).': 'عنوان الويب غير صالح (يجب أن يبدأ بـ http:// أو https://).',
+  'Lien de réseau social invalide.': 'رابط الشبكة الاجتماعية غير صالح.',
+  'Image invalide : envoyez-la depuis le formulaire.': 'صورة غير صالحة: أرسلها من خلال النموذج.',
+  'Année de création invalide.': 'سنة التأسيس غير صالحة.',
+  'Services ou zones invalides.': 'الخدمات أو المناطق غير صالحة.',
+  "Vous ne pouvez publier qu'au nom de votre propre agence.": 'لا يمكنك النشر إلا باسم وكالتك الخاصة.',
+  'Programme introuvable.': 'المشروع غير موجود.',
+  "Ce programme n'appartient pas à l'agence choisie.": 'هذا المشروع لا يخص الوكالة المختارة.',
+  'Nom du programme invalide (2 à 120 caractères).': 'اسم المشروع غير صالح (من حرفين إلى 120 حرفاً).',
+  'Avancement du programme invalide.': 'مرحلة إنجاز المشروع غير صالحة.',
+  'Date de livraison invalide.': 'تاريخ التسليم غير صالح.',
+  'Nombre de lots invalide.': 'عدد الوحدات غير صالح.',
+  'Équipements invalides.': 'المرافق غير صالحة.',
+  'Seuls les promoteurs vérifiés peuvent publier un programme.': 'لا يمكن نشر مشروع إلا للمروّجين العقاريين الموثَّقين.',
+
   // Qualité, expiration et clics
   'Vous avez déjà publié cette annonce.': 'لقد نشرت هذا الإعلان بالفعل.',
   'Ce lien de confirmation est invalide ou a expiré.': 'رابط التأكيد غير صالح أو منتهي الصلاحية.',

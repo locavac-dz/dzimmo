@@ -106,7 +106,7 @@ test('favoris : ajout, doublon, liste, vérification, suppression', async () => 
 test('agences : création, unicité, fiche avec annonces actives, modification, agence du compte', async () => {
   const o = await s.register('ag'), other = await s.register('ag2');
   assert.equal((await s.request('POST', '/api/agencies', { token: o.token, body: { name: 'Sans wilaya' } })).status, 400);
-  const created = await s.request('POST', '/api/agencies', { token: o.token, body: { name: '  Agence Test  ', wilaya: 'Oran', phone: '0550', description: 'Desc' } });
+  const created = await s.request('POST', '/api/agencies', { token: o.token, body: { name: '  Agence Test  ', wilaya: 'Oran', phone: '0550123456', description: 'Desc' } });
   assert.equal(created.status, 201);
   const id = created.body.id;
   assert.equal((await s.request('POST', '/api/agencies', { token: o.token, body: { name: 'Bis', wilaya: 'Alger' } })).status, 409);
@@ -120,17 +120,19 @@ test('agences : création, unicité, fiche avec annonces actives, modification, 
   const fiche = (await s.request('GET', `/api/agencies/${id}`)).body;
   assert.equal(fiche.name, 'Agence Test', 'nom nettoyé');
   assert.equal(fiche.property_count, 14, 'seules les annonces actives sont comptées');
-  assert.equal(fiche.properties.length, 12, 'douze annonces au plus dans la fiche');
-  assert.ok(fiche.properties.every(p => p.status === 'active'));
+  // Les annonces de l'agence se lisent par la liste des annonces (filtre agency_id), paginée
+  const lots = (await s.request('GET', `/api/properties?agency_id=${id}&limit=12`)).body;
+  assert.equal(lots.total, 14); assert.equal(lots.data.length, 12, 'douze annonces par page');
+  assert.ok(lots.data.every(p => p.status === 'active'));
   assert.equal((await s.request('GET', '/api/agencies/999999')).status, 404);
-  const listed = (await s.request('GET', '/api/agencies')).body.find(a => a.id === id);
+  const listed = (await s.request('GET', '/api/agencies')).body.items.find(a => a.id === id);
   assert.equal(listed.property_count, 14);
 
-  assert.equal((await s.request('PUT', `/api/agencies/${id}`, { token: other.token, body: { phone: '1' } })).status, 403);
-  assert.equal((await s.request('PUT', `/api/agencies/${id}`, { token: o.token, body: { phone: '0661', website: '' } })).status, 200);
+  assert.equal((await s.request('PUT', `/api/agencies/${id}`, { token: other.token, body: { phone: '0661234567' } })).status, 403);
+  assert.equal((await s.request('PUT', `/api/agencies/${id}`, { token: o.token, body: { phone: '0661234567', website: '' } })).status, 200);
   assert.equal((await s.request('PUT', `/api/agencies/${id}`, { token: admin.token, body: { description: 'Par admin' } })).status, 200);
   const after = (await s.request('GET', `/api/agencies/${id}`)).body;
-  assert.equal(after.phone, '0661'); assert.equal(after.website, null); assert.equal(after.description, 'Par admin');
+  assert.equal(after.phone, '0661234567'); assert.equal(after.website, null); assert.equal(after.description, 'Par admin');
 
   assert.equal((await s.request('GET', '/api/agencies/mine/info', { token: o.token })).body.id, id);
   assert.equal((await s.request('GET', '/api/agencies/mine/info', { token: other.token })).status, 404);

@@ -15,7 +15,9 @@ function jsFiles(dir) {
 // Messages littéraux : « error: '…' » (réponses JSON) et « new Error('…') » (erreurs remontées au gestionnaire global)
 function serverMessages() {
   const found = new Map();   // message -> fichier
-  const patterns = [/error:\s*(['"`])((?:\\.|(?!\1)[^\\])*)\1/g, /new Error\(\s*(['"`])((?:\\.|(?!\1)[^\\])*)\1/g];
+  // « bad('…') » : messages renvoyés par les validateurs des vitrines et des programmes (server/agency.js, server/projects.js)
+  const patterns = [/error:\s*(['"`])((?:\\.|(?!\1)[^\\])*)\1/g, /new Error\(\s*(['"`])((?:\\.|(?!\1)[^\\])*)\1/g,
+                    /\bbad\(\s*(['"`])((?:\\.|(?!\1)[^\\])*)\1/g];
   for (const file of jsFiles(SERVER)) {
     if (path.basename(file) === 'i18n.js') continue;
     const src = fs.readFileSync(file, 'utf8');

@@ -17,9 +17,12 @@ const STATUTS_VALIDES  = ['active','sold','rented','archived'];
 const STATUTS_PUBLICS  = ['active','sold','rented'];
 
 async function withOwner(property) {
-  const [owner, agency] = await Promise.all([
+  const [owner, agency, project] = await Promise.all([
     db.users.findById(property.owner_id),
     property.agency_id ? db.agencies.findById(property.agency_id) : null,
+    property.project_id ? db.pool.query(
+      `SELECT j.id, j.name, j.status FROM projects j JOIN agencies a ON a.id = j.agency_id
+        WHERE j.id = $1 AND COALESCE(a.verified, false) = true`, [property.project_id]) : null,
   ]);
   return {
     ...property,
@@ -31,7 +34,42 @@ async function withOwner(property) {
     agency_name:  agency ? agency.name  : null,
     agency_logo:  agency ? agency.logo  : null,
     agency_phone: agency ? agency.phone : null,
+    agency_kind:  agency ? agency.kind  : null,
+    project:      project && project.rows[0] ? project.rows[0] : null,
   };
+}
+
+// Rattachement d'une annonce à une agence et à un programme : uniquement les siens. Sans ce contrôle, n'importe qui pourrait publier
+// sous le nom, le logo et le numéro d'une autre agence. Renvoie { values } (colonnes à écrire) ou { error, status }.
+// « current » : rattachement actuel de l'annonce à la modification (undefined dans le corps = inchangé).
+async function affiliation(user, body, current = {}) {
+  const out = {};
+  const blank = v => v === null || v === '';
+  if (body.agency_id !== undefined) {
+    if (blank(body.agency_id)) out.agency_id = null;
+    else {
+      const a = await db.agencies.findById(body.agency_id);
+      if (!a) return { error: 'Agence introuvable.', status: 404 };
+      if (a.owner_id !== user.id && !user.is_admin) return { error: "Vous ne pouvez publier qu'au nom de votre propre agence.", status: 403 };
+      out.agency_id = a.id;
+    }
+  }
+  if (body.project_id !== undefined) {
+    if (blank(body.project_id)) out.project_id = null;
+    else {
+      const j = (await db.pool.query(
+        'SELECT j.id, j.agency_id, a.owner_id FROM projects j JOIN agencies a ON a.id = j.agency_id WHERE j.id = $1', [db.toId(body.project_id) ?? 0])).rows[0];
+      if (!j) return { error: 'Programme introuvable.', status: 404 };
+      if (j.owner_id !== user.id && !user.is_admin) return { error: "Vous ne pouvez publier qu'au nom de votre propre agence.", status: 403 };
+      const agencyId = out.agency_id !== undefined ? out.agency_id : current.agency_id;
+      if (agencyId && agencyId !== j.agency_id) return { error: "Ce programme n'appartient pas à l'agence choisie.", status: 400 };
+      out.project_id = j.id;
+      out.agency_id  = j.agency_id;   // un lot de programme est toujours publié au nom du promoteur
+    }
+  }
+  // Changer d'agence (ou la retirer) détache le programme de l'ancienne
+  if (out.agency_id !== undefined && out.agency_id !== current.agency_id && out.project_id === undefined) out.project_id = null;
+  return { values: out };
 }
 
 // GET /api/properties — avec pagination SQL
@@ -65,6 +103,8 @@ router.get('/', optionalAuth, async (req, res) => {
   add('p.status = ?', status || 'active');
   if (wilaya)                                     add('p.wilaya = ?',       wilaya);
   if (commune)                                    add('p.commune = ?',      commune);
+  if (db.toId(req.query.agency_id)  !== null)     add('p.agency_id = ?',    db.toId(req.query.agency_id));    // vitrine d'une agence
+  if (db.toId(req.query.project_id) !== null)     add('p.project_id = ?',   db.toId(req.query.project_id));   // lots d'un programme
   if (mode      && MODES_VALIDES.includes(mode))  add('p.mode = ?',        mode);
   if (type_bien && TYPES_VALIDES.includes(type_bien)) add('p.type_bien = ?', type_bien);
   // Bornes numériques : une valeur qui n'est pas un nombre fini (« abc », liste, vide) est ignorée
@@ -94,7 +134,7 @@ router.get('/', optionalAuth, async (req, res) => {
     pool.query(
       `SELECT p.*,
          u.name   AS owner_name,  u.phone  AS owner_phone,  u.avatar AS owner_avatar,  u.verified_kind AS owner_verified_kind,
-         a.name   AS agency_name, a.logo   AS agency_logo,  a.phone  AS agency_phone,  COALESCE(a.verified, false) AS agency_verified
+         a.name   AS agency_name, a.logo   AS agency_logo,  a.phone  AS agency_phone,  COALESCE(a.verified, false) AS agency_verified, a.kind AS agency_kind
        FROM (SELECT p.* FROM properties p
               ${where}
               ORDER BY ${orderBy}
@@ -218,7 +258,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 // POST /api/properties
 router.post('/', auth, async (req, res) => {
   const { title, description, mode, type_bien, price, surface_m2, rooms, baths, floor, total_floors,
-          wilaya, commune, address, lat, lng, image, photos, features, agency_id } = req.body;
+          wilaya, commune, address, lat, lng, image, photos, features } = req.body;
 
   if (!title || !mode || !type_bien || !price || !wilaya)
     return res.status(400).json({ error: 'Champs obligatoires : titre, mode, type, prix, wilaya.' });
@@ -229,6 +269,9 @@ router.post('/', auth, async (req, res) => {
 
   const finalImage  = image || (Array.isArray(photos) && photos[0]) || '';
   const finalPhotos = Array.isArray(photos) && photos.length ? photos : (finalImage ? [finalImage] : []);
+
+  const aff = await affiliation(req.user, req.body);
+  if (aff.error) return res.status(aff.status).json({ error: aff.error });
 
   // Qualité : doublons et prix aberrants (server/quality.js)
   const assessment = await quality.assess({
@@ -244,7 +287,8 @@ router.post('/', auth, async (req, res) => {
 
   const property = await db.properties.insert({
     owner_id:     req.user.id,
-    agency_id:    agency_id ? Number(agency_id) : null,
+    agency_id:    aff.values.agency_id ?? null,
+    project_id:   aff.values.project_id ?? null,
     title: title.trim(), description: description || '',
     mode, type_bien, price: Number(price),
     surface_m2:   surface_m2   ? Number(surface_m2)   : null,
@@ -304,6 +348,10 @@ router.put('/:id', auth, async (req, res) => {
   }
   if (Array.isArray(features))   changes.features    = JSON.stringify(features);
   if (Array.isArray(photos))     changes.photos      = JSON.stringify(photos);
+
+  const aff = await affiliation(req.user, req.body, property);
+  if (aff.error) return res.status(aff.status).json({ error: aff.error });
+  Object.assign(changes, aff.values);
 
   // Qualité : un changement de prix, de surface, de titre ou de texte recalcule les signaux (doublon, prix aberrant)
   let assessed = null;

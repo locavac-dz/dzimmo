@@ -6,6 +6,8 @@ const fs   = require('fs');
 const path = require('path');
 const db   = require('./db');
 const WILAYAS = require('./wilayas');
+const agencyData  = require('./agency');
+const projectData = require('./projects');
 
 const INDEX = path.join(__dirname, '..', 'public', 'index.html');
 
@@ -66,6 +68,17 @@ const landingLabel = ({ mode, type, wilaya }) =>
 function propertyPath(p) {
   const slug = slugify(p.title) || slugify(`${p.type_bien}-${p.mode}-${p.wilaya}`);
   return `/annonce/${p.id}${slug ? '-' + slug : ''}`;
+}
+
+// /agence/12-agence-horizon-alger, /promoteur/7-residences-el-amel : le type de professionnel fait partie de l'adresse
+function agencyPath(a) {
+  const slug = slugify(a.name);
+  return `/${a.kind === 'promoteur' ? 'promoteur' : 'agence'}/${a.id}${slug ? '-' + slug : ''}`;
+}
+// /programme/5-residence-les-jasmins
+function projectPath(p) {
+  const slug = slugify(p.name);
+  return `/programme/${p.id}${slug ? '-' + slug : ''}`;
 }
 
 const baseUrl = req =>
@@ -161,6 +174,55 @@ function propertyMeta(p, base) {
            robots: p.status === 'active' ? null : 'noindex,follow' };  // vendu / loué : hors index
 }
 
+// ── Contenu SEO d'une vitrine (agence ou promoteur) ──────────────────────────
+function agencyMeta(a, base) {
+  const promoter = a.kind === 'promoteur';
+  const label = promoter ? 'Promoteur immobilier' : 'Agence immobilière';
+  const count = Number(a.property_count);
+  const facts = `${label} à ${a.wilaya}` + (count ? ` · ${count} annonce${count > 1 ? 's' : ''}` : '') +
+    (a.review_count ? ` · note ${a.rating}/5 (${a.review_count} avis)` : '');
+  const description = truncate(a.tagline || a.description ? `${facts} — ${a.tagline || a.description}` : facts, 160);
+  const canonical = base + agencyPath(a);
+  const image = absolute(base, a.cover || a.logo);
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': promoter ? 'Organization' : 'RealEstateAgent',
+    name: a.name, url: canonical,
+    description: truncate(a.description || a.tagline || facts, 300),
+    image: image || undefined, logo: absolute(base, a.logo) || undefined,
+    telephone: a.phone || undefined,
+    foundingDate: a.founded_year ? String(a.founded_year) : undefined,
+    address: { '@type': 'PostalAddress', streetAddress: a.address || undefined, addressLocality: a.commune || undefined,
+               addressRegion: a.wilaya, addressCountry: 'DZ' },
+    areaServed: [...new Set([a.wilaya, ...(Array.isArray(a.coverage) ? a.coverage : [])])],
+    sameAs: [a.website, a.facebook, a.instagram].filter(Boolean),
+    aggregateRating: a.review_count ? { '@type': 'AggregateRating', ratingValue: a.rating, reviewCount: a.review_count, bestRating: 5 } : undefined,
+  };
+  return { title: `${truncate(a.name, 50)} — ${label} à ${a.wilaya} | DzImmo`, description, canonical, image, jsonLd };
+}
+
+const PROJECT_STATUS = { sur_plan: 'Sur plan', en_construction: 'En construction', livre: 'Livré' };
+
+function projectMeta(j, base) {
+  const delivery = j.delivery_year
+    ? (j.status === 'livre' ? `livré en ${j.delivery_year}` : `livraison ${j.delivery_quarter ? 'T' + j.delivery_quarter + ' ' : ''}${j.delivery_year}`) : '';
+  const facts = [`Programme neuf à ${[j.commune, j.wilaya].filter(Boolean).join(', ')}`, PROJECT_STATUS[j.status], delivery,
+    j.price_from != null && `à partir de ${fmtPrice(j.price_from)} DZD`, `par ${j.agency_name}`].filter(Boolean).join(' · ');
+  const photos = (Array.isArray(j.photos) && j.photos.length ? j.photos : [j.image]).filter(Boolean).slice(0, 5).map(u => absolute(base, u));
+  const canonical = base + projectPath(j);
+  const jsonLd = {
+    '@context': 'https://schema.org', '@type': 'ApartmentComplex',
+    name: j.name, description: truncate(j.description || facts, 300), url: canonical,
+    image: photos.length ? photos : undefined,
+    address: { '@type': 'PostalAddress', streetAddress: j.address || undefined, addressLocality: j.commune || undefined,
+               addressRegion: j.wilaya, addressCountry: 'DZ' },
+    numberOfAccommodationUnits: j.total_units || undefined,
+    numberOfAvailableAccommodationUnits: Number(j.available_count),
+  };
+  return { title: `${truncate(j.name, 55)} — Programme neuf à ${j.wilaya} | DzImmo`,
+           description: truncate(j.description ? `${facts} — ${j.description}` : facts, 160), canonical, image: photos[0] || null, jsonLd };
+}
+
 // ── Facettes : combinaisons mode / type / wilaya ayant au moins une annonce ──
 // Sert au sitemap, aux liens du pied de page et aux « voir aussi » (cache 10 min).
 const TEN_MIN = 10 * 60 * 1000;
@@ -202,7 +264,12 @@ async function buildSitemap(base) {
     `SELECT id, title, type_bien, mode, wilaya, created_at
        FROM properties WHERE status = 'active' ORDER BY id DESC LIMIT 50000`);
   const facets = await getFacets();
-  const urls = [`<url><loc>${escHtml(base)}/</loc></url>`]
+  const pros  = (await agencyData.directory({ per_page: 100, sort: 'recent' })).items;   // 100 : plafond de la pagination
+  const progs = (await projectData.list({ per_page: 100 })).items;
+  const urls = [`<url><loc>${escHtml(base)}/</loc></url>`,
+                ...['/agences', '/promoteurs', '/programmes'].map(u => `<url><loc>${escHtml(base + u)}</loc></url>`),
+                ...pros.map(a => `<url><loc>${escHtml(base + agencyPath(a))}</loc></url>`),
+                ...progs.map(j => `<url><loc>${escHtml(base + projectPath(j))}</loc></url>`)]
     .concat(facets.map(f => `<url><loc>${escHtml(base + landingPath(f))}</loc></url>`))
     .concat(r.rows.map(p =>
       `<url><loc>${escHtml(base + propertyPath(p))}</loc>` +
@@ -333,6 +400,39 @@ function mount(app) {
     await send(res, propertyMeta(p, base));
   });
 
+  // Annuaires : le contenu est rendu par la SPA, le serveur fournit titre, description et adresse canonique
+  const directories = {
+    '/agences':    ['Agences immobilières en Algérie | DzImmo', 'Annuaire des agences immobilières en Algérie : annonces, avis et coordonnées, par wilaya.'],
+    '/promoteurs': ['Promoteurs immobiliers en Algérie | DzImmo', 'Promoteurs immobiliers vérifiés en Algérie et leurs programmes neufs : appartements sur plan, en construction ou livrés.'],
+    '/programmes': ['Programmes immobiliers neufs en Algérie | DzImmo', 'Programmes neufs en Algérie : résidences sur plan, en construction ou livrées, avec prix à partir de et lots disponibles.'],
+  };
+  for (const [route, [title, description]] of Object.entries(directories))
+    app.get(route, (req, res) => send(res, { title, description, canonical: baseUrl(req) + route }));
+
+  const notFound = (req, res) => send(res, {
+    title: 'Page introuvable | DzImmo', description: DEFAULT_DESC, canonical: baseUrl(req) + '/', robots: 'noindex,follow',
+  }, 404);
+
+  // Vitrine d'un professionnel : /agence/12-nom ou /promoteur/12-nom (le type doit correspondre, sinon redirection canonique)
+  app.get('/:kind(agence|promoteur)/:slug', async (req, res) => {
+    const m = /^(\d+)(?:-.*)?$/.exec(req.params.slug);
+    const a = m ? await agencyData.profile(Number(m[1])) : null;
+    if (!a) return notFound(req, res);
+    const canonicalPath = agencyPath(a);
+    if (decodeURIComponent(req.path) !== canonicalPath) return res.redirect(301, canonicalPath);
+    await send(res, agencyMeta(a, baseUrl(req)));
+  });
+
+  // Programme neuf : /programme/5-residence-les-jasmins (masqué tant que le promoteur n'est pas vérifié)
+  app.get('/programme/:slug', async (req, res) => {
+    const m = /^(\d+)(?:-.*)?$/.exec(req.params.slug);
+    const j = m ? await projectData.get(Number(m[1])) : null;
+    if (!j) return notFound(req, res);
+    const canonicalPath = projectPath(j);
+    if (decodeURIComponent(req.path) !== canonicalPath) return res.redirect(301, canonicalPath);
+    await send(res, projectMeta(j, baseUrl(req)));
+  });
+
   // Pages de recherche : /vente, /location/alger, /vente/appartements/oran…
   app.get('/:mode(vente|location|location-saisonniere)/:a?/:b?', async (req, res) => {
     const base = baseUrl(req);
@@ -360,4 +460,4 @@ function mount(app) {
   }, 404));
 }
 
-module.exports = { mount, propertyPath, slugify, landingPath };
+module.exports = { mount, propertyPath, agencyPath, projectPath, slugify, landingPath };
