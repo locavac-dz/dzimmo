@@ -66,6 +66,18 @@ Windows : `demarrer.bat`
   fichier de migration. Tout rattrapage de données au démarrage se lance dans l'instance 0 seulement, comme les tâches planifiées.
 - `server/config-check.js` contrôle la configuration au démarrage (production) : un réglage dont l'absence est
   dangereux y reçoit une règle, en plus de figurer dans `.env.example`.
+- **Supervision** (`server/monitor.js`, table `alert_throttle`, migration 019) : `alert(kind, err, name)` envoie un email (FR/AR, `buildAlert`) à `ALERT_EMAIL`,
+  sinon `CONTACT_EMAIL`, sinon aux admins ; **une alerte par nature de panne et par heure**, réservée par un INSERT … ON CONFLICT atomique (commun aux workers).
+  Le message est expurgé (`sanitize` : ni email, ni numéro, ni URL). Sans SMTP, rien n'est écrit ni envoyé : une alerte ne doit jamais aggraver la panne.
+  Toute tâche de `server/cron.js` passe par `guard(nom, fn, famille)` (journal + alerte sans lever d'exception) ; le gestionnaire d'erreurs d'Express alerte
+  sur les 5xx ; `installProcessHandlers()` (`server/index.js`) alerte puis sort en code 1 sur `uncaughtException` (pm2 relance) et continue sur `unhandledRejection`.
+  Nouveau cron = enveloppé dans `guard`. Nouvelle nature d'alerte = entrée dans `ALERT_KINDS` (`server/mailer.js`, FR et AR).
+- **Sauvegardes** (`server/backup.js`, `server/backup-cli.js`) : actives en production (`BACKUP_ENABLED=false` les coupe), `pg_dump -Fc` chaque nuit (02:30) dans
+  `BACKUP_DIR` (hors Git, jamais sous `public/`, refusé par `config-check`), rotation `BACKUP_KEEP` (14) qui ne touche que les fichiers `dzimmo-AAAA-MM-JJ-HHMM.dump`,
+  écriture en `.partial` puis renommage, `rate_limits` exclue. **Test de restauration** hebdomadaire (dim. 05:30) : base jetable `dzimmo_verif_*` + `pg_restore`
+  (droit CREATEDB, ou `BACKUP_VERIFY_URL`), repli « catalogue » (relecture complète de l'archive) sans ce droit ; contrôle de fraîcheur à 06:30 (36 h). Les outils sont
+  trouvés par `PG_BIN_DIR` ou le PATH ; le mot de passe passe par `PG*`, jamais en argument. `npm run backup` / `npm run backup:verify`. Les justificatifs de vérification
+  ne sont jamais sauvegardés (voir Règles métier) ; la copie hors serveur et celle de `uploads/` restent à la charge de l'exploitant (DEPLOIEMENT.md § 7).
 - Un chemin inconnu renvoie une vraie 404 (`public/404.html`, bilingue), l'API inconnue un JSON 404 : pas de repli
   de la SPA en 200. Toute nouvelle page servie par le site doit avoir sa route explicite (`server/seo.js` ou `app.js`).
 

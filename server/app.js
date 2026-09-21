@@ -229,6 +229,8 @@ app.use(page404);
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   console.error('[Erreur]', err.message);
   const status = err.status || 500;
+  // Erreur interne : les administrateurs en sont prévenus (une alerte par heure, voir server/monitor.js) ; sans attendre, sans jamais échouer
+  if (status >= 500) require('./monitor').alert('http', err, `${req.method} ${req.route ? req.baseUrl + req.route.path : '(route)'}`);
   // Erreurs techniques d'Express / body-parser : message français stable (traduisible), pas l'anglais du module
   const TECHNIQUES = { 'entity.parse.failed': 'Requête invalide (JSON mal formé).', 'entity.too.large': 'Requête trop volumineuse.' };
   const msg = TECHNIQUES[err.type] || (status < 500 ? err.message : 'Erreur interne du serveur.');

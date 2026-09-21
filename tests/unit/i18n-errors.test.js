@@ -12,6 +12,8 @@ function jsFiles(dir) {
     e.isDirectory() ? jsFiles(path.join(dir, e.name)) : e.name.endsWith('.js') ? [path.join(dir, e.name)] : []);
 }
 
+const INTERNES = new Set(['backup.js', 'backup-cli.js', 'cron.js', 'monitor.js']);
+
 // Messages littéraux : « error: '…' » (réponses JSON) et « new Error('…') » (erreurs remontées au gestionnaire global)
 function serverMessages() {
   const found = new Map();   // message -> fichier
@@ -20,6 +22,7 @@ function serverMessages() {
                     /\bbad\(\s*(['"`])((?:\\.|(?!\1)[^\\])*)\1/g];
   for (const file of jsFiles(SERVER)) {
     if (path.basename(file) === 'i18n.js') continue;
+    if (INTERNES.has(path.basename(file))) continue;                     // sauvegardes et tâches planifiées : journal et emails d'alerte, jamais une réponse HTTP
     const src = fs.readFileSync(file, 'utf8');
     for (const re of patterns) for (const m of src.matchAll(re)) {
       const msg = m[2].replace(/\\(['"`\\])/g, '$1');

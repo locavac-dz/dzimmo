@@ -472,6 +472,29 @@ function buildAdminReported(lang, { propertyTitle, count, url }) {
   };
 }
 
+// Alerte de supervision (server/monitor.js) : panne du serveur, tâche planifiée ou sauvegarde en échec. `detail` est le message technique
+// de l'erreur (déjà expurgé des adresses email et numéros par monitor.js), donné tel quel : il n'a pas de traduction.
+const ALERT_KINDS = {
+  fr: { crash: 'Le serveur a planté', http: 'Erreur interne du serveur (500)', cron: 'Une tâche planifiée a échoué', backup: 'La sauvegarde de la base a échoué' },
+  ar: { crash: 'توقف الخادم عن العمل', http: 'خطأ داخلي في الخادم (500)', cron: 'فشلت مهمة مجدولة', backup: 'فشل النسخ الاحتياطي لقاعدة البيانات' },
+};
+function buildAlert(lang, { kind, name, detail }) {
+  const family = String(kind).split(':')[0];
+  const title = (ALERT_KINDS[lang === 'ar' ? 'ar' : 'fr'][family]) || ALERT_KINDS.fr.http;
+  return {
+    subject: pick(lang, `🚨 DzImmo — ${title}`, `🚨 DzImmo — ${title}`) + (name ? ` (${name})` : ''),
+    html: wrap(`
+      <h2 style="color:#b91c1c;margin-top:0">${esc(title)} 🚨</h2>
+      ${name ? `<p>${pick(lang, 'Élément concerné', 'العنصر المعني')} : <strong dir="ltr">${esc(name)}</strong></p>` : ''}
+      <p dir="ltr" style="font-family:monospace;background:#f7f7f7;border-radius:8px;padding:12px;word-break:break-word;text-align:left">${esc(detail)}</p>
+      <p style="color:#777;font-size:13px">${pick(lang,
+        'Les détails complets sont dans les journaux du serveur (pm2 logs dzimmo). Une panne qui se répète n’envoie qu’une alerte par heure.',
+        'التفاصيل الكاملة في سجلات الخادم (pm2 logs dzimmo). إذا تكرر العطل فلن تصل إلا رسالة تنبيه واحدة في الساعة.')}</p>
+    `, lang),
+  };
+}
+
+const mailAlert = d => send(d.to, buildAlert(d.lang, d));
 const mailListingReported = d => send(d.to, buildListingReported(d.lang, d));
 const mailAdminReported = d => send(d.to, buildAdminReported(d.lang, d));
 const mailNewMessage = d => send(d.to, buildNewMessage(d.lang, d));
@@ -493,10 +516,10 @@ module.exports = {
   mailWelcome, mailVerifyEmail, mailPasswordReset,
   mailContactRequest, mailNewMessage, mailSearchAlert,
   mailModerationDecision, mailAdminPending, mailVerificationDecision, mailAdminVerificationPending,
-  mailExpiryReminder, mailListingExpired, mailListingReported, mailAdminReported, mailSiteContact, mailNewsletterConfirm, mailNewsletter, CONTACT_SUBJECTS,
+  mailExpiryReminder, mailListingExpired, mailListingReported, mailAdminReported, mailAlert, mailSiteContact, mailNewsletterConfirm, mailNewsletter, CONTACT_SUBJECTS,
   // gabarits purs (tests)
   build: { buildWelcome, buildVerifyEmail, buildPasswordReset, buildContactRequest, buildNewMessage,
            buildSearchAlert, buildModerationDecision, buildAdminPending,
            buildVerificationDecision, buildAdminVerificationPending, buildExpiryReminder, buildListingExpired, buildSiteContact, buildNewsletterConfirm, buildNewsletter,
-           buildListingReported, buildAdminReported },
+           buildListingReported, buildAdminReported, buildAlert },
 };

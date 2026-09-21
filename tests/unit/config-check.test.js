@@ -92,6 +92,19 @@ test('VERIFICATION_DIR sous public/ → erreur : les pièces d\'identité seraie
     assert.deepEqual(check({ VERIFICATION_DIR: ok }).errors, [], String(ok));
 });
 
+test('sauvegardes et alertes : dossier sous public/ → erreur ; coupure, nombre ou adresse invalides → avertissement', () => {
+  const pub = path.join(__dirname, '..', '..', 'public');
+  for (const bad of [pub, path.join(pub, 'backups'), 'public/backups'])
+    assert.match(check({ BACKUP_DIR: bad }).errors.join(), /BACKUP_DIR est sous public/, bad);
+  for (const ok of [undefined, '', '/srv/backups', path.join(pub, '..', 'backups')])
+    assert.deepEqual(check({ BACKUP_DIR: ok }).errors, [], String(ok));
+  assert.match(check({ BACKUP_ENABLED: 'false' }).warnings.join(), /aucune sauvegarde automatique/);
+  assert.deepEqual(check({ BACKUP_ENABLED: 'true', BACKUP_KEEP: '30' }).warnings, []);
+  assert.match(check({ BACKUP_KEEP: 'beaucoup' }).warnings.join(), /BACKUP_KEEP/);
+  assert.match(check({ ALERT_EMAIL: 'pas une adresse' }).warnings.join(), /ALERT_EMAIL est invalide/);
+  assert.deepEqual(check({ ALERT_EMAIL: 'admin@dzimmo.dz' }).warnings, []);
+});
+
 test('emails : hôte d\'exemple, compte SMTP absent ou expéditeur invalide → avertissement (même règle que mailer.sender)', () => {
   assert.match(check({ EMAIL_HOST: 'smtp.example.com' }).warnings.join(), /valeur d'exemple/);
   assert.match(check({ EMAIL_USER: '' }).warnings.join(), /EMAIL_USER est absent/);

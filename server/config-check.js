@@ -51,6 +51,17 @@ function checkConfig(env = process.env) {
       errors.push('VERIFICATION_DIR est sous public/ : les pièces d\'identité des annonceurs seraient téléchargeables par n\'importe qui.');
   }
 
+  // Sauvegardes (server/backup.js) : contiennent comptes et messages, jamais dans un dossier servi au public
+  if (env.BACKUP_DIR) {
+    const pub = path.resolve(__dirname, '..', 'public') + path.sep;
+    if ((path.resolve(env.BACKUP_DIR) + path.sep).toLowerCase().startsWith(pub.toLowerCase()))
+      errors.push('BACKUP_DIR est sous public/ : les sauvegardes de la base (comptes, messages) seraient téléchargeables par n\'importe qui.');
+  }
+  if (String(env.BACKUP_ENABLED ?? '').trim().toLowerCase() === 'false')
+    warnings.push('BACKUP_ENABLED=false : aucune sauvegarde automatique de la base ne sera faite (à assurer autrement, voir DEPLOIEMENT.md § 7).');
+  if (env.BACKUP_KEEP !== undefined && String(env.BACKUP_KEEP).trim() !== '' && !/^\d{1,3}$/.test(String(env.BACKUP_KEEP).trim()))
+    warnings.push(`BACKUP_KEEP doit être un nombre entier de sauvegardes à conserver (« ${String(env.BACKUP_KEEP).trim()} » ignoré : 14 utilisées).`);
+
   const app = env.APP_URL || '';
   if (!app) errors.push('APP_URL est absent : les liens des emails, le sitemap et les URL canoniques pointeraient vers le serveur interne.');
   else if (LOCAL.test(app)) errors.push(`APP_URL pointe vers une adresse locale (${app}).`);
@@ -86,6 +97,9 @@ function checkConfig(env = process.env) {
   const contact = (env.CONTACT_EMAIL || '').trim();
   if (contact && !EMAIL_OK.test(contact))
     warnings.push('CONTACT_EMAIL est invalide (une adresse seule attendue) : les messages de la page Contact vont aux administrateurs.');
+  const alertTo = (env.ALERT_EMAIL || '').trim();
+  if (alertTo && !EMAIL_OK.test(alertTo))
+    warnings.push('ALERT_EMAIL est invalide (une adresse seule attendue) : les alertes de panne vont à CONTACT_EMAIL ou aux administrateurs.');
   if ((env.MODERATION || 'on').toLowerCase() === 'off') warnings.push('MODERATION=off : les annonces sont publiées sans validation.');
 
   return { errors, warnings };

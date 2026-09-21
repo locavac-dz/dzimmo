@@ -7,6 +7,9 @@ const wsModule = require('./ws');
 
 const PORT = process.env.PORT || 3001;
 
+// Plantage du processus ou promesse oubliée : journal + alerte email (server/monitor.js), pm2 relance le worker
+require('./monitor').installProcessHandlers();
+
 // Production : refuse de démarrer avec un secret JWT d'exemple, une APP_URL locale… (avertit des réglages dégradés)
 if (!require('./config-check').reportConfig()) process.exit(1);
 

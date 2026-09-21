@@ -126,22 +126,67 @@ pm2 logs dzimmo --lines 30                        # aucun « ❌ Configuration �
 Vérifier aussi qu'un email de confirmation arrive (inscription d'un compte de test) et que la connexion WebSocket
 (`wss://dzimmo.dz/ws`) s'établit : une notification apparaît quand un message est reçu.
 
-## 7. Sauvegardes
+## 7. Supervision et sauvegardes
 
-À planifier (cron) : la base **et** les photos envoyées (pas le dossier des justificatifs, voir § 2).
+### Alertes par email (`server/monitor.js`)
+
+Un email part au responsable quand : une erreur 500 survient, le processus plante (`uncaughtException`, pm2 le relance),
+une tâche planifiée échoue ou la sauvegarde nocturne échoue / n'existe plus. Une seule alerte par nature de panne et par heure
+(table `alert_throttle`, commune aux workers), message en français ou en arabe, **sans adresse email, numéro ni URL de connexion**.
+
+- Destinataire : `ALERT_EMAIL`, sinon `CONTACT_EMAIL`, sinon les administrateurs (dans leur langue).
+- **Le SMTP est indispensable** (`EMAIL_HOST`, `EMAIL_USER`…) : sans lui, aucune alerte n'est envoyée (un avertissement
+  s'affiche au démarrage). Tester : arrêter PostgreSQL une minute, l'alerte « erreur 500 » doit arriver.
+- Une alerte par email ne remplace pas une supervision externe de disponibilité (UptimeRobot, Better Stack…) sur `https://dzimmo.dz/api/health` :
+  si le serveur entier est éteint, personne ne peut envoyer d'email.
+
+### Sauvegarde automatique de la base (`server/backup.js`)
+
+Active par défaut en production (`BACKUP_ENABLED=false` pour la couper), lancée par le cron de l'instance 0 :
+
+| Heure | Tâche |
+|---|---|
+| chaque nuit à 02:30 | `pg_dump -Fc` dans `BACKUP_DIR` (défaut `backups/`, hors Git, jamais sous `public/`), rotation : `BACKUP_KEEP` fichiers (14) |
+| dimanche à 05:30 | **test de restauration** de la dernière sauvegarde dans une base jetable (`dzimmo_verif_*`, supprimée ensuite) |
+| chaque jour à 06:30 | alerte si la dernière sauvegarde a plus de 36 h ou n'existe pas |
+
+Il faut les outils PostgreSQL sur le serveur (`sudo apt install postgresql-client-17`, ou `PG_BIN_DIR=/usr/lib/postgresql/17/bin`).
+La table `rate_limits` (compteurs jetables) n'est pas sauvegardée. Le mot de passe passe par les variables `PG*`, jamais en argument.
+
+À la main :
 
 ```bash
-pg_dump -Fc --no-unlogged-table-data dzimmo > /srv/backups/dzimmo-$(date +%F).dump
-tar czf /srv/backups/uploads-$(date +%F).tgz --exclude=uploads/thumbs -C /srv/dzimmo/public uploads
+npm run backup                 # sauvegarde immédiate + rotation
+npm run backup:verify          # teste la plus récente (code de sortie 1 en cas d'échec)
+npm run backup:verify -- backups/dzimmo-2026-09-21-0230.dump
 ```
 
-`--no-unlogged-table-data` écarte la table `rate_limits` (compteurs de limitation de débit, jetables).
+**Droit `CREATEDB`.** Le test de restauration complète crée une base jetable : le compte de `DATABASE_URL` doit avoir ce droit
+(`ALTER ROLE dzimmo CREATEDB;`), ou bien `BACKUP_VERIFY_URL` désigne un compte qui l'a. Sans lui, le test se replie sur une
+**relecture complète de l'archive** (`pg_restore` lit tout le fichier et vérifie les tables) : elle détecte un fichier corrompu ou
+tronqué, mais pas un problème de restauration proprement dit. Le mode utilisé est indiqué dans le journal.
+
+### À faire en plus, hors application
+
+Une sauvegarde qui reste sur le serveur ne protège pas d'une perte du serveur : **copier `BACKUP_DIR` ailleurs** (autre machine,
+stockage objet, `rclone`/`rsync` dans un cron). Les photos envoyées ne sont pas dans la base (pas le dossier des justificatifs, voir § 2) :
+
+```bash
+tar czf /srv/backups/uploads-$(date +%F).tgz --exclude=uploads/thumbs -C /srv/dzimmo/public uploads
+```
 
 `uploads/thumbs` (miniatures des photos, créées à la première demande par l'application) est un cache : inutile de le sauvegarder,
 il se reconstruit tout seul. Nginx doit continuer à transmettre `/uploads/thumbs/…` à l'application (le `location /` ci-dessus le
 fait) : c'est elle qui crée la miniature manquante ; les suivantes sont servies par les fichiers eux-mêmes.
 
-Restauration : `pg_restore -d dzimmo --clean dzimmo-AAAA-MM-JJ.dump`.
+### Restauration
+
+```bash
+createdb dzimmo_neuve && pg_restore -d dzimmo_neuve --no-owner backups/dzimmo-AAAA-MM-JJ-HHMM.dump
+```
+
+Puis pointer `DATABASE_URL` vers cette base et `pm2 reload dzimmo`, ou restaurer sur place avec `pg_restore -d dzimmo --clean`.
+Les justificatifs de vérification ne sont jamais sauvegardés (supprimés dès la décision) : rien à restaurer de ce côté.
 
 ## 8. Cache du navigateur
 
@@ -149,7 +194,7 @@ L'application pose elle-même les en-têtes de cache (rien à ajouter dans Nginx
 `app.js` / `app.css` / `pro.js` / `contrats.js` versionnés par empreinte (`?v=…`) donc immuables, pages revalidées par ETag.
 Un déploiement n'exige aucune purge : l'adresse des scripts change dès que leur contenu change.
 
-## 8. Mises à jour
+## 9. Mises à jour
 
 ```bash
 cd /srv/dzimmo && git pull && npm ci --omit=dev && pm2 reload dzimmo
