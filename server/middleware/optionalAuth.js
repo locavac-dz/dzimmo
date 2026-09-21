@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const db  = require('../db');
 const { isRevoked } = require('../sessions');
+const twoFactor = require('../two-factor');
 
 // Authentification facultative : un jeton valide identifie le visiteur, tout le reste le laisse anonyme (jamais d'erreur).
 // Comme `auth`, le compte est relu en base : un compte supprimé, suspendu ou dont les sessions ont été révoquées redevient
@@ -14,7 +15,7 @@ module.exports = async function optionalAuth(req, res, next) {
     if (payload) {
       const user = await db.users.findById(payload.id);
       if (user && !user.banned && !isRevoked(payload, user))
-        req.user = { ...payload, is_admin: !!user.is_admin };
+        req.user = { ...payload, is_admin: !!user.is_admin && twoFactor.adminBlock(user, payload) === null };
     }
   }
   next();

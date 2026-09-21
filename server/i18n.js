@@ -7,6 +7,17 @@
 const AR = {
   // Limitation de débit et erreurs générales
   'Trop de tentatives. Réessayez dans 15 minutes.': 'محاولات كثيرة جداً. أعد المحاولة بعد 15 دقيقة.',
+  // Double authentification (administrateurs)
+  'Double authentification requise.': 'المصادقة الثنائية مطلوبة.',
+  "Activez la double authentification pour utiliser l'administration.": 'فعّل المصادقة الثنائية لاستخدام لوحة الإدارة.',
+  'Code de vérification incorrect.': 'رمز التحقق غير صحيح.',
+  'Code de vérification requis.': 'رمز التحقق مطلوب.',
+  'Connexion expirée. Reconnectez-vous.': 'انتهت صلاحية الاتصال. سجّل الدخول من جديد.',
+  'La double authentification est déjà activée.': 'المصادقة الثنائية مفعّلة بالفعل.',
+  "La double authentification n'est pas activée.": 'المصادقة الثنائية غير مفعّلة.',
+  "Lancez d'abord la configuration de la double authentification.": 'ابدأ أولاً بإعداد المصادقة الثنائية.',
+  'Mot de passe incorrect.': 'كلمة المرور غير صحيحة.',
+  'La double authentification est réservée aux administrateurs.': 'المصادقة الثنائية مخصّصة للمشرفين فقط.',
   "Trop d'uploads. Réessayez dans 1 heure.": 'عدد كبير من عمليات الرفع. أعد المحاولة بعد ساعة.',
   "Trop d'exports. Réessayez dans 1 heure.": 'عدد كبير من عمليات التصدير. أعد المحاولة بعد ساعة.',
   'Trop de messages. Réessayez dans 1 heure.': 'عدد كبير من الرسائل. أعد المحاولة بعد ساعة.',

@@ -160,6 +160,6 @@ test('câblage dans index.html : pro.js chargé avant le script principal, pages
 });
 
 test('api() transmet le statut HTTP de l\'erreur (« pas de vitrine » ≠ panne)', () => {
-  assert.match(html, /throw Object\.assign\(new Error\(d\.error \|\| T\('err_server'\)\), \{ status: r\.status \}\)/);
+  assert.match(html, /throw Object\.assign\(new Error\(d\.error \|\| T\('err_server'\)\), \{ status: r\.status, code: d\.code \}\)/);
   assert.match(pro, /catch \(e\) \{ if \(e\.status !== 404\)/);
 });

@@ -103,6 +103,17 @@ Windows : `demarrer.bat`
   change qui contrôle un compte (réinitialisation du mot de passe, reprise d'un compte) doit appeler `revokeSessions(userId)`. Les
   middlewares `auth`, `admin` et `optionalAuth` ainsi que le WebSocket relisent le compte en base ; le rôle admin (`req.user.is_admin`) vient de
   la base, pas du jeton. Avec `optionalAuth`, un compte suspendu, supprimé ou révoqué redevient un visiteur anonyme (jamais d'erreur).
+- **Double authentification des administrateurs** (TOTP RFC 6238, `server/totp.js`, `server/two-factor.js`, `server/routes/two-factor.js`,
+  `server/tokens.js`, migration 020) : avec le 2FA activé, `/login` et `/google` ne renvoient ni jeton ni fiche mais `{ mfa_required, mfa_token }`
+  (jeton de défi de 5 min, clé propre, n'ouvre aucune route) ; `POST /api/auth/2fa/login` l'échange contre un jeton de session portant `mfa: true`.
+  Un jeton **sans** `mfa` ne peut pas administrer (`adminBlock` : 401, ou 403 `mfa_setup_required` quand le 2FA est exigé et pas encore configuré,
+  seules les routes `/api/auth/2fa` restent ouvertes pour le configurer) ; `is_admin` retombe à `false` dans `auth` / `optionalAuth` dans ce cas.
+  `ADMIN_2FA_REQUIRED` : défaut vrai en production. Le secret est chiffré (AES-256-GCM, clé dérivée de `JWT_SECRET` par HMAC) ; **changer `JWT_SECRET`
+  le rend illisible** (→ `make-admin --reset-2fa`). Essais réservés atomiquement en SQL (5 essais puis verrou 15 min, même en requêtes simultanées),
+  anti-rejeu par `totp_last_step`, 10 codes de secours à usage unique (empreintes HMAC, affichés une seule fois). Activer, désactiver et renouveler
+  les codes préviennent par email (FR/AR, `buildSecurityNotice`) ; activer et désactiver appellent `revokeSessions` puis renvoient un nouveau jeton.
+  Réservé aux administrateurs (rôle relu en base). Front : seconde étape `#login-step2` de la fenêtre de connexion, onglet Administration → Sécurité
+  (`adminLoadSecurity`, clé et codes échappés par `esc()`, QR en `data:` image). Ne jamais journaliser un code, un secret ou un jeton de défi.
 - Interface bilingue FR / AR — toute nouvelle chaîne dans les deux langues
 - Montants en **DZD**
 - Conformité RGPD + loi algérienne 18-07

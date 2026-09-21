@@ -100,6 +100,8 @@ function checkConfig(env = process.env) {
   const alertTo = (env.ALERT_EMAIL || '').trim();
   if (alertTo && !EMAIL_OK.test(alertTo))
     warnings.push('ALERT_EMAIL est invalide (une adresse seule attendue) : les alertes de panne vont à CONTACT_EMAIL ou aux administrateurs.');
+  if (String(env.ADMIN_2FA_REQUIRED ?? '').trim().toLowerCase() === 'false')
+    warnings.push('ADMIN_2FA_REQUIRED=false : les administrateurs ne sont pas obligés d\'activer la double authentification (un mot de passe volé suffit à ouvrir l\'administration).');
   if ((env.MODERATION || 'on').toLowerCase() === 'off') warnings.push('MODERATION=off : les annonces sont publiées sans validation.');
 
   return { errors, warnings };

@@ -114,6 +114,26 @@ S'inscrire sur le site avec l'adresse voulue, puis :
 npm run make-admin -- adresse@exemple.dz
 ```
 
+### Double authentification des administrateurs
+
+En production, la double authentification (TOTP) est **obligatoire** pour les administrateurs (`ADMIN_2FA_REQUIRED`, vrai par défaut
+quand `NODE_ENV=production`). À la première connexion, l'administrateur arrive sur Administration → Sécurité : il scanne le code QR
+avec une application d'authentification (Google Authenticator, Aegis, FreeOTP…), saisit un code, puis note ses **10 codes de secours**
+(affichés une seule fois). Tant que ce n'est pas fait, le reste de l'administration est refusé.
+
+- **Administrateur déjà en place avant cette mise à jour** : il devra configurer son 2FA à sa prochaine connexion.
+- **Téléphone perdu et plus de codes de secours** : un autre administrateur ne peut pas le faire à sa place, c'est une opération sur le serveur :
+
+  ```bash
+  npm run make-admin -- adresse@exemple.dz --reset-2fa
+  ```
+
+  Elle efface la configuration et ferme toutes les sessions du compte ; l'administrateur se reconnecte avec son mot de passe et reconfigure.
+- **`JWT_SECRET`** : le secret TOTP est chiffré avec une clé dérivée de `JWT_SECRET`. Changer `JWT_SECRET` (rotation) rend les secrets
+  illisibles : chaque administrateur doit alors passer par `--reset-2fa`. À prévoir avant toute rotation.
+- `ADMIN_2FA_REQUIRED=false` rend le 2FA facultatif (il reste proposé) ; le contrôle de configuration au démarrage le signale par un avertissement.
+- Un compte qui a activé le 2FA ne peut pas administrer avec une session ouverte sans code : activer ou désactiver le 2FA ferme les autres sessions.
+
 ## 6. Vérifications après déploiement
 
 ```bash

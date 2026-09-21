@@ -223,6 +223,9 @@ const TRANSLATIONS = {
     q_pending_flag:'En vérification : prix inhabituel ou texte identique à une autre annonce.',
     g_terms:'En continuant avec Google, vous acceptez les <a href="#" data-p="cgu" onclick="return goLegal(this)">CGU</a> et la <a href="#" data-p="confidentialite" onclick="return goLegal(this)">politique de confidentialité</a>.',
     g_created:'Compte créé avec Google. Bienvenue, {name} !', g_connected:'Connecté avec Google : {name}',
+    mfa_title:'Vérification en deux étapes', mfa_help:"Saisissez le code à 6 chiffres de votre application d'authentification, ou l'un de vos codes de secours.",
+    mfa_code:'Code de vérification', mfa_verify:'Vérifier', mfa_back:'Retour', mfa_need_code:'Saisissez le code de vérification.',
+    mfa_recovery_low:'Il vous reste {n} code(s) de secours : pensez à en générer de nouveaux (Administration → Sécurité).',
     m_phone_hint:"Ce numéro est affiché sur vos annonces (boutons Appeler et WhatsApp). Depuis l'étranger : commencez par + et l'indicatif du pays (ex. <bdi dir=\"ltr\">+33 6 12 34 56 78</bdi>).",
     adv_identity:'Identité vérifiée', adv_business:'Professionnel vérifié',
     adv_identity_tip:"DzImmo a contrôlé une pièce d'identité de cet annonceur. Cela ne prouve pas qu'il est propriétaire du bien.",
@@ -580,6 +583,9 @@ const TRANSLATIONS = {
     q_pending_flag:'قيد المراجعة: سعر غير معتاد أو نص مطابق لإعلان آخر.',
     g_terms:'بالمتابعة عبر Google فإنك توافق على <a href="#" data-p="cgu" onclick="return goLegal(this)">شروط الاستخدام</a> و<a href="#" data-p="confidentialite" onclick="return goLegal(this)">سياسة الخصوصية</a>.',
     g_created:'تم إنشاء الحساب عبر Google. مرحباً {name}!', g_connected:'تم تسجيل الدخول عبر Google: {name}',
+    mfa_title:'التحقق بخطوتين', mfa_help:'أدخل الرمز المكوَّن من 6 أرقام من تطبيق المصادقة، أو أحد رموز الطوارئ الخاصة بك.',
+    mfa_code:'رمز التحقق', mfa_verify:'تحقق', mfa_back:'رجوع', mfa_need_code:'أدخل رمز التحقق.',
+    mfa_recovery_low:'بقي لديك {n} من رموز الطوارئ: فكّر في إنشاء رموز جديدة (الإدارة ← الأمان).',
     m_phone_hint:'يظهر هذا الرقم على إعلاناتك (زرّا الاتصال والواتساب). من الخارج: ابدأ بـ + ثم رمز البلد (مثال: <bdi dir="ltr">+33 6 12 34 56 78</bdi>).',
     adv_identity:'الهوية موثَّقة', adv_business:'مهني موثَّق',
     adv_identity_tip:'تحقق DzImmo من وثيقة هوية هذا المعلن. وهذا لا يثبت أنه مالك العقار.',
@@ -1018,6 +1024,7 @@ async function onGoogleCredential(resp) {
   const errId = document.getElementById('modal-register').classList.contains('hidden') ? 'login-error' : 'register-error';
   try {
     const r = await api('/auth/google', 'POST', { credential: resp.credential });
+    if (r.mfa_required) { closeModal('register'); openModal('login'); showMfaStep(r.mfa_token); return; }
     token = r.token; localStorage.setItem('dzimmo_token', token);
     currentUser = r.user;
     closeModal('login'); closeModal('register');
@@ -1038,12 +1045,52 @@ async function doLogin() {
   const pass  = document.getElementById('login-pass').value;
   try {
     const r = await api('/auth/login', 'POST', { email, password: pass });
+    if (r.mfa_required) { showMfaStep(r.mfa_token); return; }   // mot de passe juste, mais la double authentification reste à passer
     token = r.token; localStorage.setItem('dzimmo_token', token);
     currentUser = r.user;
     closeModal('login');
     await loadCurrentUser();
     toast('✅ Connecté en tant que ' + r.user.name);
   } catch (e) { showError('login-error', e.message); }
+}
+
+// ── Double authentification : seconde étape de la connexion ──
+// Le jeton de défi (5 min) ne vit qu'en mémoire : il n'ouvre aucune route, seul POST /api/auth/2fa/login l'accepte avec un code.
+let _mfaToken = null;
+
+function showMfaStep(mfaToken) {
+  _mfaToken = mfaToken;
+  document.getElementById('login-step1').classList.add('hidden');
+  document.getElementById('login-step2').classList.remove('hidden');
+  document.getElementById('login-mfa-error').classList.add('hidden');
+  const input = document.getElementById('login-code');
+  input.value = ''; input.focus();
+}
+
+function resetMfaStep() {
+  _mfaToken = null;
+  document.getElementById('login-step1')?.classList.remove('hidden');
+  document.getElementById('login-step2')?.classList.add('hidden');
+  const input = document.getElementById('login-code');
+  if (input) input.value = '';
+  document.getElementById('login-mfa-error')?.classList.add('hidden');
+}
+
+function mfaBack() { resetMfaStep(); return false; }
+
+async function doMfaLogin() {
+  const code = document.getElementById('login-code').value.trim();
+  if (!code) { showError('login-mfa-error', T('mfa_need_code')); return; }
+  try {
+    const r = await api('/auth/2fa/login', 'POST', { mfa_token: _mfaToken, code });
+    token = r.token; localStorage.setItem('dzimmo_token', token);
+    currentUser = r.user;
+    closeModal('login');
+    await loadCurrentUser();
+    toast('✅ Connecté en tant que ' + r.user.name);
+    if (r.recovery_left !== undefined && r.recovery_left <= 3)   // un code de secours vient d'être consommé
+      toast(T('mfa_recovery_low').replace('{n}', r.recovery_left), 6000);
+  } catch (e) { showError('login-mfa-error', e.message); }
 }
 
 async function doRegister() {
@@ -1092,7 +1139,7 @@ async function api(path, method = 'GET', body = null) {
   try { r = await fetch(API + path, opts); }
   catch { throw new Error(T('err_network')); }
   const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw Object.assign(new Error(d.error || T('err_server')), { status: r.status });   // status : distinguer « introuvable » d'une panne
+  if (!r.ok) throw Object.assign(new Error(d.error || T('err_server')), { status: r.status, code: d.code });   // status : distinguer « introuvable » d'une panne
   return d;
 }
 
@@ -2201,7 +2248,7 @@ function copyPropertyLink(id) {
 // ══════════════════════════════════════════════════
 // PANNEAU ADMIN
 // ══════════════════════════════════════════════════
-const ADMIN_TABS = ['resume','moderation','verifications','users','properties','agencies','signalements','newsletter'];
+const ADMIN_TABS = ['resume','moderation','verifications','users','properties','agencies','signalements','newsletter','security'];
 
 function adminTab(name) {
   document.querySelectorAll('#admin-tabs .tab-btn').forEach((b, i) => {
@@ -2211,14 +2258,146 @@ function adminTab(name) {
   ({ resume: adminLoadResume, moderation: () => adminLoadModeration(), verifications: () => adminLoadVerifications(),
      users: adminLoadUsers, properties: adminLoadProperties,
      agencies: adminLoadAgencies, signalements: adminLoadSignalements,
-     newsletter: adminLoadNewsletter })[name]?.();
+     newsletter: adminLoadNewsletter, security: adminLoadSecurity })[name]?.();
 }
 
 async function loadAdmin() {
   if (!currentUser?.is_admin) { showPage('home'); return; }
+  // Double authentification exigée et pas encore configurée : le serveur refuse le reste de l'administration, on ouvre donc l'onglet Sécurité
+  if (currentUser.two_factor_required) { adminTab('security'); return; }
   adminTab('resume');
   refreshModerationBadge();
   refreshVerifBadge();
+}
+
+// ── Sécurité : double authentification (TOTP) ────────────────────────────────
+// Activer ou désactiver révoque les autres sessions du compte : le serveur renvoie alors un nouveau jeton, adopté ici.
+const SEC_FIELD = 'padding:.5rem .7rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:.95rem;width:100%;max-width:18rem;margin:.2rem 0 .7rem;display:block';
+let _secCodes = [];   // codes de secours affichés une seule fois, jamais relus depuis le serveur
+
+function adoptSession(r) {
+  token = r.token; localStorage.setItem('dzimmo_token', token);
+  currentUser = r.user;
+  if (wsConn) { wsConn.close(); wsConn = null; }   // l'ancien jeton est révoqué : la connexion temps réel repart avec le nouveau
+  setupWs();
+}
+
+async function adminLoadSecurity() {
+  const c = document.getElementById('admin-content');
+  let s;
+  try { s = await api('/auth/2fa'); }
+  catch (e) { c.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message)}</p>`; return; }
+  const low = s.recovery_left <= 3;
+  c.innerHTML = `
+    <h3 style="font-size:1rem;font-weight:800;margin-bottom:.5rem">Double authentification</h3>
+    <div class="card" style="padding:1rem;margin-bottom:1.25rem">
+      <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:.9rem">Un mot de passe volé ne suffit plus à administrer le site : chaque connexion demande aussi un code à 6 chiffres, généré par une application d’authentification (Google Authenticator, Microsoft Authenticator, Aegis, FreeOTP…).</p>
+      ${s.enabled ? `
+        <p style="font-weight:700;margin-bottom:.35rem">✅ La double authentification est active.</p>
+        <p style="font-size:.85rem;color:${low ? 'var(--danger, #c0392b)' : 'var(--text-muted)'}">Codes de secours restants : <strong>${Number(s.recovery_left)}</strong>${low ? ' — pensez à en générer de nouveaux.' : ''}</p>`
+      : `
+        ${s.required ? '<div class="error-msg" style="margin-bottom:.9rem">La double authentification est obligatoire pour les administrateurs : configurez-la pour utiliser l’administration.</div>' : ''}
+        <p style="font-weight:700;margin-bottom:.6rem">La double authentification n’est pas activée.</p>
+        <button class="btn btn-primary btn-sm" onclick="adminSecSetup()">Configurer</button>`}
+    </div>
+    <div id="sec-flow"></div>
+    ${s.enabled ? `
+      <h3 style="font-size:1rem;font-weight:800;margin-bottom:.5rem">Nouveaux codes de secours</h3>
+      <div class="card" style="padding:1rem;margin-bottom:1.25rem">
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:.7rem">Les anciens codes cessent aussitôt de fonctionner. Confirmez avec un code de votre application.</p>
+        <input id="sec-renew-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="32" dir="ltr" placeholder="123 456" style="${SEC_FIELD}">
+        <button class="btn btn-outline btn-sm" onclick="adminSecRenew()">Générer de nouveaux codes</button>
+      </div>
+      <h3 style="font-size:1rem;font-weight:800;margin-bottom:.5rem">Désactiver</h3>
+      <div class="card" style="padding:1rem">
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:.7rem">${s.required ? 'Elle est obligatoire : vous devrez la configurer de nouveau à la prochaine utilisation de l’administration. ' : ''}Les autres sessions de ce compte seront fermées. Compte connecté avec Google : laissez le mot de passe vide.</p>
+        <input id="sec-off-pass" type="password" autocomplete="current-password" placeholder="Mot de passe" style="${SEC_FIELD}">
+        <input id="sec-off-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="32" dir="ltr" placeholder="Code de vérification" style="${SEC_FIELD}">
+        <button class="btn btn-outline btn-sm" onclick="adminSecDisable()">Désactiver la double authentification</button>
+      </div>` : ''}`;
+  if (_secCodes.length) adminSecShowCodes();
+}
+
+async function adminSecSetup() {
+  const box = document.getElementById('sec-flow');
+  try {
+    const r = await api('/auth/2fa/setup', 'POST');
+    box.innerHTML = `
+      <h3 style="font-size:1rem;font-weight:800;margin-bottom:.5rem">Configuration</h3>
+      <div class="card" style="padding:1rem;margin-bottom:1.25rem">
+        <ol style="font-size:.88rem;padding-inline-start:1.2rem;margin-bottom:.9rem;line-height:1.7">
+          <li>Ouvrez votre application d’authentification et ajoutez un compte.</li>
+          <li>Scannez le code ci-dessous, ou saisissez la clé à la main (type « basé sur le temps »).</li>
+          <li>Saisissez le code à 6 chiffres affiché pour confirmer.</li>
+        </ol>
+        <img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(r.qr_svg)}" alt="Code QR de configuration" width="200" height="200" style="background:#fff;border-radius:8px;display:block;margin-bottom:.7rem">
+        <p style="font-size:.85rem;margin-bottom:.9rem">Clé : <code dir="ltr" style="user-select:all;font-weight:700">${esc(r.secret)}</code></p>
+        <input id="sec-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="32" dir="ltr" placeholder="123 456" style="${SEC_FIELD}">
+        <button class="btn btn-primary btn-sm" onclick="adminSecEnable()">Activer</button>
+      </div>`;
+    document.getElementById('sec-code').focus();
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+async function adminSecEnable() {
+  const code = document.getElementById('sec-code').value.trim();
+  if (!code) { toast('❌ ' + T('mfa_need_code')); return; }
+  try {
+    const r = await api('/auth/2fa/enable', 'POST', { code });
+    adoptSession(r);
+    _secCodes = r.recovery_codes;
+    toast('✅ Double authentification activée.');
+    adminLoadSecurity();   // recharge l'état, puis affiche les codes
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+async function adminSecRenew() {
+  const code = document.getElementById('sec-renew-code').value.trim();
+  if (!code) { toast('❌ ' + T('mfa_need_code')); return; }
+  try {
+    const r = await api('/auth/2fa/recovery-codes', 'POST', { code });
+    _secCodes = r.recovery_codes;
+    adminSecShowCodes();
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+async function adminSecDisable() {
+  const password = document.getElementById('sec-off-pass').value;
+  const code = document.getElementById('sec-off-code').value.trim();
+  if (!code) { toast('❌ ' + T('mfa_need_code')); return; }
+  if (!confirm('Désactiver la double authentification ? Le compte ne sera plus protégé que par son mot de passe.')) return;
+  try {
+    adoptSession(await api('/auth/2fa/disable', 'POST', { password, code }));
+    toast('Double authentification désactivée.');
+    adminLoadSecurity();
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+// Codes de secours : montrés une seule fois (le serveur n'en garde que l'empreinte)
+function adminSecShowCodes() {
+  const box = document.getElementById('sec-flow');
+  if (!box) return;
+  box.innerHTML = `
+    <h3 style="font-size:1rem;font-weight:800;margin-bottom:.5rem">Codes de secours</h3>
+    <div class="card" style="padding:1rem;margin-bottom:1.25rem">
+      <div class="error-msg" style="margin-bottom:.9rem">Conservez ces codes en lieu sûr (gestionnaire de mots de passe, papier). Chacun ne sert qu’une fois et remplace l’application si vous perdez votre téléphone. <strong>Ils ne seront plus affichés.</strong></div>
+      <div dir="ltr" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(9rem,1fr));gap:.4rem;font-family:monospace;font-size:1rem;font-weight:700;margin-bottom:.9rem">
+        ${_secCodes.map(k => `<span>${esc(k)}</span>`).join('')}
+      </div>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" onclick="adminSecCopyCodes()">Copier</button>
+        <button class="btn btn-primary btn-sm" onclick="adminSecCodesDone()">J’ai conservé mes codes</button>
+      </div>
+    </div>`;
+}
+
+function adminSecCopyCodes() {
+  navigator.clipboard?.writeText(_secCodes.join('\n')).then(() => toast('✅ Codes copiés.'), () => toast('❌ Copie impossible : recopiez-les à la main.'));
+}
+
+function adminSecCodesDone() {
+  _secCodes = [];
+  adminLoadSecurity();
 }
 
 // ── Listes d'administration paginées (25 par page ; recherche et export CSV portent sur toutes les pages) ──
@@ -3762,10 +3941,12 @@ async function submitReport() {
 
 function openModal(name) {
   document.getElementById('modal-' + name)?.classList.remove('hidden');
+  if (name === 'login' && _mfaToken === null) resetMfaStep();   // la fenêtre s'ouvre toujours sur l'étape 1 (sauf retour de Google avec un défi en cours)
   if (name === 'login' || name === 'register') renderGoogleButtons();   // largeur mesurable seulement une fois la fenêtre affichée
 }
 function closeModal(name) {
   document.getElementById('modal-' + name)?.classList.add('hidden');
+  if (name === 'login') resetMfaStep();   // le jeton de défi ne survit pas à la fermeture de la fenêtre
 }
 function switchModal(from, to) {
   closeModal(from); openModal(to);

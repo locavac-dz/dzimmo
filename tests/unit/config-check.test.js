@@ -79,8 +79,8 @@ test('JWT_EXPIRES_IN : facultatif (7d par défaut) ; illisible ou dérisoire →
   for (const bad of ['abc', '7 jours', 'd7', '-1d']) assert.match(check({ JWT_EXPIRES_IN: bad }).errors.join(), /JWT_EXPIRES_IN/, bad);
   assert.match(check({ JWT_EXPIRES_IN: '3600' }).errors[0], /3 seconde/, 'sans unité : des millisecondes');
   assert.match(check({ JWT_EXPIRES_IN: '0' }).errors[0], /JWT_EXPIRES_IN/);
-  // Le défaut appliqué par la route de connexion est lui-même une valeur acceptée
-  const src = require('node:fs').readFileSync(path.join(__dirname, '..', '..', 'server', 'routes', 'auth.js'), 'utf8');
+  // Le défaut appliqué à la signature des sessions (server/tokens.js) est lui-même une valeur acceptée
+  const src = require('node:fs').readFileSync(path.join(__dirname, '..', '..', 'server', 'tokens.js'), 'utf8');
   assert.match(src, /JWT_EXPIRES_IN \|\| ''\)\.trim\(\) \|\| '7d'/);
 });
 
@@ -103,6 +103,13 @@ test('sauvegardes et alertes : dossier sous public/ → erreur ; coupure, nombre
   assert.match(check({ BACKUP_KEEP: 'beaucoup' }).warnings.join(), /BACKUP_KEEP/);
   assert.match(check({ ALERT_EMAIL: 'pas une adresse' }).warnings.join(), /ALERT_EMAIL est invalide/);
   assert.deepEqual(check({ ALERT_EMAIL: 'admin@dzimmo.dz' }).warnings, []);
+});
+
+test('double authentification des administrateurs : désactivée explicitement → avertissement, sinon rien', () => {
+  assert.match(check({ ADMIN_2FA_REQUIRED: 'false' }).warnings.join(), /ADMIN_2FA_REQUIRED=false/);
+  assert.match(check({ ADMIN_2FA_REQUIRED: ' FALSE ' }).warnings.join(), /ADMIN_2FA_REQUIRED=false/);
+  assert.deepEqual(check({ ADMIN_2FA_REQUIRED: 'true' }).warnings, []);
+  assert.deepEqual(check({}).warnings, []);
 });
 
 test('emails : hôte d\'exemple, compte SMTP absent ou expéditeur invalide → avertissement (même règle que mailer.sender)', () => {

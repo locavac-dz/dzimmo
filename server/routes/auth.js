@@ -7,28 +7,17 @@ const mailer = require('../mailer');
 const google = require('../google-auth');
 const images = require('../images');
 const { revokeSessions } = require('../sessions');
+const twoFactor = require('../two-factor');
+const { sign, safe } = require('../tokens');
 
 // Emails de réinitialisation du mot de passe acceptés par compte et par heure (au-delà : réponse identique, aucun envoi)
 const RESET_MAX_PER_HOUR = 3;
 
-function sign(user) {
-  return jwt.sign(
-    { id: user.id, name: user.name, email: user.email, is_agent: user.is_agent, is_admin: user.is_admin || false },
-    process.env.JWT_SECRET,
-    // Sans durée, jwt.sign() lève une erreur : un oubli dans .env ne doit pas empêcher toute connexion
-    { expiresIn: (process.env.JWT_EXPIRES_IN || '').trim() || '7d' }
-  );
-}
-
-function safe(u) {
-  return {
-    id: u.id, name: u.name, email: u.email, phone: u.phone,
-    is_agent: u.is_agent, is_admin: u.is_admin || false,
-    bio: u.bio || '', avatar: u.avatar || '',
-    email_verified: u.email_verified || false,
-    verified_kind: u.verified_kind || null,
-    created_at: u.created_at,
-  };
+// Compte qui a activé la double authentification : ni jeton de session ni fiche, seulement un défi de 5 minutes à valider par
+// POST /api/auth/2fa/login (server/two-factor.js). Le mot de passe (ou Google) seul ne suffit plus.
+function sendSession(res, user, extra = {}) {
+  if (user.totp_enabled_at) return res.json({ mfa_required: true, mfa_token: twoFactor.challengeToken(user) });
+  res.json({ token: sign(user), user: safe(user), ...extra });
 }
 
 // POST /api/auth/register
@@ -66,7 +55,7 @@ router.post('/login', async (req, res) => {
   if (user.banned)
     return res.status(403).json({ error: 'Ce compte a été suspendu. Contactez le support.' });
   if (req.langExplicit && user.lang !== req.lang) await db.pool.query('UPDATE users SET lang = $1 WHERE id = $2', [req.lang, user.id]);
-  res.json({ token: sign(user), user: safe(user) });
+  sendSession(res, user);
 });
 
 // GET /api/auth/config — réglages publics du site (identifiant client Google : public par nature, absent = bouton masqué)
@@ -126,7 +115,7 @@ router.post('/google', async (req, res) => {
   if (user.banned) return res.status(403).json({ error: 'Ce compte a été suspendu. Contactez le support.' });
   if (created) mailer.mailWelcome({ name: user.name, email: user.email, lang: user.lang });
   else if (req.langExplicit && user.lang !== req.lang) await db.pool.query('UPDATE users SET lang = $1 WHERE id = $2', [req.lang, user.id]);
-  res.json({ token: sign(user), user: safe(user), created });
+  sendSession(res, user, { created });
 });
 
 // GET /api/auth/me

@@ -96,6 +96,7 @@ app.use('/api/auth/register',        authLimiter);
 app.use('/api/auth/google',          authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);   // chaque appel peut envoyer un email (voir aussi le plafond par compte dans la route)
 app.use('/api/auth/reset-password',  authLimiter);
+app.use('/api/auth/2fa',             authLimiter);   // en plus du verrou par compte (5 essais) : freine aussi le balayage de comptes
 
 const uploadLimiter = rateLimit({
   ...shared('upload'),
@@ -200,6 +201,7 @@ app.use(express.static(PUBLIC_DIR, { cacheControl: false, setHeaders: staticCach
 // Miniatures /uploads/thumbs/480/<nom>.webp : créées à la première demande, servies ensuite par express.static (voir server/thumbs.js)
 app.get('/uploads/thumbs/:width/:name', require('./thumbs').serve);
 
+app.use('/api/auth/2fa',   require('./routes/two-factor')); // double authentification des administrateurs (server/two-factor.js)
 app.use('/api/auth',       require('./routes/auth'));
 app.use('/api/properties', require('./routes/properties'));
 app.use('/api/contacts',   require('./routes/contacts'));

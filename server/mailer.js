@@ -494,7 +494,35 @@ function buildAlert(lang, { kind, name, detail }) {
   };
 }
 
+// Avis de sécurité sur la double authentification (server/routes/two-factor.js) : activée, désactivée, code de secours utilisé,
+// nouveaux codes de secours. Envoyé à chaque fois : si ce n'est pas le titulaire, il le voit tout de suite.
+const SECURITY_EVENTS = {
+  enabled:  { fr: ['Double authentification activée', 'La double authentification vient d’être activée sur votre compte DzImmo. Vos autres sessions ont été fermées : un code de votre application sera demandé à chaque connexion.'],
+              ar: ['تم تفعيل التحقق بخطوتين', 'تم تفعيل التحقق بخطوتين على حسابك في DzImmo. أُغلقت جلساتك الأخرى، وسيُطلب منك رمز من تطبيق المصادقة عند كل تسجيل دخول.'] },
+  disabled: { fr: ['Double authentification désactivée', 'La double authentification vient d’être désactivée sur votre compte DzImmo. Vos autres sessions ont été fermées.'],
+              ar: ['تم إيقاف التحقق بخطوتين', 'تم إيقاف التحقق بخطوتين على حسابك في DzImmo. أُغلقت جلساتك الأخرى.'] },
+  recovery: { fr: ['Code de secours utilisé', 'Un code de secours vient de servir à vous connecter à votre compte DzImmo. Ce code ne fonctionne plus. Pensez à générer de nouveaux codes lorsqu’il en reste peu.'],
+              ar: ['استُخدم رمز احتياطي', 'استُخدم رمز احتياطي لتسجيل الدخول إلى حسابك في DzImmo، ولن يعمل هذا الرمز مرة أخرى. أنشئ رموزاً جديدة عندما يتبقى القليل منها.'] },
+  codes:    { fr: ['Nouveaux codes de secours', 'De nouveaux codes de secours viennent d’être générés pour votre compte DzImmo. Les anciens codes ne fonctionnent plus.'],
+              ar: ['رموز احتياطية جديدة', 'تم إنشاء رموز احتياطية جديدة لحسابك في DzImmo، ولم تعد الرموز القديمة تعمل.'] },
+};
+function buildSecurityNotice(lang, { name, event }) {
+  const [title, body] = SECURITY_EVENTS[event][lang === 'ar' ? 'ar' : 'fr'];
+  return {
+    subject: `🔐 DzImmo — ${title}`,
+    html: wrap(`
+      <h2 style="margin-top:0">${esc(title)} 🔐</h2>
+      <p>${pick(lang, 'Bonjour', 'مرحباً')} ${esc(name)},</p>
+      <p>${esc(body)}</p>
+      <p style="color:#b91c1c"><strong>${pick(lang,
+        'Ce n’était pas vous ? Changez immédiatement votre mot de passe (« Mot de passe oublié ») et contactez l’équipe DzImmo.',
+        'لم تكن أنت؟ غيّر كلمة المرور فوراً (« نسيت كلمة المرور ») وتواصل مع فريق DzImmo.')}</strong></p>
+    `, lang),
+  };
+}
+
 const mailAlert = d => send(d.to, buildAlert(d.lang, d));
+const mailSecurityNotice = d => send(d.to, buildSecurityNotice(d.lang, d));
 const mailListingReported = d => send(d.to, buildListingReported(d.lang, d));
 const mailAdminReported = d => send(d.to, buildAdminReported(d.lang, d));
 const mailNewMessage = d => send(d.to, buildNewMessage(d.lang, d));
@@ -516,10 +544,10 @@ module.exports = {
   mailWelcome, mailVerifyEmail, mailPasswordReset,
   mailContactRequest, mailNewMessage, mailSearchAlert,
   mailModerationDecision, mailAdminPending, mailVerificationDecision, mailAdminVerificationPending,
-  mailExpiryReminder, mailListingExpired, mailListingReported, mailAdminReported, mailAlert, mailSiteContact, mailNewsletterConfirm, mailNewsletter, CONTACT_SUBJECTS,
+  mailExpiryReminder, mailListingExpired, mailListingReported, mailAdminReported, mailAlert, mailSecurityNotice, mailSiteContact, mailNewsletterConfirm, mailNewsletter, CONTACT_SUBJECTS,
   // gabarits purs (tests)
   build: { buildWelcome, buildVerifyEmail, buildPasswordReset, buildContactRequest, buildNewMessage,
            buildSearchAlert, buildModerationDecision, buildAdminPending,
            buildVerificationDecision, buildAdminVerificationPending, buildExpiryReminder, buildListingExpired, buildSiteContact, buildNewsletterConfirm, buildNewsletter,
-           buildListingReported, buildAdminReported, buildAlert },
+           buildListingReported, buildAdminReported, buildAlert, buildSecurityNotice },
 };
