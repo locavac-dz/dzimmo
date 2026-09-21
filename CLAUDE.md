@@ -220,6 +220,19 @@ Windows : `demarrer.bat`
 - **Déclenchement** : `PUT /api/properties/:id`, après l'insertion dans `price_history`, sans bloquer la réponse (`notifyDrop(...).catch(() => {})`). Aucune tâche planifiée. Le corps de l'email n'expose que le titre et les deux prix.
 - Limites connues : pas de résumé quotidien (un email par baisse) ; une baisse faite pendant la modération n'est jamais annoncée. Tests : `tests/unit/price-drop.test.js`, `tests/api/baisse-de-prix.test.js`.
 
+## Fiche imprimable (avec code QR)
+
+- **Page** `/annonce/12-titre/fiche` (et `/ar/…`, déclarée par `bothLangs` dans `server/seo.js`) : une page A4 rendue par le serveur (`server/fiche.js`, pas par la SPA) — photos (4 au plus),
+  prix, caractéristiques, description bornée (900 caractères), équipements, contact et un **QR code SVG** vers l'annonce en ligne (adresse canonique dans la langue de la fiche, `APP_URL`).
+  Bouton « 🖨️ Imprimer la fiche » (`det_print`, FR et AR) sous WhatsApp / Copier sur la fiche d'une annonce ; le bouton de la page appelle `window.print()` depuis `public/fiche.js`.
+- **Mêmes règles que la page de l'annonce** : introuvable, `pending`, `rejected` ou `archived` = vraie 404 (`noindex`), mauvais slug = 301 vers l'adresse canonique de la même langue ; une annonce
+  vendue ou louée reste imprimable avec une pastille. **Jamais indexée** (`<meta robots noindex,nofollow>` + `X-Robots-Tag`), absente du sitemap, `Referrer-Policy` `no-referrer`.
+- **Aucune donnée de plus que la fiche publique** : le téléphone de l'agence (sinon celui du compte) et le nom de l'annonceur y figurent déjà ; jamais d'email ni d'identifiant. Tout texte passe par `esc()`,
+  toute photo par `images.isListingImage` (puis miniature 960 px pour un `.webp` du site). Le QR est produit ici (`qrcode-generator`) : aucun service tiers, aucune requête sortante.
+- **Pas de `<style>` ni de `<script>` en ligne** : `public/fiche.css` (mise en page, `@page` A4, `@media print` sans barre d'outils, logique RTL par propriétés logiques) et `public/fiche.js`.
+- **Libellés** : `TEXT` (FR / AR) et `FEATURES` de `server/fiche.js` ; les équipements suivent `feat_*` de `public/app.js` (test `tests/unit/fiche.test.js`). Nouvelle rubrique = ses deux textes.
+- Tests : `tests/api/fiche-annonce.test.js`, `tests/unit/fiche.test.js`.
+
 ## Vitrine des agences et des promoteurs
 
 - **Profil** (`server/agency.js`, table `agencies`) : `kind` (`agence` | `promoteur`), logo, couverture, slogan, services, zones, horaires,

@@ -13,6 +13,7 @@ const WILAYAS = require('./wilayas');
 const agencyData  = require('./agency');
 const projectData = require('./projects');
 const { textOf, fmtPrice } = require('./seo-text');
+const fiche = require('./fiche');
 
 const INDEX = path.join(__dirname, '..', 'public', 'index.html');
 
@@ -560,6 +561,24 @@ function mount(app) {
     const canonicalPath = localized(lang, propertyPath(p));
     if (decodeURIComponent(req.path) !== canonicalPath) return res.redirect(301, canonicalPath);
     await send(res, propertyMeta(p, base, lang));
+  });
+
+  // Fiche imprimable : /annonce/12-appartement-f4/fiche (page A4 avec QR code, rendue par server/fiche.js). Jamais indexée ;
+  // même règle que la page de l'annonce : introuvable ou non publique = 404, mauvais slug = redirection canonique.
+  app.get(bothLangs(['/annonce/:slug/fiche']), async (req, res) => {
+    const base = baseUrl(req), lang = langOfReq(req);
+    const m = /^(\d+)(?:-.*)?$/.exec(req.params.slug);
+    const p = m ? await fiche.load(Number(m[1])) : null;
+    if (!p || NOT_PUBLIC.includes(p.status)) {
+      return send(res, {
+        lang, title: textOf(lang).listingNotFound, description: textOf(lang).homeDesc,
+        canonical: base + localized(lang, '/'), robots: 'noindex,follow',
+      }, 404);
+    }
+    const pagePath = localized(lang, propertyPath(p));
+    if (decodeURIComponent(req.path) !== pagePath + '/fiche') return res.redirect(301, pagePath + '/fiche');
+    res.set({ 'Cache-Control': 'no-cache', 'Content-Language': lang, 'X-Robots-Tag': 'noindex, nofollow' })
+      .type('html').send(fiche.render(p, { lang, pageUrl: base + pagePath, backPath: pagePath }));
   });
 
   // Annuaires : le contenu est rendu par la SPA, le serveur fournit titre, description et adresse canonique

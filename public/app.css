@@ -958,3 +958,6 @@
       font-size: .82rem; cursor: pointer; font-weight: 600;
     }
     .gallery-wrapper { position: relative; display: contents; }
+
+/* Lien « Imprimer la fiche » de la fiche d'une annonce (page servie par server/fiche.js) */
+.print-link { display: flex; align-items: center; justify-content: center; margin-top: .5rem; text-decoration: none; }

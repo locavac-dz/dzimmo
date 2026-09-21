@@ -76,7 +76,7 @@ const TRANSLATIONS = {
     rp_need_motif:'Choisissez un motif.', rp_thanks:'Merci, votre signalement a été transmis.',
     rp_m_arnaque:'Arnaque ou fausse annonce', rp_m_indisponible:'Bien déjà vendu ou loué', rp_m_faux:'Informations trompeuses (prix, surface…)',
     rp_m_photos:'Photos qui ne correspondent pas', rp_m_doublon:'Annonce en double', rp_m_interdit:'Contenu interdit ou choquant', rp_m_autre:'Autre',
-    det_published:'Publié le', det_copy:'🔗 Copier', det_sent:'✅ Demande envoyée au vendeur !',
+    det_published:'Publié le', det_copy:'🔗 Copier', det_print:'🖨️ Imprimer la fiche (avec code QR)', det_sent:'✅ Demande envoyée au vendeur !',
     det_price_hist:'📈 Historique des prix', det_stable:'stable', det_similar:'Biens similaires',
     cmp_max:'Vous pouvez comparer 3 biens maximum.', cmp_min:'Sélectionnez au moins 2 biens à comparer.',
     cmp_remove:'Retirer', cmp_view:'Voir →', cmp_r_price:'Prix', cmp_r_commune:'Commune', cmp_r_surface:'Surface',
@@ -469,7 +469,7 @@ const TRANSLATIONS = {
     rp_need_motif:'اختر سببًا.', rp_thanks:'شكرًا، تم إرسال بلاغك.',
     rp_m_arnaque:'احتيال أو إعلان مزيف', rp_m_indisponible:'عقار بيع أو أُجّر بالفعل', rp_m_faux:'معلومات مضللة (السعر، المساحة…)',
     rp_m_photos:'صور غير مطابقة', rp_m_doublon:'إعلان مكرر', rp_m_interdit:'محتوى ممنوع أو صادم', rp_m_autre:'أخرى',
-    det_published:'نُشر في', det_copy:'🔗 نسخ', det_sent:'✅ تم إرسال الطلب إلى البائع!',
+    det_published:'نُشر في', det_copy:'🔗 نسخ', det_print:'🖨️ طباعة البطاقة (مع رمز QR)', det_sent:'✅ تم إرسال الطلب إلى البائع!',
     det_price_hist:'📈 تطور السعر', det_stable:'مستقر', det_similar:'عقارات مشابهة',
     cmp_max:'يمكنك مقارنة 3 عقارات كحد أقصى.', cmp_min:'اختر عقارين على الأقل للمقارنة.',
     cmp_remove:'إزالة', cmp_view:'عرض ←', cmp_r_price:'السعر', cmp_r_commune:'البلدية', cmp_r_surface:'المساحة',
@@ -1787,6 +1787,7 @@ function renderDetail(p) {
               </button>
               <button class="btn btn-outline btn-sm" style="flex:1" onclick="copyPropertyLink(${p.id})">${T('det_copy')}</button>
             </div>
+            <a class="btn btn-outline btn-sm print-link" href="${esc(annonceUrl(p.id, p.title))}/fiche" target="_blank" rel="noopener">${T('det_print')}</a>
             ${p.status === 'active' && !(currentUser && currentUser.id === p.owner_id) ? `
             <button class="btn btn-outline btn-sm" style="width:100%;margin-top:.5rem;border-style:dashed;color:var(--text-muted)" data-id="${Number(p.id) || 0}" onclick="openReport(this.dataset.id)">🚩 ${T('rp_btn')}</button>` : ''}
           </div>

@@ -1,0 +1,68 @@
+/* Fiche imprimable d'une annonce (server/fiche.js) : une page A4, lisible à l'écran comme sur papier, en français (LTR) et en arabe (RTL). */
+:root { --ink: #1a2b24; --muted: #5b6b64; --line: #d7dfdb; --brand: #0C6E4F; --gold: #92400e; --paper: #fff; --desk: #eef2f0; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--desk); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Tahoma, Arial, sans-serif; }
+
+.toolbar { max-width: 210mm; margin: 0 auto; padding: .75rem 16px; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.toolbar a { color: var(--brand); font-weight: 600; text-decoration: none; }
+.toolbar a:hover { text-decoration: underline; }
+.toolbar button { background: var(--brand); color: #fff; border: 0; border-radius: 8px; padding: .55rem 1rem; font: inherit; font-weight: 600; cursor: pointer; }
+.toolbar button:hover { filter: brightness(1.1); }
+
+.sheet { max-width: 210mm; margin: 0 auto 2rem; background: var(--paper); padding: 12mm; box-shadow: 0 2px 14px rgba(0, 0, 0, .12); }
+
+.head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 3px solid var(--brand); padding-bottom: .4rem; margin-bottom: .9rem; }
+.brand { font-size: 1.6rem; font-weight: 800; color: var(--brand); letter-spacing: .5px; }
+.kind { color: var(--muted); font-size: .85rem; }
+
+.type { margin: 0; color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: .8rem; letter-spacing: .04em; }
+.status { display: inline-block; margin-inline-start: .5rem; padding: 0 .5rem; border-radius: 4px; background: var(--gold); color: #fff; font-size: .75rem; }
+h1 { margin: .15rem 0 .25rem; font-size: 1.7rem; line-height: 1.2; overflow-wrap: anywhere; }
+.place { margin: 0; color: var(--muted); }
+.price { margin: .4rem 0 .8rem; font-size: 1.9rem; font-weight: 800; color: var(--brand); }
+
+.photos { display: grid; gap: 4px; margin-bottom: .8rem; border-radius: 6px; overflow: hidden; }
+.photos img { width: 100%; height: 100%; object-fit: cover; display: block; background: var(--desk); }
+.photos-1 { grid-template-columns: 1fr; grid-auto-rows: 90mm; }
+.photos-2 { grid-template-columns: 1fr 1fr; grid-auto-rows: 70mm; }
+.photos-3 { grid-template-columns: 2fr 1fr; grid-template-rows: 40mm 40mm; }
+.photos-3 img:first-child { grid-row: span 2; }
+.photos-4 { grid-template-columns: 2fr 1fr; grid-template-rows: 30mm 30mm 30mm; }
+.photos-4 img:first-child { grid-row: span 3; }
+
+.facts { list-style: none; margin: 0 0 .8rem; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem .5rem; }
+.facts li { border: 1px solid var(--line); border-radius: 999px; padding: .2rem .75rem; font-weight: 600; }
+
+section h2 { margin: .8rem 0 .25rem; font-size: 1rem; color: var(--brand); text-transform: uppercase; letter-spacing: .04em; }
+.desc { margin: 0; overflow-wrap: anywhere; }
+.chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .35rem; }
+.chips li { background: #eef6f2; color: var(--brand); border-radius: 4px; padding: .1rem .55rem; font-size: .88rem; }
+
+.bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 1rem; align-items: stretch; }
+.box { border: 1px solid var(--line); border-radius: 8px; padding: .8rem 1rem; margin: 0; }
+.box h2 { margin-top: 0; }
+.contact .who { margin: 0 0 .35rem; font-weight: 700; overflow-wrap: anywhere; }
+.contact .phone { margin: 0; font-size: 1.5rem; font-weight: 800; }
+.muted { color: var(--muted); margin: 0; }
+.qr { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .3rem; }
+.qr p { margin: 0; font-size: .85rem; color: var(--muted); }
+.qr .url { font-size: .7rem; overflow-wrap: anywhere; }
+.qr-code { width: 38mm; height: 38mm; }
+.qr-code svg { width: 100%; height: 100%; display: block; }
+
+.disclaimer { margin: 1rem 0 0; padding-top: .5rem; border-top: 1px solid var(--line); font-size: .78rem; color: var(--muted); }
+
+@media (max-width: 640px) {
+  .sheet { padding: 16px; }
+  .bottom { grid-template-columns: 1fr; }
+  h1 { font-size: 1.4rem; }
+}
+
+@page { size: A4; margin: 0; }
+@media print {
+  body { background: #fff; }
+  .toolbar { display: none; }
+  .sheet { margin: 0; max-width: none; box-shadow: none; padding: 12mm; }
+  .bottom, .photos, .box { break-inside: avoid; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
