@@ -76,7 +76,7 @@
           <div id="notif-panel" class="hidden">
             <div class="notif-head">
               <span data-i18n="notif_title">🔔 Notifications</span>
-              <button onclick="markAllNotifsRead()" style="background:none;border:none;cursor:pointer;font-size:.78rem;color:var(--primary);font-weight:700" data-i18n="notif_read_all">Tout lire</button>
+              <button onclick="markAllNotifsRead()" style="background:none;border:none;cursor:pointer;font-size:.78rem;color:var(--primary-text);font-weight:700" data-i18n="notif_read_all">Tout lire</button>
             </div>
             <div id="notif-list"></div>
           </div>
@@ -261,7 +261,7 @@
         <button class="btn btn-outline" onclick="createAlertFromFilters()" style="align-self:end" data-i18n="btn_create_alert">🔔 Créer une alerte</button>
         <button class="btn btn-outline" id="btn-near-me" onclick="nearMe()" style="align-self:end;white-space:nowrap" data-i18n="near_me">📍 Près de moi</button>
       </div>
-      <div id="near-me-badge" style="display:none;margin-top:.6rem;font-size:.82rem;color:var(--primary);font-weight:600">
+      <div id="near-me-badge" style="display:none;margin-top:.6rem;font-size:.82rem;color:var(--primary-text);font-weight:600">
         <span data-i18n="near_me_results">📍 Résultats près de :</span> <span id="near-me-label"></span>
         <button onclick="clearNearMe()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.85rem;margin-left:.4rem" data-i18n="near_me_clear">✕ Retirer</button>
       </div>
@@ -290,7 +290,7 @@
 <div id="page-detail" class="hidden">
   <div id="main">
     <div class="breadcrumb">
-      <a href="#" onclick="goBack()">← Retour</a>
+      <a href="#" onclick="goBack()" data-i18n="btn_back">← Retour</a>
     </div>
     <div id="detail-content"></div>
   </div>
@@ -875,7 +875,7 @@
 <div id="page-carte" class="hidden">
   <!-- barre de filtres -->
   <div style="background:var(--white);border-bottom:1px solid var(--border);padding:.6rem 1rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;position:sticky;top:62px;z-index:50">
-    <span style="font-size:.95rem;font-weight:700;color:var(--primary);white-space:nowrap">🗺️ <span data-i18n="nav_carte">Carte</span></span>
+    <span style="font-size:.95rem;font-weight:700;color:var(--primary-text);white-space:nowrap">🗺️ <span data-i18n="nav_carte">Carte</span></span>
     <select id="map-wilaya" onchange="loadMapMarkers()" style="flex:1;min-width:140px;padding:.38rem .6rem;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;background:var(--bg);color:var(--text)">
       <option value="" data-i18n="s_all_wilayas">Toutes les wilayas</option>
     </select>
@@ -909,7 +909,7 @@
       <button class="btn btn-outline btn-sm" onclick="undoMapDraw()" data-i18n="map_draw_undo" style="white-space:nowrap">↶ Annuler le dernier point</button>
       <button class="btn btn-outline btn-sm" onclick="clearMapDraw()" data-i18n="map_draw_clear" style="white-space:nowrap">🗑 Effacer</button>
     </div>
-    <span id="map-zone-hint" class="hidden" style="font-size:.78rem;color:var(--primary);font-style:italic" data-i18n="map_zone_hint">Cliquez sur la carte…</span>
+    <span id="map-zone-hint" class="hidden" style="font-size:.78rem;color:var(--primary-text);font-style:italic" data-i18n="map_zone_hint">Cliquez sur la carte…</span>
     <span id="map-count" style="font-size:.8rem;color:var(--text-muted);white-space:nowrap;margin-left:auto"></span>
   </div>
   <div id="map-container" style="height:calc(100vh - 130px);min-height:420px;width:100%"></div>
@@ -1053,7 +1053,7 @@
       <div class="form-divider" data-i18n="m_or">ou</div>
       <button class="btn btn-outline" style="width:100%;padding:.65rem" onclick="switchModal('login','register')" data-i18n="m_create_account">Créer un compte</button>
       <div style="text-align:center;margin-top:.75rem">
-        <a href="#" style="font-size:.85rem;color:var(--primary)" onclick="switchModal('login','forgot')" data-i18n="m_forgot">Mot de passe oublié ?</a>
+        <a href="#" style="font-size:.85rem;color:var(--primary-text)" onclick="switchModal('login','forgot')" data-i18n="m_forgot">Mot de passe oublié ?</a>
       </div>
     </div>
     <!-- Seconde étape : compte protégé par la double authentification (POST /api/auth/2fa/login) -->
@@ -1064,7 +1064,7 @@
       <div class="form-row"><label data-i18n="mfa_code">Code de vérification</label><input id="login-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="32" dir="ltr" placeholder="123 456"></div>
       <button class="btn btn-primary" style="width:100%;padding:.75rem;margin-top:.5rem" onclick="doMfaLogin()" data-i18n="mfa_verify">Vérifier</button>
       <div style="text-align:center;margin-top:.75rem">
-        <a href="#" style="font-size:.85rem;color:var(--primary)" onclick="return mfaBack()" data-i18n="mfa_back">Retour</a>
+        <a href="#" style="font-size:.85rem;color:var(--primary-text)" onclick="return mfaBack()" data-i18n="mfa_back">Retour</a>
       </div>
     </div>
   </div>

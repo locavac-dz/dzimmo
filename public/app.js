@@ -23,6 +23,7 @@ function syncLangUrl() {
 
 const TRANSLATIONS = {
   fr: {
+    site_title:'DzImmo — Immobilier en Algérie',
     nav_home:'Accueil', nav_annonces:'Annonces', nav_agences:'Agences', nav_carte:'Carte', menu_label:'Menu',
     btn_publier:'+ Publier', btn_login:'Connexion', btn_register:"S'inscrire",
     hero_title:'Trouvez votre bien immobilier en Algérie',
@@ -409,6 +410,7 @@ const TRANSLATIONS = {
     adv_all_good:"Votre annonce est complète et suscite de l'intérêt. Confirmez-la régulièrement pour qu'elle reste bien placée.",
   },
   ar: {
+    site_title:'DzImmo — العقارات في الجزائر',
     nav_home:'الرئيسية', nav_annonces:'الإعلانات', nav_agences:'الوكالات', nav_carte:'الخريطة', menu_label:'القائمة',
     btn_publier:'+ نشر', btn_login:'تسجيل الدخول', btn_register:'إنشاء حساب',
     hero_title:'ابحث عن عقارك في الجزائر',
@@ -804,6 +806,7 @@ function applyLang(lang, reload = true) {
   localStorage.setItem('dz_lang', lang);
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  if ([TRANSLATIONS.fr.site_title, TRANSLATIONS.ar.site_title].includes(document.title)) document.title = T('site_title');
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
     const attr = el.getAttribute('data-i18n-attr');
@@ -1212,7 +1215,7 @@ async function api(path, method = 'GET', body = null) {
 // ── Navigation ────────────────────────────────────
 const PAGES = ['home','annonces','detail','publier','agences','agency-detail','programmes','programme-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats','contrats','newsletter'];
 
-const DEFAULT_TITLE = 'DzImmo — Immobilier en Algérie';
+const defaultTitle = () => T('site_title');   // titre du site dans la langue affichée (identique à celui que le serveur rend pour / et /ar)
 const PRO_PAGES = ['agences', 'agency-detail', 'programmes', 'programme-detail'];
 
 // Même algorithme que server/seo.js (slugify) pour des URL identiques des deux côtés
@@ -1271,7 +1274,7 @@ function showPage(page, data = null) {
   // Annuaires, fiches de professionnels et de programmes règlent eux-mêmes leur adresse (/agences, /agence/12-nom…, pro.js).
   if (page !== 'detail') {
     if (routePath() !== '/' && !PRO_PAGES.includes(page)) history.replaceState(null, '', langPath('/'));
-    document.title = DEFAULT_TITLE;
+    document.title = defaultTitle();
   }
   if (page !== 'publier' && publishEditId) { publishEditId = null; resetPublishForm(); }   // modification abandonnée : le formulaire redevient celui d'une publication
   PAGES.forEach(p => {
@@ -1394,7 +1397,7 @@ async function loadHomeProperties(mode = '') {
     const params = new URLSearchParams({ status: 'active', limit: 12 });
     if (mode) params.set('mode', mode);
     const resp = await api('/properties?' + params);
-    countEl.textContent = resp.total + ' annonce' + (resp.total > 1 ? 's' : '');
+    countEl.textContent = resp.total + ' ' + unit(resp.total, 'st_ad');   // « 7 annonces » / « 7 إعلانات » (duel et pluriel arabes compris)
     renderGrid(grid, resp.data);
   } catch (e) { grid.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
 }
@@ -1757,7 +1760,7 @@ async function loadPriceHistory(id, currentPrice) {
     const diff = prices[prices.length - 1] - prices[0];
     const pct  = prices[0] ? ((diff / prices[0]) * 100).toFixed(1) : 0;
     const trend = diff > 0 ? `<span style="color:#ef4444">▲ +${pct}%</span>`
-                : diff < 0 ? `<span style="color:#0C6E4F">▼ ${pct}%</span>`
+                : diff < 0 ? `<span style="color:var(--primary-text)">▼ ${pct}%</span>`
                 : `<span style="color:var(--text-muted)">→ ${T('det_stable')}</span>`;
 
     const labels = history.map((h, i) => {
@@ -1836,7 +1839,7 @@ function calcPrixM2() {
   const res   = document.getElementById('sp1-res');
   if (!price || !surf) { res.style.display = 'none'; return; }
   const pm2 = price / surf;
-  res.innerHTML = `<div style="font-size:1.8rem;font-weight:900;color:var(--primary)">${fmtDZD(pm2)}<span style="font-size:1rem;font-weight:500"> /${T('sp_res_pm2') || 'm²'}</span></div>
+  res.innerHTML = `<div style="font-size:1.8rem;font-weight:900;color:var(--primary-text)">${fmtDZD(pm2)}<span style="font-size:1rem;font-weight:500"> /${T('sp_res_pm2') || 'm²'}</span></div>
     <div style="color:var(--text-secondary);font-size:.88rem;margin-top:.4rem">${T('sp_res_pour')} ${surf} m² · ${fmtDZD(price)}</div>`;
   res.style.display = 'block';
 }
@@ -1847,7 +1850,7 @@ function calcPrixTotal() {
   const res  = document.getElementById('sp2-res');
   if (!pm2 || !surf) { res.style.display = 'none'; return; }
   const total = pm2 * surf;
-  res.innerHTML = `<div style="font-size:1.8rem;font-weight:900;color:var(--primary)">${fmtDZD(total)}</div>
+  res.innerHTML = `<div style="font-size:1.8rem;font-weight:900;color:var(--primary-text)">${fmtDZD(total)}</div>
     <div style="color:var(--text-secondary);font-size:.88rem;margin-top:.4rem">${surf} m² × ${fmtDZD(pm2)}/m²</div>`;
   res.style.display = 'block';
 }
@@ -1905,7 +1908,7 @@ async function calcEstimation() {
           <div style="font-size:.78rem;color:var(--text-muted);text-align:center;margin-bottom:.5rem">${T('se_est_total')} ${surf} m²</div>
           <div style="display:flex;gap:.5rem;justify-content:space-around;flex-wrap:wrap;text-align:center">
             <div><div style="font-size:.72rem;color:var(--text-muted)">${T('se_res_min')}</div><div style="font-weight:700">${fmtDZD(p25 * surf)}</div></div>
-            <div><div style="font-size:.72rem;color:var(--text-muted)">${T('se_res_mid')}</div><div style="font-size:1.2rem;font-weight:900;color:var(--primary)">${fmtDZD(data.avg_pm2 * surf)}</div></div>
+            <div><div style="font-size:.72rem;color:var(--text-muted)">${T('se_res_mid')}</div><div style="font-size:1.2rem;font-weight:900;color:var(--primary-text)">${fmtDZD(data.avg_pm2 * surf)}</div></div>
             <div><div style="font-size:.72rem;color:var(--text-muted)">${T('se_res_max')}</div><div style="font-weight:700">${fmtDZD(p75 * surf)}</div></div>
           </div>
         </div>`;
@@ -1916,7 +1919,7 @@ async function calcEstimation() {
       <div style="font-size:.78rem;color:var(--text-muted);text-align:center;margin-bottom:.5rem">${T('se_res_range')} (DZD/m²)</div>
       <div style="display:flex;gap:.5rem;justify-content:space-around;flex-wrap:wrap;text-align:center">
         <div><div style="font-size:.72rem;color:var(--text-muted)">${T('se_res_min')}</div><div style="font-weight:700">${fmtDZD(p25)}/m²</div></div>
-        <div><div style="font-size:.72rem;color:var(--text-muted)">${T('se_res_mid')}</div><div style="font-size:1.25rem;font-weight:900;color:var(--primary)">${fmtDZD(data.avg_pm2)}/m²</div></div>
+        <div><div style="font-size:.72rem;color:var(--text-muted)">${T('se_res_mid')}</div><div style="font-size:1.25rem;font-weight:900;color:var(--primary-text)">${fmtDZD(data.avg_pm2)}/m²</div></div>
         <div><div style="font-size:.72rem;color:var(--text-muted)">${T('se_res_max')}</div><div style="font-weight:700">${fmtDZD(p75)}/m²</div></div>
       </div>
       ${totalHtml}`;
@@ -1944,7 +1947,7 @@ function calcNotaire() {
   const divers = 15000;
   const total  = tEnreg + tPub + hon + divers;
   const pct    = (total / price * 100).toFixed(2);
-  const td = (a, b, bold) => `<tr><td style="padding:.4rem 0;color:var(--text-secondary)">${a}</td><td style="text-align:right;font-weight:${bold?'800':'600'};${bold?'font-size:1.05rem;color:var(--primary)':''}">${b}</td></tr>`;
+  const td = (a, b, bold) => `<tr><td style="padding:.4rem 0;color:var(--text-secondary)">${a}</td><td style="text-align:right;font-weight:${bold?'800':'600'};${bold?'font-size:1.05rem;color:var(--primary-text)':''}">${b}</td></tr>`;
   res.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.9rem">
     ${td(`${T('sn_enreg')} (${zone === 'rural' ? '2' : '3'}%)`, fmtDZD(tEnreg))}
     ${td(`${T('sn_pub')} (1%)`,   fmtDZD(tPub))}
@@ -1967,11 +1970,11 @@ function calcCredit() {
   const M = r === 0 ? P / n : P * r * Math.pow(1+r,n) / (Math.pow(1+r,n) - 1);
   const total = M * n;
   const interets = total - P;
-  const td = (a, b, bold) => `<tr><td style="padding:.35rem 0;color:var(--text-secondary)">${a}</td><td style="text-align:right;font-weight:${bold?'900':'600'};${bold?'color:var(--primary)':''}">${b}</td></tr>`;
+  const td = (a, b, bold) => `<tr><td style="padding:.35rem 0;color:var(--text-secondary)">${a}</td><td style="text-align:right;font-weight:${bold?'900':'600'};${bold?'color:var(--primary-text)':''}">${b}</td></tr>`;
   res.innerHTML = `
     <div style="text-align:center;margin-bottom:1rem">
       <div style="font-size:.82rem;color:var(--text-muted)">${T('sc_res_mensualite')}</div>
-      <div style="font-size:2rem;font-weight:900;color:var(--primary)">${fmtDZD(M)}</div>
+      <div style="font-size:2rem;font-weight:900;color:var(--primary-text)">${fmtDZD(M)}</div>
       <div style="font-size:.78rem;color:var(--text-muted)">${T('sc_res_par_mois')}</div>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:.9rem;border-top:1.5px solid var(--border)">
@@ -2640,8 +2643,8 @@ async function adminLoadModeration(status = _modStatus, page = 1) {
           <span class="card-mode mode-${p.mode}" style="font-size:.71rem;padding:.1rem .45rem">${MODES_L[p.mode] || esc(p.mode)}</span>
           <span style="font-size:.8rem;color:var(--text-muted)">#${p.id} · ${new Date(p.created_at).toLocaleString('fr-DZ')}</span>
         </div>
-        <a href="#" onclick="showPage('detail',${p.id});return false" style="color:var(--primary);font-weight:800;font-size:1rem">${esc(p.title)}</a>
-        <div style="font-size:.85rem;color:var(--text-muted);margin:.2rem 0 .5rem">📍 ${esc([p.commune, p.wilaya].filter(Boolean).join(', '))} · <strong style="color:var(--primary)">${formatPrice(p.price)} DZD</strong>${p.surface_m2 ? ' · ' + Number(p.surface_m2) + ' m²' : ''}${p.rooms ? ' · ' + p.rooms + ' p.' : ''}</div>
+        <a href="#" onclick="showPage('detail',${p.id});return false" style="color:var(--primary-text);font-weight:800;font-size:1rem">${esc(p.title)}</a>
+        <div style="font-size:.85rem;color:var(--text-muted);margin:.2rem 0 .5rem">📍 ${esc([p.commune, p.wilaya].filter(Boolean).join(', '))} · <strong style="color:var(--primary-text)">${formatPrice(p.price)} DZD</strong>${p.surface_m2 ? ' · ' + Number(p.surface_m2) + ' m²' : ''}${p.rooms ? ' · ' + p.rooms + ' p.' : ''}</div>
         <div style="display:flex;gap:.4rem;overflow-x:auto;margin-bottom:.6rem">
           ${photos.length ? photos.slice(0, 6).map((u, i) => `<img src="${esc(thumbUrl(u, 480))}" alt="" loading="lazy" style="height:72px;width:104px;object-fit:cover;border-radius:8px;cursor:pointer;flex-shrink:0;background:var(--border)" onclick="openLightbox(window._modPhotos[${p.id}], ${i})" onerror="this.style.visibility='hidden'">`).join('')
             : '<span style="font-size:.82rem;color:#dc2626">⚠ Aucune photo</span>'}
@@ -2894,7 +2897,7 @@ async function adminLoadProperties(page = 1) {
           <tbody>${props.map(p => `
             <tr>
               <td style="color:var(--text-muted)">#${p.id}</td>
-              <td style="max-width:200px"><a href="#" onclick="showPage('detail',${p.id});return false" style="color:var(--primary);font-weight:600">${esc(p.title)}</a></td>
+              <td style="max-width:200px"><a href="#" onclick="showPage('detail',${p.id});return false" style="color:var(--primary-text);font-weight:600">${esc(p.title)}</a></td>
               <td>${esc(p.wilaya)}</td>
               <td style="font-weight:700;white-space:nowrap">${formatPrice(p.price)} DZD</td>
               <td><span style="background:${COLORS[p.status]}20;color:${COLORS[p.status]};padding:.15rem .55rem;border-radius:20px;font-size:.78rem;font-weight:700">${STATUTS[p.status]||p.status}</span></td>
@@ -2905,7 +2908,7 @@ async function adminLoadProperties(page = 1) {
                   <option value="active">Actif</option><option value="sold">Vendu</option>
                   <option value="rented">Loué</option><option value="archived">Archivé</option>
                 </select>
-                ${!p.verified ? `<button class="btn btn-outline btn-sm" style="padding:.25rem .45rem;font-size:.78rem;border-color:#0C6E4F;color:#0C6E4F;white-space:nowrap" onclick="adminVerifyProperty(${p.id})">✓ Vérifier</button>` : ''}
+                ${!p.verified ? `<button class="btn btn-outline btn-sm" style="padding:.25rem .45rem;font-size:.78rem;border-color:#0C6E4F;color:var(--primary-text);white-space:nowrap" onclick="adminVerifyProperty(${p.id})">✓ Vérifier</button>` : ''}
                 <button class="btn btn-outline btn-sm" style="padding:.25rem .45rem;font-size:.78rem;border-color:#ef4444;color:#ef4444" data-title="${esc(p.title)}" onclick="adminDeleteProperty(${p.id}, this.dataset.title)">🗑</button>
               </td>
             </tr>`).join('')}
@@ -2962,14 +2965,14 @@ async function adminLoadAgencies(page = 1) {
           <tbody>${agencies.map(a => `
             <tr>
               <td style="color:var(--text-muted)">#${a.id}</td>
-              <td><a href="#" onclick="showPage('agency-detail',${a.id});return false" style="color:var(--primary);font-weight:600">${esc(a.name)}</a></td>
+              <td><a href="#" onclick="showPage('agency-detail',${a.id});return false" style="color:var(--primary-text);font-weight:600">${esc(a.name)}</a></td>
               <td>${a.kind === 'promoteur' ? '🏗 Promoteur' : '🏢 Agence'}</td>
               <td>${esc(a.wilaya || '—')}</td>
               <td>${esc(a.phone || '—')}</td>
               <td>${a.verified ? '✅' : '—'}</td>
               <td>
                 ${!a.verified
-                  ? `<button class="btn btn-outline btn-sm" style="border-color:#0C6E4F;color:#0C6E4F" onclick="adminVerifyAgency(${a.id})">✓ Vérifier</button>`
+                  ? `<button class="btn btn-outline btn-sm" style="border-color:#0C6E4F;color:var(--primary-text)" onclick="adminVerifyAgency(${a.id})">✓ Vérifier</button>`
                   : '<span style="color:var(--text-muted);font-size:.8rem">Vérifié</span>'}
               </td>
             </tr>`).join('')}
@@ -3021,7 +3024,7 @@ async function adminLoadSignalements(page = 1) {
           <tbody>${sigs.map(s => `
             <tr style="${s.status !== 'pending' ? 'opacity:.55' : ''}">
               <td style="color:var(--text-muted)">#${s.id}</td>
-              <td><a href="#" onclick="showPage('detail',${s.property_id});return false" style="color:var(--primary)">${esc(s.property_title || '#' + s.property_id)}</a>
+              <td><a href="#" onclick="showPage('detail',${s.property_id});return false" style="color:var(--primary-text)">${esc(s.property_title || '#' + s.property_id)}</a>
                 <div style="font-size:.75rem;color:var(--text-muted)">${esc(PROP_ST[s.property_status] || s.property_status || '')}${s.property_pending > 1 ? ` · <strong style="color:#dc2626">${Number(s.property_pending)} signalements en attente</strong>` : ''}</div></td>
               <td><span style="background:#fef3c7;color:#92400e;padding:.15rem .45rem;border-radius:20px;font-size:.78rem;font-weight:700">${esc(MOTIFS[s.motif] || s.motif)}</span></td>
               <td>${esc(s.reporter_name || 'Anonyme')}</td>
@@ -3156,7 +3159,7 @@ async function adminNlSubs(page = 1) {
     const r = await api('/admin/newsletter' + adminQuery({ page }));
     const subs = r.items;
     box.innerHTML = `
-      <p style="margin-bottom:.75rem;font-size:1rem;font-weight:800;color:var(--primary)">${r.confirmed} abonné${r.confirmed > 1 ? 's' : ''} confirmé${r.confirmed > 1 ? 's' : ''}
+      <p style="margin-bottom:.75rem;font-size:1rem;font-weight:800;color:var(--primary-text)">${r.confirmed} abonné${r.confirmed > 1 ? 's' : ''} confirmé${r.confirmed > 1 ? 's' : ''}
         <span style="font-weight:500;color:var(--text-muted);font-size:.85rem"> · ${r.total} adresse${r.total > 1 ? 's' : ''} au total</span></p>
       ${r.smtp ? '' : '<p style="color:var(--red);font-size:.85rem;margin-bottom:.75rem">⚠️ Envoi d’emails non configuré sur le serveur : ni confirmation ni envoi ne partent.</p>'}
       <div style="overflow-x:auto">
@@ -3246,7 +3249,7 @@ async function loadStatsPage() {
           <div style="font-weight:700;font-size:.9rem;margin-bottom:.15rem">${T('st_by_mode')}</div>
           <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:1rem">${T('st_active_sub')}</div>
           <div style="display:flex;gap:.6rem;margin-bottom:.75rem;flex-wrap:wrap">
-            <span style="background:#0C6E4F20;color:#0C6E4F;padding:.25rem .65rem;border-radius:20px;font-size:.82rem;font-weight:700">${T('s_vente')} : ${s.vente}</span>
+            <span style="background:#0C6E4F20;color:var(--primary-text);padding:.25rem .65rem;border-radius:20px;font-size:.82rem;font-weight:700">${T('s_vente')} : ${s.vente}</span>
             <span style="background:#3b82f620;color:#3b82f6;padding:.25rem .65rem;border-radius:20px;font-size:.82rem;font-weight:700">${T('st_mode_long')} : ${s.loc_longue}</span>
             <span style="background:#f59e0b20;color:#d97706;padding:.25rem .65rem;border-radius:20px;font-size:.82rem;font-weight:700">${T('st_mode_short')} : ${s.loc_courte}</span>
           </div>
@@ -3527,7 +3530,7 @@ async function dashTab(tab, more = false) {
     const FLAGGED = ['price_low', 'price_high', 'duplicate_other'];
 
     c.innerHTML = `<div style="display:flex;justify-content:flex-end;gap:.6rem;margin-bottom:.75rem;flex-wrap:wrap">
-      <a href="/api/import/template" style="font-size:.82rem;color:var(--primary);text-decoration:none;line-height:2">${T('imp_dl_tpl')}</a>
+      <a href="/api/import/template" style="font-size:.82rem;color:var(--primary-text);text-decoration:none;line-height:2">${T('imp_dl_tpl')}</a>
       <button class="btn btn-outline btn-sm" onclick="triggerImportCSV()">${T('imp_btn')}</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:.7rem">
@@ -3538,10 +3541,10 @@ async function dashTab(tab, more = false) {
             <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.3rem">
               <span class="card-mode mode-${p.mode}" style="font-size:.71rem;padding:.1rem .4rem">${MODES[p.mode]||p.mode}</span>
               <span style="background:${SCOLOR[stOf(p)]||'#94a3b8'}20;color:${SCOLOR[stOf(p)]||'#94a3b8'};padding:.1rem .42rem;border-radius:20px;font-size:.71rem;font-weight:700">${SLBL[stOf(p)]||stOf(p)}</span>
-              ${p.verified?'<span style="background:#0C6E4F20;color:#0C6E4F;padding:.1rem .42rem;border-radius:20px;font-size:.71rem;font-weight:700">✓</span>':''}
+              ${p.verified?'<span style="background:#0C6E4F20;color:var(--primary-text);padding:.1rem .42rem;border-radius:20px;font-size:.71rem;font-weight:700">✓</span>':''}
             </div>
             <div style="font-weight:700;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(p.title)}">${esc(p.title)}</div>
-            <div style="font-size:.79rem;color:var(--text-muted)">📍 ${esc(wilayaName(p.wilaya))} · <strong style="color:var(--primary)">${priceText(p)}</strong></div>
+            <div style="font-size:.79rem;color:var(--text-muted)">📍 ${esc(wilayaName(p.wilaya))} · <strong style="color:var(--primary-text)">${priceText(p)}</strong></div>
             ${p.status === 'rejected' && p.moderation_reason ? `<div style="font-size:.79rem;color:#dc2626;margin-top:.25rem">${T('dash_reason')} ${esc(modReason(p.moderation_reason))}</div>` : ''}
             ${p.status === 'active' && p.last_confirmed_at ? `<div style="font-size:.76rem;margin-top:.3rem;color:${p.expires_at ? '#b45309' : 'var(--text-muted)'};font-weight:${p.expires_at ? 700 : 400}">${p.expires_at
               ? T('dash_expires').replace('{date}', day(p.expires_at)) : T('dash_confirmed').replace('{date}', day(p.last_confirmed_at))}</div>` : ''}
@@ -3611,7 +3614,7 @@ async function dashTab(tab, more = false) {
       return `
         <div style="background:var(--white);border-radius:10px;padding:1rem 1.25rem;margin-bottom:.6rem;box-shadow:var(--shadow);display:flex;align-items:center;gap:1rem">
           <div style="flex:1">
-            <div style="font-size:.85rem;font-weight:600;color:var(--primary)">${T('alert_active')}</div>
+            <div style="font-size:.85rem;font-weight:600;color:var(--primary-text)">${T('alert_active')}</div>
             <div style="font-size:.83rem;color:var(--text-muted);margin-top:.2rem">${esc(parts)}</div>
           </div>
           <button class="btn btn-danger btn-sm" onclick="deleteAlert(${a.id})">${T('alert_del')}</button>

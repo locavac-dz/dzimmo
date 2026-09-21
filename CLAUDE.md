@@ -235,6 +235,15 @@ Windows : `demarrer.bat`
   stockage borné) ; ce dossier est un cache régénérable, à exclure des sauvegardes.
 - **Leaflet** (150 Ko) n'est chargé qu'à la première ouverture de la carte (`loadLeaflet`) : ne pas le remettre dans la page.
 
+## Lisibilité et langue du front
+
+- **Le vert utilisé comme texte passe par `--primary-text`, jamais par `--primary`** (`public/app.css`, gabarits de `app.js`, `pro.js`, `index.html`) : `--primary` reste le fond des boutons (texte
+  blanc dessus), donc ne s'éclaircit pas ; `--primary-text` et `--adv-fg` sont éclaircis dans les deux blocs du thème sombre pour garder un contraste AA (4,5). Test : `tests/unit/lisibilite-front.test.js`
+  (contraste calculé, plus aucun `color: var(--primary)` ni `color:#0C6E4F` en texte).
+- **Titre de l'onglet** : `site_title` (FR et AR) est identique à `homeTitle` de `server/seo-text.js` (test) ; `defaultTitle()` le lit, et `applyLang` le retraduit si le titre courant est le titre par défaut de l'autre langue.
+- **Compteurs avec un mot** (« 7 annonces ») : `unit(n, 'clé')` (clés `_one` / `_two` / `_many`, duel arabe compris), jamais un `+ 's'`. Tout lien « Retour » de `index.html` porte `data-i18n`.
+- Champs figés de l'écran « Modifier » (`select:disabled`, `input:disabled`) : rendu grisé dans `app.css`.
+
 ## Recherche tolérante
 
 - **Toute recherche libre passe par `server/search.js`** (annonces, agences, programmes) : chaque mot de la requête, normalisé (accents,
