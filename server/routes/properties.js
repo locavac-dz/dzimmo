@@ -9,6 +9,7 @@ const quality = require('../quality');
 const expiry  = require('../expiry');
 const clicks  = require('../clicks');
 const images  = require('../images');
+const geo     = require('../geo');
 
 const MODES_VALIDES    = ['vente', 'location_longue', 'location_courte'];
 const TYPES_VALIDES    = ['appartement','villa','maison','bureau','local_commercial','terrain','ferme','entrepot'];
@@ -233,35 +234,61 @@ router.get('/estimation', async (req, res) => {
   }
 });
 
-// GET /api/properties/nearby?lat=X&lng=Y&radius=R — annonces proches d'un point (DOIT être avant /:id)
+// ── Carte : recherche autour d'un point et dans une zone dessinée (server/geo.js) ────────────────────────────────────────
+const MAP_LIMIT = 100;   // annonces renvoyées au plus ; « truncated » prévient le front quand la zone en contient davantage
+
+// Filtres facultatifs de la carte (mêmes valeurs que la liste) : une valeur inconnue est ignorée
+function mapFilters(source, add) {
+  const conds = ["p.status = 'active'", 'p.lat IS NOT NULL', 'p.lng IS NOT NULL'];
+  const { mode, type_bien, wilaya } = source || {};
+  if (typeof mode === 'string' && MODES_VALIDES.includes(mode))            conds.push('p.mode = ' + add(mode));
+  if (typeof type_bien === 'string' && TYPES_VALIDES.includes(type_bien))  conds.push('p.type_bien = ' + add(type_bien));
+  if (typeof wilaya === 'string' && wilaya && wilaya.length <= 60)         conds.push('p.wilaya = ' + add(wilaya));
+  return conds;
+}
+
+// Lignes de la carte : l'annonce, son annonceur et son agence (une requête, jamais une boucle). On lit une ligne de plus que la limite
+// pour savoir si la zone en contient davantage.
+async function mapRows(conds, params, { distance = null, order }) {
+  const { rows } = await db.pool.query(`
+    SELECT p.*,
+      u.name AS owner_name, u.phone AS owner_phone, u.avatar AS owner_avatar, u.verified_kind AS owner_verified_kind,
+      a.name AS agency_name, a.logo AS agency_logo, a.phone AS agency_phone,
+      COALESCE(a.verified, false) AS agency_verified, a.kind AS agency_kind
+      ${distance ? `, ROUND(${distance}::numeric, 2) AS distance_km` : ''}
+    FROM properties p
+    LEFT JOIN users    u ON u.id = p.owner_id
+    LEFT JOIN agencies a ON a.id = p.agency_id
+    WHERE ${conds.join(' AND ')}
+    ORDER BY ${order}
+    LIMIT ${MAP_LIMIT + 1}`, params);
+  return { data: rows.slice(0, MAP_LIMIT), truncated: rows.length > MAP_LIMIT };
+}
+
+// GET /api/properties/nearby?lat=X&lng=Y&radius=R[&mode=&type_bien=&wilaya=] — annonces proches d'un point (DOIT être avant /:id)
 router.get('/nearby', async (req, res) => {
   const lat    = parseFloat(req.query.lat);
   const lng    = parseFloat(req.query.lng);
   const radius = Math.min(100, Math.max(0.1, parseFloat(req.query.radius) || 5));
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180)
     return res.status(400).json({ error: 'Coordonnées invalides.' });
-  const { rows } = await db.pool.query(`
-    SELECT p.*,
-      u.name AS owner_name, u.phone AS owner_phone, u.avatar AS owner_avatar, u.verified_kind AS owner_verified_kind,
-      a.name AS agency_name, a.logo AS agency_logo, a.phone AS agency_phone,
-      COALESCE(a.verified, false) AS agency_verified, a.kind AS agency_kind,
-      ROUND((6371 * acos(LEAST(1.0,
-        cos(radians($1)) * cos(radians(p.lat)) * cos(radians(p.lng) - radians($2)) +
-        sin(radians($1)) * sin(radians(p.lat))
-      )))::numeric, 2) AS distance_km
-    FROM properties p
-    LEFT JOIN users    u ON u.id = p.owner_id
-    LEFT JOIN agencies a ON a.id = p.agency_id
-    WHERE p.lat IS NOT NULL AND p.lng IS NOT NULL
-      AND p.status = 'active'
-      AND (6371 * acos(LEAST(1.0,
-        cos(radians($1)) * cos(radians(p.lat)) * cos(radians(p.lng) - radians($2)) +
-        sin(radians($1)) * sin(radians(p.lat))
-      ))) <= $3
-    ORDER BY distance_km
-    LIMIT 100
-  `, [lat, lng, radius]);
-  res.json({ data: rows, total: rows.length, radius, lat, lng });
+  const params = [lat, lng, radius];
+  const add = v => { params.push(v); return '$' + params.length; };
+  const conds = [...mapFilters(req.query, add), geo.boxCondition(geo.circleBox(lat, lng, radius), add), `${geo.distanceSql(1, 2)} <= $3`];
+  const { data, truncated } = await mapRows(conds, params, { distance: geo.distanceSql(1, 2), order: 'distance_km, p.id' });
+  res.json({ data, total: data.length, truncated, radius, lat, lng });
+});
+
+// POST /api/properties/zone { polygon: [[lat, lng], …], mode?, type_bien?, wilaya? } — annonces dans une zone dessinée sur la carte.
+// En POST pour que la zone ne se retrouve pas dans les adresses (journaux du serveur, historique).
+router.post('/zone', async (req, res) => {
+  const poly = geo.cleanPolygon(req.body.polygon);
+  if (!poly) return res.status(400).json({ error: 'Zone invalide.' });
+  const params = [poly.lats, poly.lngs];
+  const add = v => { params.push(v); return '$' + params.length; };
+  const conds = [...mapFilters(req.body, add), geo.boxCondition(poly.box, add), geo.polygonCondition(1, 2)];
+  const { data, truncated } = await mapRows(conds, params, { order: 'p.created_at DESC, p.id DESC' });
+  res.json({ data, total: data.length, truncated });
 });
 
 // GET /api/properties/:id

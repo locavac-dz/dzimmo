@@ -204,6 +204,21 @@ Windows : `demarrer.bat`
 - Aucune extension PostgreSQL (`unaccent`, `pg_trgm`) : droits particuliers et invisibles des schémas de test. Recherche par sous-chaîne
   (pas de tolérance aux fautes de frappe) ; si le volume l'exige, un index `pg_trgm` sur `*_search.text` est la suite naturelle.
 
+## Recherche sur la carte
+
+- **Trois vues, une seule à la fois** (`_mapMode` dans `public/app.js`) : tous les biens (filtres wilaya / mode / type), **rayon** autour d'un point (clic sur la carte, curseur de rayon,
+  ou bouton « Autour de moi »), **zone dessinée** (clics = sommets d'un polygone, « Terminer » ou clic sur le premier point, « Annuler le dernier point », « Effacer »).
+  Les filtres de la barre rafraîchissent le rayon ou la zone actifs (`loadMapMarkers` aiguille) ; une réponse plus lente qu'une demande plus récente est ignorée (`_mapReq`).
+  Les trois vues dessinent leurs marqueurs avec `mapMarker` / `showMapMarkers` (bouton de la fenêtre : `data-id`, jamais de donnée dans `onclick`).
+- **Serveur** (`server/geo.js`, routes dans `server/routes/properties.js`) : pas de PostGIS. Un rectangle englobant sur `(lat, lng)` (index partiel `idx_properties_geo`, migration 021)
+  écarte l'essentiel, puis la distance (grand cercle) ou la parité des croisements d'arêtes (point dans polygone, y compris concave) tranche, **en SQL** avec `LIMIT`.
+  `GET /api/properties/nearby?lat&lng&radius[&mode&type_bien&wilaya]` (rayon 0,1–100 km) et `POST /api/properties/zone { polygon: [[lat, lng], …], mode?, type_bien?, wilaya? }`
+  (3 à 60 sommets, zone sans surface refusée : 400 « Zone invalide. »). **Au plus 100 biens**, `truncated: true` quand il y en avait davantage (le front l'annonce).
+  Seules les annonces `active` avec position sont renvoyées ; jamais d'email du propriétaire. Limiteur partagé `geo` (60 / min, `server/app.js`).
+- **Vie privée** : la zone dessinée part en **POST** (ni dans l'adresse, ni dans les journaux du serveur) ; la position du visiteur n'est demandée qu'au clic sur « Autour de moi »,
+  **arrondie à 3 décimales (~110 m)** avant envoi (`mapCoord`) ; ni la position ni la zone ne sont stockées, journalisées ou mises en `localStorage`.
+- Tests : `tests/api/carte-zone.test.js` (polygone convexe et concave, filtres, limite, erreurs et traduction), `tests/unit/carte-front.test.js` (traductions FR / AR, POST, arrondi, échappement).
+
 ## Consignes
 
 - Ne jamais committer `.env`, `.env.production` ni `dzimmo.json`.

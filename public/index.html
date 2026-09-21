@@ -888,6 +888,13 @@
       <input id="map-zone-radius" type="range" min="1" max="50" value="5" step="1" oninput="onRadiusChange(this.value)" style="width:80px">
       <span id="map-zone-radius-val" style="font-size:.82rem;font-weight:700;min-width:1.5rem">5</span>
     </div>
+    <button id="map-me-btn" class="btn btn-outline btn-sm" onclick="mapAroundMe()" data-i18n="map_me_btn" style="white-space:nowrap">🎯 Autour de moi</button>
+    <button id="map-draw-btn" class="btn btn-outline btn-sm" onclick="toggleMapDraw()" data-i18n="map_draw_mode" style="white-space:nowrap">✏️ Dessiner</button>
+    <div id="map-draw-controls" class="hidden" style="display:flex;align-items:center;gap:.4rem">
+      <button class="btn btn-primary btn-sm" onclick="finishMapDraw()" data-i18n="map_draw_finish" style="white-space:nowrap">✔ Terminer</button>
+      <button class="btn btn-outline btn-sm" onclick="undoMapDraw()" data-i18n="map_draw_undo" style="white-space:nowrap">↶ Annuler le dernier point</button>
+      <button class="btn btn-outline btn-sm" onclick="clearMapDraw()" data-i18n="map_draw_clear" style="white-space:nowrap">🗑 Effacer</button>
+    </div>
     <span id="map-zone-hint" class="hidden" style="font-size:.78rem;color:var(--primary);font-style:italic" data-i18n="map_zone_hint">Cliquez sur la carte…</span>
     <span id="map-count" style="font-size:.8rem;color:var(--text-muted);white-space:nowrap;margin-left:auto"></span>
   </div>

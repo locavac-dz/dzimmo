@@ -118,6 +118,15 @@ const clickLimiter = rateLimit({
   message: { error: 'Trop de requêtes. Réessayez dans une minute.' },
   skip: () => process.env.NODE_ENV === 'test',
 });
+// Recherche sur la carte (autour d'un point, zone dessinée) : requêtes géométriques, donc plafonnées par adresse IP
+const geoLimiter = rateLimit({
+  ...shared('geo'),
+  windowMs: 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Trop de requêtes. Réessayez dans une minute.' },
+  skip: () => process.env.NODE_ENV === 'test',
+});
+app.use('/api/properties/nearby', geoLimiter);
+app.use('/api/properties/zone', geoLimiter);
 app.use('/api/properties/:id/click', clickLimiter);
 app.use('/api/properties/:id/confirm', authLimiter);
 

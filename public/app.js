@@ -379,6 +379,11 @@ const TRANSLATIONS = {
     pwa_install:'📲 Installer l\'app',
     map_zone_mode:'📍 Zone', map_zone_exit:'✕ Zone', map_zone_hint:'Cliquez sur la carte pour chercher autour de ce point.',
     map_zone_radius:'Rayon (km)', map_zone_results:'{n} bien(s) dans un rayon de {r} km',
+    map_draw_mode:'✏️ Dessiner', map_draw_exit:'✕ Dessin', map_draw_hint:'Cliquez pour poser les points de la zone, puis « Terminer » (ou cliquez sur le premier point).',
+    map_draw_finish:'✔ Terminer', map_draw_undo:'↶ Annuler le dernier point', map_draw_clear:'🗑 Effacer',
+    map_draw_min:'Posez au moins 3 points pour délimiter une zone.', map_draw_max:'Zone trop détaillée : 60 points au plus.',
+    map_zone_results_poly:'{n} bien(s) dans la zone dessinée', map_truncated:'Zone très dense : seuls {n} biens sont affichés, resserrez la recherche.',
+    map_me_btn:'🎯 Autour de moi', map_me_locating:'⏳ Localisation…', map_me_denied:"Impossible d'accéder à votre position.", map_me_here:'Vous êtes ici (position approximative)',
     dash_stats_btn:'📈 30j', dash_stats_title:'Vues · 30 derniers jours',
   },
   ar: {
@@ -739,6 +744,11 @@ const TRANSLATIONS = {
     pwa_install:'📲 تثبيت التطبيق',
     map_zone_mode:'📍 منطقة', map_zone_exit:'✕ منطقة', map_zone_hint:'انقر على الخريطة للبحث حول هذه النقطة.',
     map_zone_radius:'نطاق (كم)', map_zone_results:'{n} عقار في نطاق {r} كم',
+    map_draw_mode:'✏️ رسم', map_draw_exit:'✕ رسم', map_draw_hint:'انقر لوضع نقاط المنطقة، ثم اضغط «إنهاء» (أو انقر على النقطة الأولى).',
+    map_draw_finish:'✔ إنهاء', map_draw_undo:'↶ إلغاء آخر نقطة', map_draw_clear:'🗑 مسح',
+    map_draw_min:'ضع 3 نقاط على الأقل لتحديد منطقة.', map_draw_max:'المنطقة معقّدة جدًا: 60 نقطة كحد أقصى.',
+    map_zone_results_poly:'{n} عقار في المنطقة المرسومة', map_truncated:'منطقة مزدحمة جدًا: يتم عرض {n} عقار فقط، ضيّق البحث.',
+    map_me_btn:'🎯 حولي', map_me_locating:'⏳ جارٍ التحديد…', map_me_denied:'تعذّر الوصول إلى موقعك.', map_me_here:'أنت هنا (موقع تقريبي)',
     dash_stats_btn:'📈 30ي', dash_stats_title:'المشاهدات · 30 يوماً',
   }
 };
@@ -4009,6 +4019,8 @@ init();
 // ── Carte interactive ─────────────────────────────
 let mapInstance = null;
 let mapCluster  = null;
+let _mapMode    = null;   // null (tous les biens) | 'radius' | 'draw'
+let _mapReq     = 0;      // numéro de la dernière demande : une réponse plus lente qu'une demande plus récente est ignorée
 
 // Leaflet (2 scripts + 3 feuilles de style, ~150 Ko) n'est chargé qu'à la première ouverture de la carte, plus sur chaque page
 let _leafletLoading = null;
@@ -4058,23 +4070,72 @@ async function initMap() {
   setTimeout(() => { mapInstance.invalidateSize(); loadMapMarkers(); }, 120);
 }
 
+// Filtres de la barre de la carte
+function mapFilterValues() {
+  return {
+    wilaya:    document.getElementById('map-wilaya').value,
+    mode:      document.getElementById('map-mode').value,
+    type_bien: document.getElementById('map-type').value,
+  };
+}
+
+// Un marqueur et sa fenêtre : même dessin pour la vue générale, le rayon et la zone dessinée (jamais de donnée dans onclick : data-id)
+function mapMarker(p, showDistance) {
+  const isVente = p.mode === 'vente';
+  const color   = isVente ? '#0C6E4F' : '#f59e0b';
+  const icon = L.divIcon({
+    className: 'map-marker-icon',
+    html: `<div style="background:${color};color:#fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:2px solid #fff">${isVente ? '🏷' : '🔑'}</div>`,
+    iconSize:   [34, 34],
+    iconAnchor: [17, 17],
+    popupAnchor:[0, -20],
+  });
+  const img  = p.image || 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=400&q=70';
+  const dist = showDistance && p.distance_km != null ? `<div style="font-size:.78rem;color:#64748b;margin-bottom:4px">📏 ${esc(p.distance_km)} km</div>` : '';
+  const popup = `
+    <div style="width:220px">
+      <img src="${esc(thumbUrl(img, 480))}" onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=400&q=70'"
+           style="width:100%;height:115px;object-fit:cover;border-radius:7px;display:block;margin-bottom:8px">
+      <div style="font-weight:700;font-size:.88rem;margin-bottom:3px;line-height:1.3">${esc(p.title)}</div>
+      <div style="font-size:.78rem;color:#64748b;margin-bottom:5px">📍 ${esc(p.commune || wilayaName(p.wilaya))}, ${esc(wilayaName(p.wilaya))}</div>
+      ${dist}
+      <div style="font-size:.95rem;font-weight:700;color:${color};margin-bottom:8px">${priceText(p)}</div>
+      <button data-id="${Number(p.id)}" onclick="showPage('detail',Number(this.dataset.id))"
+              style="background:${color};color:#fff;border:none;border-radius:7px;padding:6px 0;font-size:.82rem;font-weight:600;cursor:pointer;width:100%;font-family:inherit">
+        ${T('map_view')}
+      </button>
+    </div>`;
+  return L.marker([p.lat, p.lng], { icon }).bindPopup(popup, { maxWidth: 250 });
+}
+
+function showMapMarkers(list, showDistance) {
+  mapCluster.clearLayers();
+  mapCluster.addLayers(list.filter(p => p.lat && p.lng).map(p => mapMarker(p, showDistance)));
+}
+
+// « n biens affichés » : la réponse d'une zone ou d'un rayon est bornée à 100, le serveur dit quand il y en avait davantage
+function mapResultText(key, resp, extra = {}) {
+  let text = T(key).replace('{n}', resp.data.length);
+  for (const [k, v] of Object.entries(extra)) text = text.replace(`{${k}}`, v);
+  return resp.truncated ? `${text} · ${T('map_truncated').replace('{n}', resp.data.length)}` : text;
+}
+
 async function loadMapMarkers() {
   if (!mapInstance) return;
-  const wilaya = document.getElementById('map-wilaya').value;
-  const mode   = document.getElementById('map-mode').value;
-  const type   = document.getElementById('map-type').value;
+  // Un rayon ou une zone actifs se rafraîchissent avec les filtres au lieu d'être effacés
+  if (_mapMode === 'radius' && _mapZoneCenter) return loadNearbyMarkers();
+  if (_mapMode === 'draw' && _mapPolygon)      return loadZoneMarkers();
 
   const params = new URLSearchParams();
-  if (wilaya) params.set('wilaya', wilaya);
-  if (mode)   params.set('mode', mode);
-  if (type)   params.set('type_bien', type);
+  for (const [k, v] of Object.entries(mapFilterValues())) if (v) params.set(k, v);
+  params.set('limit', '500');
 
   const countEl = document.getElementById('map-count');
   countEl.textContent = T('loading');
-
-  params.set('limit', '500');
+  const req = ++_mapReq;
   try {
     const resp       = await api('/properties?' + params);
+    if (req !== _mapReq) return;   // une demande plus récente est partie entre-temps
     const props      = resp.data;
     const withCoords = props.filter(p => p.lat && p.lng);
     const sans       = props.length - withCoords.length;
@@ -4083,46 +4144,12 @@ async function loadMapMarkers() {
 
     mapCluster.clearLayers();
     if (!withCoords.length) return;
+    showMapMarkers(withCoords, false);
 
-    const markers = withCoords.map(p => {
-      const isVente = p.mode === 'vente';
-      const color   = isVente ? '#0C6E4F' : '#f59e0b';
-      const emoji   = isVente ? '🏷' : '🔑';
-      const icon = L.divIcon({
-        className: 'map-marker-icon',
-        html: `<div style="background:${color};color:#fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:2px solid #fff">${emoji}</div>`,
-        iconSize:   [34, 34],
-        iconAnchor: [17, 17],
-        popupAnchor:[0, -20],
-      });
-
-      const price = priceText(p);
-
-      const img = p.image || 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=400&q=70';
-      const popup = `
-        <div style="width:220px">
-          <img src="${esc(thumbUrl(img, 480))}" onerror="this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=400&q=70'"
-               style="width:100%;height:115px;object-fit:cover;border-radius:7px;display:block;margin-bottom:8px">
-          <div style="font-weight:700;font-size:.88rem;margin-bottom:3px;line-height:1.3">${esc(p.title)}</div>
-          <div style="font-size:.78rem;color:#64748b;margin-bottom:5px">📍 ${esc(p.commune || wilayaName(p.wilaya))}, ${esc(wilayaName(p.wilaya))}</div>
-          <div style="font-size:.95rem;font-weight:700;color:${color};margin-bottom:8px">${price}</div>
-          <button onclick="showPage('detail',${p.id})"
-                  style="background:${color};color:#fff;border:none;border-radius:7px;padding:6px 0;font-size:.82rem;font-weight:600;cursor:pointer;width:100%;font-family:inherit">
-            ${T('map_view')}
-          </button>
-        </div>`;
-
-      return L.marker([p.lat, p.lng], { icon }).bindPopup(popup, { maxWidth: 250 });
-    });
-
-    mapCluster.addLayers(markers);
-
-    // Adapter la vue aux marqueurs (bounds calculés depuis les coordonnées API)
-    if (withCoords.length) {
-      const bounds = L.latLngBounds(withCoords.map(p => [p.lat, p.lng]));
-      mapInstance.fitBounds(bounds.pad(wilaya ? 0.15 : 0.08));
-    }
+    // Adapter la vue aux marqueurs, sauf pendant qu'on trace une zone
+    if (!_mapMode) mapInstance.fitBounds(L.latLngBounds(withCoords.map(p => [p.lat, p.lng])).pad(params.get('wilaya') ? 0.15 : 0.08));
   } catch (e) {
+    if (req !== _mapReq) return;
     countEl.textContent = T('map_error');
     console.error('[carte]', e.message);
   }
@@ -4140,37 +4167,64 @@ function installPWA() {
   });
 }
 
-// ── Carte : recherche par rayon ──────────────────────────────────────────────
-let _mapZoneMode = false, _mapZoneCircle = null, _mapZoneCenter = null;
+// ── Carte : rayon, « autour de moi » et zone dessinée ────────────────────────
+// Trois façons de restreindre la carte (une seule à la fois, _mapMode) : 'radius' (clic = centre, curseur = rayon, ou position du visiteur),
+// 'draw' (clics = sommets d'un polygone). Ni la position ni la zone ne sont conservées : rien n'est stocké, ni côté serveur ni dans le navigateur.
+let _mapZoneCircle = null, _mapZoneCenter = null, _mapMeMarker = null, _mapFromMe = false;
+let _mapPolyPts = [], _mapDrawGroup = null, _mapPolygon = null;
+const MAP_MAX_POINTS = 60;   // limite du serveur (server/geo.js)
 
-function toggleMapZone() {
-  if (_mapZoneMode) exitMapZone(); else enterMapZone();
+// Coordonnée arrondie : 5 décimales (~1 m) pour un point posé à la main, 3 (~110 m) pour la position du visiteur
+function mapCoord(v, decimals = 5) { const k = 10 ** decimals; return Math.round(v * k) / k; }
+
+function setMapBtn(id, on, keyOff, keyOn) {
+  const b = document.getElementById(id);
+  if (!b) return;
+  const key = on ? keyOn : keyOff;
+  b.setAttribute('data-i18n', key); b.textContent = T(key);
+  b.style.borderColor = on ? '#dc2626' : ''; b.style.color = on ? '#dc2626' : '';
 }
 
-function enterMapZone() {
-  _mapZoneMode = true;
-  const btn = document.getElementById('map-zone-btn');
-  if (btn) { btn.setAttribute('data-i18n', 'map_zone_exit'); btn.textContent = T('map_zone_exit'); btn.style.borderColor = '#dc2626'; btn.style.color = '#dc2626'; }
-  document.getElementById('map-zone-hint')?.classList.remove('hidden');
-  const ctrl = document.getElementById('map-zone-controls');
-  if (ctrl) { ctrl.classList.remove('hidden'); ctrl.style.display = 'flex'; }
-  if (mapInstance) mapInstance.on('click', onMapZoneClick);
+// Retire du plan tout ce qui appartient à un rayon ou à une zone
+function clearMapOverlays() {
+  resetMapDraw();
+  if (mapInstance) {
+    if (_mapZoneCircle) mapInstance.removeLayer(_mapZoneCircle);
+    if (_mapMeMarker)   mapInstance.removeLayer(_mapMeMarker);
+  }
+  _mapZoneCircle = _mapMeMarker = _mapZoneCenter = null;
+  _mapFromMe = false;
 }
 
-function exitMapZone() {
-  _mapZoneMode = false; _mapZoneCenter = null;
-  const btn = document.getElementById('map-zone-btn');
-  if (btn) { btn.setAttribute('data-i18n', 'map_zone_mode'); btn.textContent = T('map_zone_mode'); btn.style.borderColor = ''; btn.style.color = ''; }
-  document.getElementById('map-zone-hint')?.classList.add('hidden');
-  const ctrl = document.getElementById('map-zone-controls');
-  if (ctrl) { ctrl.classList.add('hidden'); ctrl.style.display = 'none'; }
-  if (_mapZoneCircle && mapInstance) { mapInstance.removeLayer(_mapZoneCircle); _mapZoneCircle = null; }
-  if (mapInstance) mapInstance.off('click', onMapZoneClick);
-  loadMapMarkers();
+function setMapMode(mode, reload = true) {
+  if (mode === _mapMode) return;
+  clearMapOverlays();
+  if (mapInstance) { mapInstance.off('click', onMapZoneClick); mapInstance.off('click', onMapDrawClick); }
+  _mapMode = mode;
+  if (mapInstance && mode === 'radius') mapInstance.on('click', onMapZoneClick);
+  if (mapInstance && mode === 'draw')   mapInstance.on('click', onMapDrawClick);
+  document.getElementById('map-container').style.cursor = mode ? 'crosshair' : '';
+  setMapBtn('map-zone-btn', mode === 'radius', 'map_zone_mode', 'map_zone_exit');
+  setMapBtn('map-draw-btn', mode === 'draw', 'map_draw_mode', 'map_draw_exit');
+  document.getElementById('map-zone-controls')?.classList.toggle('hidden', mode !== 'radius');
+  document.getElementById('map-draw-controls')?.classList.toggle('hidden', mode !== 'draw');
+  const hint = document.getElementById('map-zone-hint');
+  if (hint) {
+    hint.classList.toggle('hidden', !mode);
+    const key = mode === 'draw' ? 'map_draw_hint' : 'map_zone_hint';
+    hint.setAttribute('data-i18n', key); hint.textContent = T(key);
+  }
+  if (reload) loadMapMarkers();
 }
 
+function toggleMapZone() { setMapMode(_mapMode === 'radius' ? null : 'radius'); }
+function toggleMapDraw() { setMapMode(_mapMode === 'draw' ? null : 'draw'); }
+
+// ── Rayon autour d'un point (clic ou position du visiteur) ──
 async function onMapZoneClick(e) {
-  _mapZoneCenter = e.latlng;
+  const ll = e.latlng.wrap();
+  _mapFromMe = false;
+  _mapZoneCenter = L.latLng(mapCoord(ll.lat), mapCoord(ll.lng));
   await loadNearbyMarkers();
 }
 
@@ -4179,41 +4233,113 @@ function onRadiusChange(val) {
   if (_mapZoneCenter) loadNearbyMarkers();
 }
 
+// « Autour de moi » : la position n'est demandée qu'au clic, arrondie à ~110 m avant tout envoi, jamais conservée
+function mapAroundMe() {
+  if (!mapInstance) return;
+  if (!navigator.geolocation) { toast(T('map_me_denied')); return; }
+  const btn = document.getElementById('map-me-btn');
+  btn.disabled = true; btn.textContent = T('map_me_locating');
+  const done = () => { btn.disabled = false; btn.textContent = T('map_me_btn'); };
+  navigator.geolocation.getCurrentPosition(pos => {
+    done();
+    setMapMode('radius', false);
+    _mapFromMe = true;
+    _mapZoneCenter = L.latLng(mapCoord(pos.coords.latitude, 3), mapCoord(pos.coords.longitude, 3));
+    loadNearbyMarkers();
+  }, () => { done(); toast(T('map_me_denied')); }, { timeout: 10000, maximumAge: 60000 });
+}
+
 async function loadNearbyMarkers() {
   if (!mapInstance || !_mapZoneCenter) return;
   const radius = parseInt(document.getElementById('map-zone-radius').value) || 5;
   const { lat, lng } = _mapZoneCenter;
+  const params = new URLSearchParams({ lat, lng, radius });
+  for (const [k, v] of Object.entries(mapFilterValues())) if (v) params.set(k, v);
   const countEl = document.getElementById('map-count');
   countEl.textContent = T('loading');
+  const req = ++_mapReq;
   try {
-    const resp = await api(`/properties/nearby?lat=${lat}&lng=${lng}&radius=${radius}`);
-    const withCoords = (resp.data || []).filter(p => p.lat && p.lng);
+    const resp = await api('/properties/nearby?' + params);
+    if (req !== _mapReq || !_mapZoneCenter) return;
     if (_mapZoneCircle) mapInstance.removeLayer(_mapZoneCircle);
-    _mapZoneCircle = L.circle([lat, lng], { radius: radius * 1000, color: '#0C6E4F', fillColor: '#0C6E4F', fillOpacity: 0.08, weight: 2 }).addTo(mapInstance);
+    if (_mapMeMarker)   mapInstance.removeLayer(_mapMeMarker);
+    _mapZoneCircle = L.circle([lat, lng], { radius: radius * 1000, color: '#0C6E4F', fillColor: '#0C6E4F', fillOpacity: 0.08, weight: 2, interactive: false }).addTo(mapInstance);
+    _mapMeMarker = _mapFromMe
+      ? L.circleMarker([lat, lng], { radius: 7, color: '#fff', weight: 2, fillColor: '#2563eb', fillOpacity: 1, interactive: false }).bindTooltip(T('map_me_here')).addTo(mapInstance)
+      : null;
     mapInstance.setView([lat, lng], Math.max(10, Math.round(14 - Math.log2(radius))));
-    countEl.textContent = T('map_zone_results').replace('{n}', withCoords.length).replace('{r}', radius);
-    mapCluster.clearLayers();
-    const markers = withCoords.map(p => {
-      const isVente = p.mode === 'vente';
-      const color = isVente ? '#0C6E4F' : '#f59e0b';
-      const icon = L.divIcon({
-        className: 'map-marker-icon',
-        html: `<div style="background:${color};color:#fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:2px solid #fff">${isVente ? '🏷' : '🔑'}</div>`,
-        iconSize: [34, 34], iconAnchor: [17, 17], popupAnchor: [0, -20],
-      });
-      const dist = p.distance_km != null ? `<div style="font-size:.78rem;color:#64748b;margin-bottom:4px">📏 ${p.distance_km} km</div>` : '';
-      const popup = `<div style="width:220px">
-        <img src="${esc(thumbUrl(p.image || '', 480))}" style="width:100%;height:115px;object-fit:cover;border-radius:7px;display:block;margin-bottom:8px" onerror="this.style.background='#e2e8f0'">
-        <div style="font-weight:700;font-size:.88rem;margin-bottom:3px;line-height:1.3">${esc(p.title)}</div>
-        <div style="font-size:.78rem;color:#64748b;margin-bottom:4px">📍 ${esc(p.commune || wilayaName(p.wilaya))}</div>
-        ${dist}
-        <div style="font-size:.95rem;font-weight:700;color:${color};margin-bottom:8px">${priceText(p)}</div>
-        <button onclick="showPage('detail',${p.id})" style="background:${color};color:#fff;border:none;border-radius:7px;padding:6px 0;font-size:.82rem;font-weight:600;cursor:pointer;width:100%;font-family:inherit">${T('map_view')}</button>
-      </div>`;
-      return L.marker([p.lat, p.lng], { icon }).bindPopup(popup, { maxWidth: 250 });
-    });
-    mapCluster.addLayers(markers);
+    countEl.textContent = mapResultText('map_zone_results', resp, { r: radius });
+    showMapMarkers(resp.data, true);
   } catch (err) {
+    if (req !== _mapReq) return;
+    countEl.textContent = T('map_error');
+    console.error('[carte zone]', err.message);
+  }
+}
+
+// ── Zone dessinée (polygone) ──
+function resetMapDraw() {
+  if (_mapPolygon && mapInstance) mapInstance.removeLayer(_mapPolygon);
+  if (_mapDrawGroup) _mapDrawGroup.clearLayers();
+  _mapPolygon = null; _mapPolyPts = [];
+}
+
+function redrawMapDraw() {
+  if (!mapInstance) return;
+  if (!_mapDrawGroup) _mapDrawGroup = L.layerGroup().addTo(mapInstance);
+  _mapDrawGroup.clearLayers();
+  if (_mapPolyPts.length > 1) L.polyline(_mapPolyPts, { color: '#0C6E4F', weight: 2, dashArray: '6 6', interactive: false }).addTo(_mapDrawGroup);
+  _mapPolyPts.forEach((pt, i) => {
+    const first = i === 0 && _mapPolyPts.length >= 3;   // le premier point ferme la zone
+    const v = L.circleMarker(pt, { radius: first ? 9 : 5, color: '#0C6E4F', weight: 2, fillColor: first ? '#fff' : '#0C6E4F', fillOpacity: 1,
+                                   interactive: first, bubblingMouseEvents: false }).addTo(_mapDrawGroup);
+    if (first) v.on('click', finishMapDraw);
+  });
+}
+
+function onMapDrawClick(e) {
+  if (_mapPolygon) resetMapDraw();   // un nouveau clic après « Terminer » recommence le tracé
+  if (_mapPolyPts.length >= MAP_MAX_POINTS) { toast(T('map_draw_max')); return; }
+  const ll = e.latlng.wrap();
+  _mapPolyPts.push([mapCoord(ll.lat), mapCoord(ll.lng)]);
+  redrawMapDraw();
+}
+
+function undoMapDraw() {
+  if (_mapPolygon) { mapInstance.removeLayer(_mapPolygon); _mapPolygon = null; }
+  _mapPolyPts.pop();
+  redrawMapDraw();
+}
+
+function clearMapDraw() {
+  resetMapDraw();
+  loadMapMarkers();
+}
+
+function finishMapDraw() {
+  if (!mapInstance || _mapPolygon) return;
+  if (_mapPolyPts.length < 3) { toast(T('map_draw_min')); return; }
+  if (_mapDrawGroup) _mapDrawGroup.clearLayers();
+  _mapPolygon = L.polygon(_mapPolyPts, { color: '#0C6E4F', fillColor: '#0C6E4F', fillOpacity: 0.1, weight: 2, interactive: false }).addTo(mapInstance);
+  loadZoneMarkers(true);
+}
+
+async function loadZoneMarkers(fit = false) {
+  if (!mapInstance || !_mapPolygon) return;
+  const body = { polygon: _mapPolyPts };
+  for (const [k, v] of Object.entries(mapFilterValues())) if (v) body[k] = v;
+  const countEl = document.getElementById('map-count');
+  countEl.textContent = T('loading');
+  const req = ++_mapReq;
+  try {
+    const resp = await api('/properties/zone', 'POST', body);   // POST : la zone ne doit pas se retrouver dans les adresses
+    if (req !== _mapReq || !_mapPolygon) return;
+    countEl.textContent = mapResultText('map_zone_results_poly', resp);
+    showMapMarkers(resp.data, false);
+    if (fit) mapInstance.fitBounds(_mapPolygon.getBounds().pad(0.1));
+  } catch (err) {
+    if (req !== _mapReq) return;
+    if (err.status === 400) { toast(err.message); resetMapDraw(); }   // zone refusée (sans surface…) : on la retrace
     countEl.textContent = T('map_error');
     console.error('[carte zone]', err.message);
   }
