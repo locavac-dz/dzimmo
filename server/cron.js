@@ -38,6 +38,26 @@ cron.schedule('30 3 * * *', async () => {
   }
 });
 
+// Newsletter : envoi par lots des campagnes en file (chaque minute ; réservation atomique, voir server/newsletter.js)
+cron.schedule('* * * * *', async () => {
+  try {
+    const r = await require('./newsletter').sendDue();
+    if (r.sent || r.failed) console.log(`[cron] newsletter : ${r.sent} envoyé(s), ${r.failed} échec(s).`);
+  } catch (e) {
+    console.error('[cron] Erreur envoi de la newsletter :', e.message);
+  }
+});
+
+// Newsletter : inscriptions jamais confirmées, effacées après 7 jours
+cron.schedule('45 3 * * *', async () => {
+  try {
+    const n = await require('./newsletter').purgeUnconfirmed();
+    if (n) console.log(`[cron] newsletter : ${n} inscription(s) non confirmée(s) effacée(s).`);
+  } catch (e) {
+    console.error('[cron] Erreur purge de la newsletter :', e.message);
+  }
+});
+
 // Envoi des alertes email — toutes les heures
 cron.schedule('0 * * * *', () => sendSearchAlerts());
 

@@ -33,7 +33,7 @@ Valeurs à renseigner dans `.env` :
 | `APP_URL` | `https://dzimmo.dz` (liens des emails, sitemap, URL canoniques) |
 | `CORS_ORIGINS` | `https://dzimmo.dz` |
 | `TRUST_PROXY` | `1` (Nginx devant l'application : sinon tous les visiteurs partagent la même limite de débit) |
-| `EMAIL_*` | compte SMTP : sans lui, aucun email de confirmation, de mot de passe oublié ni d'alerte |
+| `EMAIL_*` | compte SMTP : sans lui, aucun email de confirmation, de mot de passe oublié ni d'alerte, et la newsletter (inscription et envois) est inopérante |
 | `VERIFICATION_DIR` | dossier **privé** des justificatifs de vérification (défaut : `private/verification` dans le projet) |
 
 Le dossier des justificatifs ne doit jamais être servi par Nginx ni placé sous `public/`. L'utilisateur qui lance

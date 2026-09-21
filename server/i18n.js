@@ -158,6 +158,17 @@ const AR = {
   'Fichier trop volumineux (10 Mo maximum).': 'الملف كبير جداً (10 ميغابايت كحد أقصى).',
   'Trop de fichiers (10 maximum).': 'عدد الملفات كبير جداً (10 كحد أقصى).',
   'Fichier inattendu.': 'ملف غير متوقع.',
+
+  // Newsletter
+  'Trop de demandes. Réessayez dans 1 heure.': 'طلبات كثيرة جداً. أعد المحاولة بعد ساعة.',
+  'Inscription momentanément indisponible. Réessayez plus tard.': 'الاشتراك غير متاح مؤقتاً. أعد المحاولة لاحقاً.',
+  'Renseignez le sujet et le texte, au moins dans une langue (une langue commencée doit être complète).': 'أدخل العنوان والنص بلغة واحدة على الأقل (اللغة التي بدأتها يجب أن تكون مكتملة).',
+  'Sujet trop long (150 caractères maximum).': 'العنوان طويل جداً (150 حرفاً كحد أقصى).',
+  'Texte trop long (10 000 caractères maximum).': 'النص طويل جداً (10 000 حرف كحد أقصى).',
+  'Aucun abonné confirmé.': 'لا يوجد أي مشترك مؤكَّد.',
+  'Envoi d’emails non configuré sur le serveur.': 'إرسال البريد الإلكتروني غير مُعدّ على الخادم.',
+  'L’email de test n’a pas pu être envoyé.': 'تعذّر إرسال رسالة الاختبار.',
+  'Campagne introuvable.': 'الحملة غير موجودة.',
 };
 
 // Langue demandée : en-tête explicite du site (X-Lang), sinon préférence du navigateur (Accept-Language)

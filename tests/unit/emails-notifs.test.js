@@ -28,6 +28,8 @@ const SAMPLES = {
   buildExpiryReminder:            { name: 'Karim', propertyTitle: 'Villa X', days: 30, graceDays: 14, confirmUrl: 'https://dzimmo.dz/annonce/1-villa?renew=abc' },
   buildListingExpired:            { name: 'Karim', propertyTitle: 'Villa X', renewUrl: 'https://dzimmo.dz/annonce/1-villa?renew=abc' },
   buildSiteContact:               { name: 'Sara', email: 'sara@exemple.dz', subject: 'partenariat', message: 'Hello there' },
+  buildNewsletterConfirm:         { confirmUrl: 'https://dzimmo.dz/newsletter/confirmation?e=1&t=abc' },
+  buildNewsletter:                { subject: 'عرض جديد', body: 'مرحبا\n\nنص الرسالة', unsubscribeUrl: 'https://dzimmo.dz/newsletter/desinscription?e=1&t=abc' },
 };
 
 test('chaque gabarit d\'email existe et est couvert par un jeu de données', () => {
@@ -72,7 +74,7 @@ test('emails : les données saisies par les utilisateurs sont échappées (pas d
   for (const lang of ['fr', 'ar']) {
     for (const [name, data] of Object.entries(SAMPLES)) {
       const dirty = JSON.parse(JSON.stringify(data));
-      for (const k of ['name', 'ownerName', 'requesterName', 'propertyTitle', 'senderName', 'preview', 'message', 'reason'])
+      for (const k of ['name', 'ownerName', 'requesterName', 'propertyTitle', 'senderName', 'preview', 'message', 'reason', 'subject', 'body'])
         if (k in dirty) dirty[k] = evil;
       if (dirty.properties) dirty.properties[0].title = evil;
       assert.doesNotMatch(build[name](lang, dirty).html, /<script>alert/, `${name} (${lang})`);

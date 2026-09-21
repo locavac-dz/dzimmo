@@ -377,7 +377,7 @@ async function landingPage(req, res, f, base) {
 function mount(app) {
   app.get('/robots.txt', (req, res) => {
     res.type('text/plain').send(
-      `User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: ${baseUrl(req)}/sitemap.xml\n`);
+      `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /newsletter/\n\nSitemap: ${baseUrl(req)}/sitemap.xml\n`);
   });
 
   app.get('/sitemap.xml', async (req, res) => {
@@ -428,6 +428,19 @@ function mount(app) {
   };
   for (const [route, [title, description]] of Object.entries(directories))
     app.get(route, (req, res) => send(res, { title, description, canonical: baseUrl(req) + route }));
+
+  // Liens des emails de la newsletter (confirmation, désinscription) : la SPA lit ?e= et ?t= puis appelle l'API. Jamais indexés, et
+  // le jeton ne part dans aucun en-tête Referer. La page ne fait rien à l'ouverture pour une désinscription (un robot qui suit le lien
+  // ne désabonne personne) : c'est le bouton de la page qui appelle l'API.
+  const newsletterPages = {
+    '/newsletter/confirmation':   'Confirmation de l’inscription à la newsletter | DzImmo',
+    '/newsletter/desinscription': 'Désinscription de la newsletter | DzImmo',
+  };
+  for (const [route, title] of Object.entries(newsletterPages))
+    app.get(route, (req, res) => {
+      res.set('Referrer-Policy', 'no-referrer');
+      return send(res, { title, description: DEFAULT_DESC, canonical: baseUrl(req) + '/', robots: 'noindex,nofollow' });
+    });
 
   const notFound = (req, res) => send(res, {
     title: 'Page introuvable | DzImmo', description: DEFAULT_DESC, canonical: baseUrl(req) + '/', robots: 'noindex,follow',

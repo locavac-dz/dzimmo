@@ -2,6 +2,8 @@ const router = require('express').Router();
 const db     = require('../db');
 const admin  = require('../middleware/admin');
 const moderation = require('../moderation');
+const mailer = require('../mailer');
+const newsletter = require('../newsletter');
 const { pool, toId } = require('../db');
 const { paginate, likePattern } = require('../pagination');
 
@@ -172,10 +174,49 @@ router.put('/signalements/:id/resolve', admin, async (req, res) => {
   res.json({ ok: true });
 });
 
-// GET /api/admin/newsletter
+// ── Newsletter (voir server/newsletter.js) ───────────────────────────────────
+// GET /api/admin/newsletter : abonnés (confirmés ou en attente de confirmation) et nombre de destinataires possibles
 router.get('/newsletter', admin, async (req, res) => {
+  const page = await paginate(pool, {
+    columns: 'id, email, lang, created_at, confirmed_at', from: 'newsletter_subscribers', orderBy: 'created_at DESC, id DESC', query: req.query });
+  page.confirmed = (await pool.query('SELECT COUNT(*)::int AS n FROM newsletter_subscribers WHERE confirmed_at IS NOT NULL')).rows[0].n;
+  page.smtp = mailer.configured();
+  res.json(page);
+});
+
+// GET /api/admin/newsletter/campaigns : campagnes avec envoyés, échecs et total
+router.get('/newsletter/campaigns', admin, async (req, res) => {
   res.json(await paginate(pool, {
-    columns: '*', from: 'newsletter_subscribers', orderBy: 'created_at DESC, id DESC', query: req.query }));
+    columns: 'c.id, c.subject_fr, c.subject_ar, c.created_at, c.canceled_at, c.total, c.sent, c.failed',
+    from: newsletter.CAMPAIGNS_FROM, countFrom: 'newsletter_campaigns', orderBy: 'c.created_at DESC, c.id DESC', query: req.query }));
+});
+
+// POST /api/admin/newsletter/campaigns { subject_fr, body_fr, subject_ar, body_ar } : met l'envoi en file pour les abonnés confirmés
+router.post('/newsletter/campaigns', admin, async (req, res) => {
+  const { campaign, error } = newsletter.parseCampaign(req.body);
+  if (error) return res.status(400).json({ error });
+  if (!mailer.configured()) return res.status(503).json({ error: 'Envoi d’emails non configuré sur le serveur.' });
+  if (!(await pool.query('SELECT 1 FROM newsletter_subscribers WHERE confirmed_at IS NOT NULL LIMIT 1')).rowCount)
+    return res.status(400).json({ error: 'Aucun abonné confirmé.' });
+  const r = await newsletter.createCampaign(campaign, req.user.id);
+  res.status(201).json({ id: r.id, recipients: r.recipients });
+});
+
+// POST /api/admin/newsletter/campaigns/:id/cancel : les envois pas encore partis sont abandonnés
+router.post('/newsletter/campaigns/:id/cancel', admin, async (req, res) => {
+  if (!(await newsletter.cancelCampaign(toId(req.params.id) ?? 0))) return res.status(404).json({ error: 'Campagne introuvable.' });
+  res.json({ ok: true });
+});
+
+// POST /api/admin/newsletter/test : même mise en forme, envoyée à l'adresse de l'administrateur seulement
+router.post('/newsletter/test', admin, async (req, res) => {
+  const { campaign, error } = newsletter.parseCampaign(req.body);
+  if (error) return res.status(400).json({ error });
+  if (!mailer.configured()) return res.status(503).json({ error: 'Envoi d’emails non configuré sur le serveur.' });
+  const me = await db.users.findById(req.user.id);
+  const ok = me && await newsletter.sendTest(campaign, me.email, me.lang === 'ar' ? 'ar' : 'fr');
+  if (!ok) return res.status(503).json({ error: "L’email de test n’a pas pu être envoyé." });
+  res.json({ ok: true });
 });
 
 module.exports = router;

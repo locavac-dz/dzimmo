@@ -96,6 +96,14 @@ const TRANSLATIONS = {
     st_wilayas:'Top wilayas', st_wilayas_sub:'Annonces actives par wilaya',
     st_ad_one:'annonce', st_ad_many:'annonces', st_footer:'Données en temps réel',
     ft_copy:'© 2026 DzImmo · Algérie · Tous droits réservés',
+    nl_title:'Newsletter', nl_desc:'Recevez nos actualités et une sélection d’annonces. Désinscription en un clic.',
+    nl_btn:'S’inscrire', nl_sent:'✅ Un email de confirmation vient de vous être envoyé. Cliquez sur son lien pour valider votre inscription.',
+    nl_failed:'Inscription impossible pour le moment.',
+    nl_confirm_ask_title:'Confirmer votre inscription', nl_confirm_ask_msg:'Un dernier clic pour recevoir la newsletter DzImmo.', nl_confirm_ask_btn:'Confirmer mon inscription',
+    nl_confirm_done_title:'Inscription confirmée', nl_confirm_done_msg:'Merci ! Vous recevrez désormais notre newsletter. Chaque message contient un lien pour vous désinscrire.',
+    nl_unsub_ask_title:'Se désinscrire de la newsletter', nl_unsub_ask_msg:'Confirmez pour ne plus recevoir nos emails.', nl_unsub_ask_btn:'Me désinscrire',
+    nl_unsub_done_title:'Vous êtes désinscrit', nl_unsub_done_msg:'Vous ne recevrez plus la newsletter DzImmo.',
+    nl_bad_title:'Lien invalide ou expiré', nl_bad_msg:'Ce lien ne fonctionne plus. Si vous vous êtes inscrit il y a plus de 7 jours sans confirmer, inscrivez-vous de nouveau depuis le bas de la page.',
     m_login:'Connexion', m_email:'Email', m_pass:'Mot de passe',
     m_connect:'Se connecter', m_or:'ou', m_create_account:'Créer un compte',
     m_forgot:'Mot de passe oublié ?', m_register:"Créer un compte",
@@ -439,6 +447,14 @@ const TRANSLATIONS = {
     st_wilayas:'أعلى الولايات', st_wilayas_sub:'الإعلانات النشطة حسب الولاية',
     st_ad_one:'إعلان', st_ad_many:'إعلانات', st_footer:'بيانات في الوقت الحقيقي',
     ft_copy:'© 2026 DzImmo · الجزائر · جميع الحقوق محفوظة',
+    nl_title:'النشرة البريدية', nl_desc:'احصل على أخبارنا ومختارات من الإعلانات. إلغاء الاشتراك بنقرة واحدة.',
+    nl_btn:'اشتراك', nl_sent:'✅ أُرسلت إليك رسالة تأكيد. اضغط على الرابط فيها لتفعيل اشتراكك.',
+    nl_failed:'تعذّر الاشتراك حالياً.',
+    nl_confirm_ask_title:'تأكيد اشتراكك', nl_confirm_ask_msg:'نقرة أخيرة لتصلك النشرة البريدية لـ DzImmo.', nl_confirm_ask_btn:'أؤكد اشتراكي',
+    nl_confirm_done_title:'تم تأكيد الاشتراك', nl_confirm_done_msg:'شكراً! ستصلك نشرتنا البريدية من الآن. تحتوي كل رسالة على رابط لإلغاء الاشتراك.',
+    nl_unsub_ask_title:'إلغاء الاشتراك في النشرة البريدية', nl_unsub_ask_msg:'أكِّد لتتوقف عن استلام رسائلنا.', nl_unsub_ask_btn:'إلغاء اشتراكي',
+    nl_unsub_done_title:'تم إلغاء اشتراكك', nl_unsub_done_msg:'لن تصلك النشرة البريدية لـ DzImmo بعد الآن.',
+    nl_bad_title:'الرابط غير صالح أو منتهي الصلاحية', nl_bad_msg:'لم يعد هذا الرابط صالحاً. إن كنت قد اشتركت منذ أكثر من 7 أيام دون تأكيد، فاشترك من جديد عبر أسفل الصفحة.',
     m_login:'تسجيل الدخول', m_email:'البريد الإلكتروني', m_pass:'كلمة المرور',
     m_connect:'تسجيل الدخول', m_or:'أو', m_create_account:'إنشاء حساب',
     m_forgot:'نسيت كلمة المرور؟', m_register:'إنشاء حساب',
@@ -887,6 +903,8 @@ async function init() {
   else if (path === '/programmes') showPage('programmes');
   else if (proMatch)  showPage('agency-detail', Number(proMatch[1]));
   else if (progMatch) showPage('programme-detail', Number(progMatch[1]));
+  else if (path === '/newsletter/confirmation' || path === '/newsletter/desinscription')
+    showNewsletterLink(path === '/newsletter/confirmation' ? 'confirm' : 'unsub', params);
   const annonceMatch = location.pathname.match(/^\/annonce\/(\d+)/);
   // Lien de l'email de rappel (?renew=jeton) : mémorisé avant que la fiche ne réécrive l'adresse
   if (annonceMatch && params.get('renew')) { window._renewToken = params.get('renew'); window._renewFor = Number(annonceMatch[1]); }
@@ -1067,7 +1085,7 @@ async function api(path, method = 'GET', body = null) {
 }
 
 // ── Navigation ────────────────────────────────────
-const PAGES = ['home','annonces','detail','publier','agences','agency-detail','programmes','programme-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats','contrats'];
+const PAGES = ['home','annonces','detail','publier','agences','agency-detail','programmes','programme-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats','contrats','newsletter'];
 
 const DEFAULT_TITLE = 'DzImmo — Immobilier en Algérie';
 const PRO_PAGES = ['agences', 'agency-detail', 'programmes', 'programme-detail'];
@@ -1870,6 +1888,57 @@ async function submitContactPage(event) {
     event.target.reset();
   } catch (e) { toast('❌ ' + (e.message || T('ct_failed'))); }   // échec : on le dit, et le texte saisi reste dans le formulaire
   return false;
+}
+
+// ── Newsletter : inscription (pied de page) et liens des emails ──────────────────
+// L'inscription n'est valable qu'après le clic sur le lien de l’email de confirmation ; la réponse est la même que l'adresse soit
+// nouvelle ou déjà connue (rien n'est révélé sur les inscrits).
+async function newsletterSubscribe(event) {
+  event.preventDefault();
+  const input = document.getElementById('nl-email');
+  try {
+    await api('/newsletter/subscribe', 'POST', { email: input.value.trim(), lang: currentLang });
+    toast(T('nl_sent'));
+    event.target.reset();
+  } catch (e) { toast('❌ ' + (e.message || T('nl_failed'))); }
+  return false;
+}
+
+// Lien reçu par email (/newsletter/confirmation ou /newsletter/desinscription, ?e=&t=) : identifiant et jeton sont gardés en mémoire
+// puis effacés de la barre d'adresse (showPage réécrit l'URL). Ni l'un ni l'autre ne s'exécute à l'ouverture : c'est le bouton qui agit,
+// pour qu'un robot ou un antivirus de messagerie qui suit le lien ne confirme ni ne désabonne personne.
+let _nlLink = null;
+
+function newsletterState(kind, state) {
+  const key = state === 'bad' ? 'nl_bad' : 'nl_' + kind + '_' + state;
+  const set = (id, k) => { const el = document.getElementById(id); el.dataset.i18n = k; el.textContent = T(k); };
+  set('nl-page-title', key + '_title');
+  set('nl-page-msg', key + '_msg');
+  document.getElementById('nl-page-icon').textContent = state === 'bad' ? '⚠️' : state === 'done' ? '✅' : '📧';
+  const btn = document.getElementById('nl-page-btn');
+  btn.classList.toggle('hidden', state !== 'ask');
+  if (state === 'ask') { btn.dataset.i18n = key + '_btn'; btn.textContent = T(key + '_btn'); btn.disabled = false; }
+}
+
+function showNewsletterLink(kind, params) {
+  const e = params.get('e') || '', t = params.get('t') || '';
+  _nlLink = /^\d{1,10}$/.test(e) && /^[0-9a-f]{40}$/.test(t) ? { kind, e, t } : null;
+  showPage('newsletter');
+  newsletterState(kind, _nlLink ? 'ask' : 'bad');
+}
+
+async function newsletterAct() {
+  if (!_nlLink) return;
+  const { kind, e, t } = _nlLink, btn = document.getElementById('nl-page-btn');
+  btn.disabled = true;
+  try {
+    await api('/newsletter/' + (kind === 'confirm' ? 'confirm' : 'unsubscribe'), 'POST', { e, t });
+    _nlLink = null;
+    newsletterState(kind, 'done');
+  } catch (err) {
+    if (err.status === 400) { _nlLink = null; newsletterState(kind, 'bad'); }   // lien périmé : inutile de réessayer
+    else { btn.disabled = false; toast('❌ ' + err.message); }
+  }
 }
 
 function openChat(propertyId, ownerId) {
@@ -2675,28 +2744,119 @@ async function adminResolveSignalement(id, status) {
   } catch (e) { toast('❌ ' + e.message); }
 }
 
-async function adminLoadNewsletter(page = 1) {
+// ── Newsletter (administration) : rédaction, test, envois, abonnés ─────────────
+// Les abonnés ne reçoivent un envoi qu'après avoir confirmé leur adresse ; chaque message porte son lien de désinscription.
+const NL_FIELD = 'width:100%;padding:.55rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;margin-bottom:.6rem;background:var(--bg);color:var(--text)';
+
+function nlDraft() {
+  const v = id => document.getElementById('nl-' + id).value;
+  return { subject_fr: v('subject_fr'), body_fr: v('body_fr'), subject_ar: v('subject_ar'), body_ar: v('body_ar') };
+}
+
+async function adminLoadNewsletter() {
   const c = document.getElementById('admin-content');
-  c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  c.innerHTML = `
+    <h3 style="font-size:1rem;font-weight:800;margin-bottom:.5rem">Nouvel envoi</h3>
+    <div class="card" style="padding:1rem;margin-bottom:1.75rem">
+      <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:.9rem">Rédigez au moins une langue (sujet et texte). Chaque abonné confirmé reçoit sa langue, ou l’autre à défaut. Séparez les paragraphes par une ligne vide : le lien de désinscription est ajouté automatiquement.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem">
+        <div>
+          <label style="display:block;font-size:.82rem;font-weight:600;margin-bottom:.25rem">Sujet (français)</label>
+          <input id="nl-subject_fr" type="text" maxlength="150" style="${NL_FIELD}">
+          <label style="display:block;font-size:.82rem;font-weight:600;margin-bottom:.25rem">Texte (français)</label>
+          <textarea id="nl-body_fr" rows="9" maxlength="10000" style="${NL_FIELD};resize:vertical"></textarea>
+        </div>
+        <div dir="rtl">
+          <label style="display:block;font-size:.82rem;font-weight:600;margin-bottom:.25rem">Sujet (arabe)</label>
+          <input id="nl-subject_ar" type="text" maxlength="150" style="${NL_FIELD}">
+          <label style="display:block;font-size:.82rem;font-weight:600;margin-bottom:.25rem">Texte (arabe)</label>
+          <textarea id="nl-body_ar" rows="9" maxlength="10000" style="${NL_FIELD};resize:vertical"></textarea>
+        </div>
+      </div>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.4rem">
+        <button class="btn btn-outline btn-sm" onclick="adminNlTest()">Envoyer un test à mon adresse</button>
+        <button class="btn btn-primary btn-sm" onclick="adminNlSend()">Envoyer aux abonnés confirmés</button>
+      </div>
+    </div>
+    <h3 style="font-size:1rem;font-weight:800;margin-bottom:.5rem">Envois</h3>
+    <div id="nl-campaigns" style="margin-bottom:1.75rem"></div>
+    <h3 style="font-size:1rem;font-weight:800;margin-bottom:.5rem">Abonnés</h3>
+    <div id="nl-subs"></div>`;
+  adminNlCampaigns(1);
+  adminNlSubs(1);
+}
+
+async function adminNlTest() {
+  try { await api('/admin/newsletter/test', 'POST', nlDraft()); toast('✅ Test envoyé à votre adresse.'); }
+  catch (e) { toast('❌ ' + e.message); }
+}
+
+async function adminNlSend() {
+  const draft = nlDraft();
+  if (!confirm('Envoyer cette newsletter à tous les abonnés confirmés ? L’envoi ne peut pas être rappelé une fois parti.')) return;
+  try {
+    const r = await api('/admin/newsletter/campaigns', 'POST', draft);
+    toast(`✅ Envoi en cours vers ${r.recipients} abonné${r.recipients > 1 ? 's' : ''}.`);
+    ['subject_fr', 'body_fr', 'subject_ar', 'body_ar'].forEach(k => { document.getElementById('nl-' + k).value = ''; });
+    adminNlCampaigns(1);
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+async function adminNlCancel(btn) {
+  if (!confirm('Annuler les envois qui ne sont pas encore partis ?')) return;
+  try { await api('/admin/newsletter/campaigns/' + btn.dataset.id + '/cancel', 'POST'); adminNlCampaigns(_adminPage.nlCampaigns || 1); }
+  catch (e) { toast('❌ ' + e.message); }
+}
+
+async function adminNlCampaigns(page = 1) {
+  const box = document.getElementById('nl-campaigns');
+  if (!box) return;
+  _adminPage.nlCampaigns = page;
+  try {
+    const r = await api('/admin/newsletter/campaigns' + adminQuery({ page }));
+    box.innerHTML = r.items.length ? `
+      <div style="overflow-x:auto"><table class="admin-table">
+        <thead><tr><th>Date</th><th>Sujet</th><th>Envoyés</th><th>Échecs</th><th>Restants</th><th></th></tr></thead>
+        <tbody>${r.items.map(k => {
+          const left = k.canceled_at ? 0 : k.total - k.sent - k.failed;
+          return `<tr>
+            <td style="white-space:nowrap;color:var(--text-muted)">${new Date(k.created_at).toLocaleDateString('fr-DZ')}</td>
+            <td>${esc(k.subject_fr || k.subject_ar)}${k.canceled_at ? ' <em style="color:var(--text-muted)">(annulé)</em>' : ''}</td>
+            <td>${k.sent} / ${k.total}</td><td>${k.failed}</td><td>${left}</td>
+            <td>${left > 0 ? `<button class="btn btn-outline btn-sm" data-id="${Number(k.id)}" onclick="adminNlCancel(this)">Annuler</button>` : ''}</td>
+          </tr>`; }).join('')}
+        </tbody></table></div>
+      ${adminPager(r, n => `adminNlCampaigns(${n})`)}`
+      : '<p style="color:var(--text-muted);font-size:.9rem">Aucun envoi pour l’instant.</p>';
+  } catch (e) { box.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message)}</p>`; }
+}
+
+async function adminNlSubs(page = 1) {
+  const box = document.getElementById('nl-subs');
+  if (!box) return;
   try {
     const r = await api('/admin/newsletter' + adminQuery({ page }));
     const subs = r.items;
-    c.innerHTML = `
-      <p style="margin-bottom:1rem;font-size:1.1rem;font-weight:800;color:var(--primary)">${r.total} abonné${r.total > 1 ? 's' : ''}</p>
+    box.innerHTML = `
+      <p style="margin-bottom:.75rem;font-size:1rem;font-weight:800;color:var(--primary)">${r.confirmed} abonné${r.confirmed > 1 ? 's' : ''} confirmé${r.confirmed > 1 ? 's' : ''}
+        <span style="font-weight:500;color:var(--text-muted);font-size:.85rem"> · ${r.total} adresse${r.total > 1 ? 's' : ''} au total</span></p>
+      ${r.smtp ? '' : '<p style="color:var(--red);font-size:.85rem;margin-bottom:.75rem">⚠️ Envoi d’emails non configuré sur le serveur : ni confirmation ni envoi ne partent.</p>'}
       <div style="overflow-x:auto">
         <table class="admin-table">
-          <thead><tr><th>Email</th><th>Inscrit le</th></tr></thead>
+          <thead><tr><th>Email</th><th>Langue</th><th>Inscrit le</th><th>Statut</th></tr></thead>
           <tbody>${subs.map(s => `
             <tr>
               <td>${esc(s.email)}</td>
+              <td>${s.lang === 'ar' ? 'العربية' : 'Français'}</td>
               <td style="color:var(--text-muted);white-space:nowrap">${new Date(s.created_at).toLocaleDateString('fr-DZ')}</td>
+              <td>${s.confirmed_at ? '✅ Confirmé' : '⏳ En attente'}</td>
             </tr>`).join('')}
           </tbody>
         </table>
       </div>
       ${subs.length ? '' : adminNoResult}
-      ${adminPager(r, n => `adminLoadNewsletter(${n})`)}`;
-  } catch (e) { c.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
+      ${adminPager(r, n => `adminNlSubs(${n})`)}`;
+  } catch (e) { box.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message)}</p>`; }
 }
 
 // ── Favoris ───────────────────────────────────────

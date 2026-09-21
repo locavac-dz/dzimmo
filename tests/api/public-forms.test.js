@@ -1,5 +1,5 @@
-// Formulaire public sans compte : page Contact (POST /api/contact). La newsletter n'a plus de route publique ;
-// seule la liste d'administration (GET /api/admin/newsletter) des abonnés existants subsiste.
+// Formulaire public sans compte : page Contact (POST /api/contact). La newsletter (inscription à double confirmation) est
+// testée dans newsletter.test.js ; on ne vérifie ici que la liste d'administration de ses abonnés.
 const test   = require('node:test');
 const assert = require('node:assert/strict');
 const fs     = require('node:fs');
@@ -112,17 +112,6 @@ test('contact : rien n\'est stocké, /api/contacts (demandes sur une annonce) n\
   const app = fs.readFileSync(path.join(ROOT, 'server', 'app.js'), 'utf8');
   assert.match(app, /\.\.\.shared\('contact'\)/);
   assert.ok(app.includes("app.use('/api/contact', contactLimiter)"));
-});
-
-test('newsletter : plus aucune route publique (ni inscription, ni désinscription, ni jeton), rien n’est écrit en base', async () => {
-  const before = (await q('SELECT count(*)::int AS n FROM newsletter_subscribers')).rows[0].n;
-  for (const [method, url] of [['POST', '/api/newsletter/subscribe'], ['DELETE', '/api/newsletter/unsubscribe'], ['GET', '/api/newsletter']]) {
-    const r = await s.request(method, url, { body: method === 'GET' ? undefined : { email: 'lecteur@exemple.dz', token: 'f'.repeat(32) } });
-    assert.equal(r.status, 404, method + ' ' + url);
-    assert.doesNotMatch(JSON.stringify(r.body), /[0-9a-f]{32}/, 'aucun jeton dans la réponse');
-  }
-  assert.equal((await q('SELECT count(*)::int AS n FROM newsletter_subscribers')).rows[0].n, before);
-  for (const f of ['server/routes/newsletter.js']) assert.ok(!fs.existsSync(path.join(ROOT, f)), f + ' supprimé');
 });
 
 test('newsletter : la liste des abonnés est réservée aux administrateurs et paginée', async () => {

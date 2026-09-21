@@ -175,10 +175,17 @@ Windows : `demarrer.bat`
 - **Page Contact** (`POST /api/contact`, `server/routes/contact.js`) — à ne pas confondre avec `/api/contacts` (demandes sur une annonce) :
   le message part à `CONTACT_EMAIL`, sinon aux administrateurs (dans leur langue), avec l'adresse du visiteur en `Reply-To` seulement ;
   il n'est ni stocké ni journalisé. Le limiteur `contact` est partagé entre les workers.
-- **Newsletter** : aucune route publique (inscription et désinscription retirées : le jeton de désinscription se déduisait de l'adresse, et personne
-  ne consentait à figurer dans la liste). La table `newsletter_subscribers` et sa liste d'administration ne servent qu'à consulter les
-  abonnés existants. Une vraie newsletter exigerait une double confirmation par email (FR + AR), un lien de désinscription à jeton
-  dans chaque envoi et une page de désinscription : ne pas rétablir une inscription sans ces trois éléments.
+- **Newsletter** (`server/newsletter.js`, `server/routes/newsletter.js`, migration 017) : inscription à **double confirmation**. `POST /api/newsletter/subscribe`
+  n'ajoute que des lignes sans `confirmed_at` et envoie un email (FR ou AR selon `X-Lang`) ; seul le clic sur le bouton de la page
+  `/newsletter/confirmation` (`POST /confirm`) donne le consentement. Les jetons sont des HMAC de l'id et de l'usage (`confirm` ≠ `unsubscribe`),
+  jamais renvoyés par l'API ; l'inscription répond toujours `{ ok: true }` (elle ne révèle pas si l'adresse existe) et 503 sans SMTP.
+  Les inscrits jamais confirmés sont purgés après 7 jours (cron 03:45), **anciens inscrits sans consentement compris**.
+  Les envois par les administrateurs (Administration → Newsletter) créent une campagne (`newsletter_campaigns`, texte FR + AR) et une ligne
+  par abonné confirmé (`newsletter_deliveries`) ; le cron de chaque minute vide la file par lots (`FOR UPDATE SKIP LOCKED`, 5 essais, reprise à 10 min),
+  chacun dans la langue de l'abonné. Chaque envoi porte un lien de désinscription à jeton et les en-têtes `List-Unsubscribe` / `List-Unsubscribe-Post` (RFC 8058) ;
+  la page `/newsletter/desinscription` désinscrit par un bouton (jamais à l'ouverture du lien, pour les antivirus qui suivent les liens).
+  Pages en `noindex`, `no-referrer` et `Disallow` dans robots.txt. Le limiteur `newsletter` ne couvre que l'inscription. **Le SMTP est indispensable** : sans lui, ni
+  inscription ni envoi. Ne jamais envoyer à une adresse non confirmée.
 - Envoi d'images (`server/routes/upload.js`) : un fichier illisible est une erreur du client (400), et l'envoi multiple est tout ou rien
   (les fichiers déjà écrits sont retirés).
 - Toute image saisie par un utilisateur (annonce, logo, programme…) est validée par `server/images.js` : fichier envoyé sur ce site

@@ -663,6 +663,10 @@
     .footer-col h4 { color: #fff; font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; }
     .footer-col a { display: block; color: rgba(255,255,255,.65); margin-bottom: 0.4rem; transition: color 0.12s; }
     .footer-col a:hover { color: #fff; }
+    .footer-col .nl-desc { font-size: 0.85rem; line-height: 1.6; color: rgba(255,255,255,.6); margin-bottom: 0.75rem; }
+    .nl-form { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .nl-form input { flex: 1 1 140px; min-width: 0; padding: 0.5rem 0.7rem; border: 1px solid rgba(255,255,255,.25); border-radius: 8px; background: rgba(255,255,255,.08); color: #fff; font-size: 0.85rem; }
+    .nl-form input::placeholder { color: rgba(255,255,255,.45); }
     .footer-bottom { text-align: center; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,.1); font-size: 0.82rem; opacity: 0.6; }
 
     /* ── Notifications ── */

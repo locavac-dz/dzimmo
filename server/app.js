@@ -154,6 +154,19 @@ const contactLimiter = rateLimit({
 });
 app.use('/api/contact', contactLimiter);
 
+// Inscription à la newsletter : chaque appel peut envoyer un email de confirmation à l'adresse saisie. Seule l'inscription est limitée :
+// la confirmation et la désinscription arrivent parfois des serveurs des messageries (bouton « Se désabonner »), qui partagent leurs adresses.
+const newsletterLimiter = rateLimit({
+  ...shared('newsletter'),
+  windowMs: 60 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de demandes. Réessayez dans 1 heure.' },
+  skip: () => process.env.NODE_ENV === 'test',
+});
+app.use('/api/newsletter/subscribe', newsletterLimiter);
+
 app.use(express.json());
 // Express 5 laisse req.body à undefined quand la requête n'a pas de corps JSON : les routes lisent `const { … } = req.body`,
 // un POST sans corps doit donner leur 400 habituel, pas une erreur 500.
@@ -191,6 +204,7 @@ app.use('/api/auth',       require('./routes/auth'));
 app.use('/api/properties', require('./routes/properties'));
 app.use('/api/contacts',   require('./routes/contacts'));
 app.use('/api/contact',    require('./routes/contact'));    // page Contact (visiteur → équipe), distinct des demandes sur une annonce
+app.use('/api/newsletter', require('./routes/newsletter')); // inscription à double confirmation (server/newsletter.js)
 app.use('/api/messages',   require('./routes/messages'));
 app.use('/api/upload',     require('./routes/upload'));
 app.use('/api/agencies',   require('./routes/agencies'));

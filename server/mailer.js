@@ -36,7 +36,7 @@ function sender(env = process.env) {
 
 // Renvoie true si le serveur SMTP a accepté le message, false sinon (SMTP non configuré, destinataire absent, refus) :
 // la plupart des appelants l'ignorent ; le formulaire de contact s'en sert pour ne pas annoncer un envoi qui n'a pas eu lieu.
-async function sendMail({ to, subject, html, replyTo }) {
+async function sendMail({ to, subject, html, replyTo, headers }) {
   const t = getTransporter();
   if (!t || !to) return false;
   try {
@@ -44,6 +44,7 @@ async function sendMail({ to, subject, html, replyTo }) {
       from: sender(),
       to, subject, html,
       ...(replyTo ? { replyTo } : {}),
+      ...(headers ? { headers } : {}),
     });
     return true;
   } catch (e) {
@@ -52,6 +53,9 @@ async function sendMail({ to, subject, html, replyTo }) {
     return false;
   }
 }
+
+// Le serveur SMTP est-il renseigné ? (une route dont l'email est le résultat le vérifie avant d'enregistrer quoi que ce soit)
+const configured = () => !!getTransporter();
 
 // ── Langue (français / arabe) ────────────────────────────────────────────────
 // Chaque email est rédigé dans la langue du destinataire (users.lang). Les gabarits build*() sont
@@ -390,6 +394,41 @@ function buildSiteContact(lang, { name, email, subject, message }) {
   };
 }
 
+// Newsletter (server/newsletter.js) : email de double confirmation, puis envois rédigés par un administrateur.
+function buildNewsletterConfirm(lang, { confirmUrl }) {
+  return {
+    subject: pick(lang, '📧 Confirmez votre inscription à la newsletter — DzImmo', '📧 أكِّد اشتراكك في النشرة البريدية — DzImmo'),
+    html: wrap(`
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Confirmez votre inscription', 'أكِّد اشتراكك')}</h2>
+      <p>${pick(lang,
+        'Vous (ou quelqu’un utilisant votre adresse) avez demandé à recevoir la newsletter de DzImmo : les nouveautés du site et des conseils immobiliers.',
+        'لقد طلبتَ (أو طلب شخص ما باستعمال بريدك الإلكتروني) استلام النشرة البريدية لـ DzImmo: أخبار الموقع ونصائح عقارية.')}</p>
+      ${centered(button(confirmUrl, pick(lang, 'Confirmer mon inscription', 'تأكيد اشتراكي'), lang, true))}
+      <p style="font-size:13px;color:#666">${pick(lang,
+        'Sans confirmation de votre part, vous ne recevrez rien et votre adresse sera effacée sous 7 jours. Si vous n’êtes pas à l’origine de cette demande, ignorez simplement cet email.',
+        'إن لم تؤكّد، فلن تتلقى شيئاً وسيُمسح عنوانك خلال 7 أيام. إذا لم تكن صاحب هذا الطلب، تجاهل هذه الرسالة.')}</p>
+    `, lang),
+  };
+}
+
+// `subject` et `body` sont saisis par un administrateur (texte simple : lignes vides = paragraphes) ; tout passe par esc().
+// Chaque envoi porte le lien de désinscription (obligation du consentement : loi 18-07, RGPD).
+function buildNewsletter(lang, { subject, body, unsubscribeUrl }) {
+  const paragraphs = String(body ?? '').split(/\n\s*\n/).map(x => x.trim()).filter(Boolean)
+    .map(x => `<p style="white-space:pre-line;line-height:1.7;color:#333">${esc(x)}</p>`).join('');
+  return {
+    subject: String(subject ?? ''),
+    html: wrap(`
+      ${paragraphs}
+      <hr style="border:none;border-top:1px solid #eee;margin:24px 0 14px">
+      <p style="font-size:12px;color:#888;line-height:1.6">${pick(lang,
+        'Vous recevez cet email car vous êtes inscrit(e) à la newsletter de DzImmo.',
+        'تصلك هذه الرسالة لأنك مشترك في النشرة البريدية لـ DzImmo.')}
+        <a href="${esc(unsubscribeUrl)}" style="color:#0C6E4F">${pick(lang, 'Me désinscrire', 'إلغاء الاشتراك')}</a></p>
+    `, lang),
+  };
+}
+
 // ── Envoi ────────────────────────────────────────────────────────────────────
 // Chaque fonction reçoit `lang` (langue du destinataire) ; sans lang : français.
 const send = (to, built) => sendMail({ to, ...built });
@@ -407,15 +446,19 @@ const mailExpiryReminder = d => send(d.to, buildExpiryReminder(d.lang, d));
 const mailListingExpired = d => send(d.to, buildListingExpired(d.lang, d));
 const mailAdminVerificationPending = d => send(d.to, buildAdminVerificationPending(d.lang, d));
 const mailSiteContact = d => sendMail({ to: d.to, replyTo: d.email, ...buildSiteContact(d.lang, d) });
+const mailNewsletterConfirm = d => send(d.to, buildNewsletterConfirm(d.lang, d));
+// En-têtes List-Unsubscribe (RFC 8058) : les messageries proposent leur propre bouton « Se désabonner », qui appelle oneClickUrl en POST
+const mailNewsletter = d => sendMail({ to: d.to, ...buildNewsletter(d.lang, d),
+  headers: { 'List-Unsubscribe': `<${d.oneClickUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } });
 
 module.exports = {
-  sendMail, sender, siteUrl, FROM_OK, EMAIL_OK,
+  sendMail, sender, siteUrl, configured, FROM_OK, EMAIL_OK,
   mailWelcome, mailVerifyEmail, mailPasswordReset,
   mailContactRequest, mailNewMessage, mailSearchAlert,
   mailModerationDecision, mailAdminPending, mailVerificationDecision, mailAdminVerificationPending,
-  mailExpiryReminder, mailListingExpired, mailSiteContact, CONTACT_SUBJECTS,
+  mailExpiryReminder, mailListingExpired, mailSiteContact, mailNewsletterConfirm, mailNewsletter, CONTACT_SUBJECTS,
   // gabarits purs (tests)
   build: { buildWelcome, buildVerifyEmail, buildPasswordReset, buildContactRequest, buildNewMessage,
            buildSearchAlert, buildModerationDecision, buildAdminPending,
-           buildVerificationDecision, buildAdminVerificationPending, buildExpiryReminder, buildListingExpired, buildSiteContact },
+           buildVerificationDecision, buildAdminVerificationPending, buildExpiryReminder, buildListingExpired, buildSiteContact, buildNewsletterConfirm, buildNewsletter },
 };
