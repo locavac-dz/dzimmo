@@ -73,7 +73,7 @@ const BAD_TOUR = [
   'https://my.matterport.com/show/?m=court', 'https://my.matterport.com/show/', 'https://my.matterport.com/models/SxQL3iGyoDo', 'https://my.matterport.com/show/x/?m=SxQL3iGyoDo',
   'https://my.matterport.com/show/?m=SxQL3iGyoDo"><script>', 'https://user@my.matterport.com/show/?m=SxQL3iGyoDo',
   'https://kuula.co/share/', 'https://kuula.co/share/ab', 'https://kuula.co/share/abcdefghijklmn', 'https://kuula.co/share/7Tk4N/extra', 'https://kuula.co/x/7Tk4N',
-  'https://kuula.co.evil.example/share/7Tk4N', 'https://kuula.co/share/7Tk4N"onload="x', 'https://kuula.co:444/share/7Tk4N', 'https://kuula.co/share/collection/',
+  'https://kuula.co.evil.example/share/7Tk4N', 'https://kuula.co/share/7Tk4N"onload="x', 'https://kuula.co:444/share/7Tk4N', 'https://kuula.co/share/collection/', 'https://kuula.co/share/7Tk4N/collection/AbCd1', 'https://kuula.co/post/7Tk4N/collection/AbCd1', 'https://mls.kuu.la/share/7Tk4N',
 ];
 
 test('adresses piégées ou mal formées : toutes refusées comme visite virtuelle', () => {

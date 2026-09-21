@@ -39,8 +39,8 @@ test('formulaire : les deux champs existent, sont traduits et envoyés avec l\'a
     assert.match(html, new RegExp(`id="${id}" type="url"[^>]*data-i18n="${ph}"`), id);
     assert.ok(html.includes(`data-i18n="${key}"`), key);
   }
-  assert.match(app, /video_url:\s+document\.getElementById\('pub-video'\)\.value\.trim\(\) \|\| null/);
-  assert.match(app, /tour_url:\s+document\.getElementById\('pub-tour'\)\.value\.trim\(\) \|\| null/);
+  assert.match(app, /video_url:\s+val\('pub-video'\)\.trim\(\) \|\| null/);
+  assert.match(app, /tour_url:\s+val\('pub-tour'\)\.trim\(\) \|\| null/);
 });
 
 test('fiche : rien ne se charge avant le clic, aucune donnée dans un onclick, tout ce qui vient du serveur est échappé', () => {

@@ -162,3 +162,12 @@ test('server/geo : cleanPolygon fusionne les doublons, circleBox couvre le cercl
   const pole = geo.circleBox(89.99, 0, 10);
   assert.ok(pole.maxLng - pole.minLng >= 360, 'près du pôle, la longitude n\'est plus restreinte');
 });
+
+// « Autour de moi » : la position du navigateur ne marche que si aucun en-tête du site ne l'interdit (le HTTPS, lui, vient de Nginx, voir DEPLOIEMENT.md § 4)
+test('« Autour de moi » : aucune politique du serveur n\'interdit la géolocalisation, page d\'accueil comme carte', async () => {
+  for (const path of ['/', '/carte', '/ar/carte']) {
+    const r = await fetch(s.base + path, { redirect: 'manual' });
+    const policy = [r.headers.get('permissions-policy'), r.headers.get('feature-policy')].filter(Boolean).join(' ');
+    assert.doesNotMatch(policy, /geolocation\s*=\s*\(\s*\)|geolocation\s+'none'/i, `${path} : ${policy}`);
+  }
+});

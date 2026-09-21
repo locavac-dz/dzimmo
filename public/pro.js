@@ -686,6 +686,7 @@ async function initPublishAs() {
   if (!token || !currentUser) return;
   let mine;
   try { mine = await api('/agencies/mine/info'); } catch { return; }   // pas de vitrine : annonce de particulier
+  if (publishEditId) return;   // modification d'une annonce : la vitrine ne se change pas ici (syncPublishMode masque le bloc)
   const sel = document.getElementById('pub-as');
   sel.innerHTML = `<option value="${mine.id}">${esc(mine.name)}</option><option value="">${T('pub_as_self')}</option>`;
   wrap.classList.remove('hidden');

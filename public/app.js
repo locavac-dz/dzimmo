@@ -2,7 +2,8 @@ const API = '/api';
 let token = localStorage.getItem('dzimmo_token') || null;
 let currentUser = null;
 let currentPage = 'home';
-let uploadedPhotos = [];
+let uploadedPhotos = [];   // photos du formulaire : { file, preview } (nouvelles) ou { url, preview } (déjà en ligne, mode édition)
+let publishEditId = null;   // id de l'annonce en cours de modification (null : publication d'une nouvelle annonce)
 let wsConn = null;
 
 // ── i18n FR / AR ──────────────────────────────────────────────────────────────
@@ -392,6 +393,9 @@ const TRANSLATIONS = {
     dash_stats_btn:'📈 30j', dash_stats_title:'Statistiques · 30 derniers jours',
     st_views:'Vues', st_favs:'Favoris', st_clicks:'Clics', st_calls:'Appels', st_wa:'WhatsApp', st_contacts:'Demandes',
     st_favs_total:'{n} au total', st_no_data:"Pas encore de visite sur cette période.", st_advice:'Conseils', st_advice_tip:"Conseils calculés d'après les statistiques de cette annonce.",
+    dash_edit:'✏️ Modifier', pub_edit_heading:"✏️ Modifier l'annonce", pub_edit_submit:'Enregistrer les modifications',
+    pub_edit_locked:"Le mode, le type de bien et la wilaya ne se modifient pas : republiez une annonce pour les changer.",
+    pub_edit_saved:'Modifications enregistrées.', pub_edit_pending:"Modifications enregistrées. L'annonce repasse en validation avant de reparaître sur le site.",
     adv_price_high:"Votre prix au m² est environ {pct} % au-dessus de la médiane des annonces comparables : le revoir peut relancer les visites.",
     adv_few_photos:"Votre annonce n'a que {n} photo(s) : visez au moins {min}. Les annonces bien illustrées reçoivent plus de contacts.",
     adv_no_phone:"Aucun numéro de téléphone n'est renseigné : les boutons Appeler et WhatsApp ne s'affichent pas sur votre annonce. Ajoutez-le dans votre profil.",
@@ -775,6 +779,9 @@ const TRANSLATIONS = {
     dash_stats_btn:'📈 30ي', dash_stats_title:'الإحصائيات · آخر 30 يوماً',
     st_views:'المشاهدات', st_favs:'المفضّلة', st_clicks:'النقرات', st_calls:'المكالمات', st_wa:'واتساب', st_contacts:'الطلبات',
     st_favs_total:'{n} في المجموع', st_no_data:'لا توجد زيارات بعد خلال هذه الفترة.', st_advice:'نصائح', st_advice_tip:'نصائح محسوبة انطلاقاً من إحصائيات هذا الإعلان.',
+    dash_edit:'✏️ تعديل', pub_edit_heading:'✏️ تعديل الإعلان', pub_edit_submit:'حفظ التعديلات',
+    pub_edit_locked:'لا يمكن تغيير نمط الإعلان ونوع العقار والولاية: انشر إعلاناً جديداً لتغييرها.',
+    pub_edit_saved:'تم حفظ التعديلات.', pub_edit_pending:'تم حفظ التعديلات. سيخضع الإعلان للمراجعة من جديد قبل ظهوره على الموقع.',
     adv_price_high:'سعر المتر المربع لديك أعلى بنحو {pct}% من وسيط الإعلانات المماثلة: مراجعته قد تعيد الزيارات.',
     adv_few_photos:'إعلانك يضم {n} صورة فقط: احرص على {min} صور على الأقل. الإعلانات المصوَّرة جيداً تتلقى طلبات أكثر.',
     adv_no_phone:'لم يتم إدخال رقم هاتف: لن يظهر زرّا «اتصال» و«واتساب» في إعلانك. أضِفه في ملفك الشخصي.',
@@ -1266,6 +1273,7 @@ function showPage(page, data = null) {
     if (routePath() !== '/' && !PRO_PAGES.includes(page)) history.replaceState(null, '', langPath('/'));
     document.title = DEFAULT_TITLE;
   }
+  if (page !== 'publier' && publishEditId) { publishEditId = null; resetPublishForm(); }   // modification abandonnée : le formulaire redevient celui d'une publication
   PAGES.forEach(p => {
     const el = document.getElementById('page-' + p);
     if (el) el.classList.add('hidden');
@@ -1282,7 +1290,7 @@ function showPage(page, data = null) {
   if (page === 'annonces')        loadAnnonces();
   if (page === 'agences')         loadAgences();
   if (page === 'programmes')      loadProgrammes();
-  if (page === 'publier')         initPublishAs();
+  if (page === 'publier')         { syncPublishMode(); initPublishAs(); }
   if (page === 'programme-detail' && data) { window._programmeId = data; loadProgrammeDetail(data); }
   if (page === 'dashboard')       loadDashboard();
   if (page === 'messages')        loadMessages();
@@ -3549,6 +3557,7 @@ async function dashTab(tab, more = false) {
           </div>
           <div style="padding:.8rem .65rem;display:flex;flex-direction:column;gap:.35rem;justify-content:center;flex-shrink:0">
             <button class="btn btn-primary btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap" onclick="showPage('detail',${p.id})">${T('dash_view')}</button>
+            <button class="btn btn-outline btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap" onclick="editProperty(${p.id})">${T('dash_edit')}</button>
             ${p.status === 'rejected' ? `<button class="btn btn-outline btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap;border-color:#dc2626;color:#dc2626" onclick="ownerDelete(${p.id})">${T('dash_delete')}</button>` : ''}
             ${p.status==='active'?`<button class="btn ${p.expires_at ? 'btn-primary' : 'btn-outline'} btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap" onclick="ownerRenew(${p.id})">${T('dash_still')}</button>`:''}
             ${stOf(p)==='expired'?`<button class="btn btn-primary btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap" onclick="ownerRenew(${p.id})">${T('dash_renew')}</button>`:''}
@@ -3761,7 +3770,7 @@ function renderPhotoPreviews() {
   const c = document.getElementById('photo-previews');
   c.innerHTML = uploadedPhotos.map((p, i) => `
     <div class="photo-preview">
-      <img src="${p.preview}" alt="">
+      <img src="${esc(p.preview)}" alt="">
       <button class="photo-remove" onclick="removePhoto(${i})">×</button>
     </div>`).join('');
 }
@@ -3775,12 +3784,71 @@ document.querySelectorAll('.feature-toggle').forEach(btn => {
   btn.addEventListener('click', () => btn.classList.toggle('selected'));
 });
 
+// ── Modification d'une annonce : le formulaire de publication sert aussi d'écran « Modifier » ─────────────────────────────
+// Le mode, le type de bien et la wilaya restent figés (le serveur ne les change pas : ils fondent le contrôle de qualité et la recherche).
+const PUB_LOCKED = ['pub-mode', 'pub-type', 'pub-wilaya'];
+const PUB_FIELDS = ['pub-title', 'pub-price', 'pub-surface', 'pub-rooms', 'pub-baths', 'pub-floor', 'pub-commune', 'pub-address', 'pub-desc', 'pub-video', 'pub-tour'];
+
+// Titre, bouton et note du formulaire selon le mode ; la clé i18n change aussi, pour que le changement de langue garde le bon texte
+function syncPublishMode() {
+  const edit = !!publishEditId;
+  const set = (id, key) => { const el = document.getElementById(id); if (el) { el.setAttribute('data-i18n', key); el.textContent = T(key); } };
+  set('pub-heading-text', edit ? 'pub_edit_heading' : 'pub_heading');
+  set('pub-submit-btn', edit ? 'pub_edit_submit' : 'pub_submit');
+  document.getElementById('pub-edit-note')?.classList.toggle('hidden', !edit);
+  PUB_LOCKED.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = edit; });
+  if (edit) document.getElementById('pub-as-wrap')?.classList.add('hidden');   // la vitrine d'une annonce ne se change pas ici
+}
+
+// Formulaire vidé (sortie du mode édition) : plus aucune donnée de l'annonce modifiée ne reste à l'écran
+function resetPublishForm() {
+  PUB_FIELDS.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.querySelectorAll('.feature-toggle.selected').forEach(b => b.classList.remove('selected'));
+  uploadedPhotos = [];
+  renderPhotoPreviews();
+  ['pub-error', 'pub-success'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+  syncPublishMode();
+}
+
+// Valeur numérique d'une annonce pour un champ de formulaire (« » si absente)
+const fieldNum = v => (v === null || v === undefined || v === '' ? '' : String(Number(v)));
+
+// Remplit le formulaire avec une annonce du tableau de bord (la liste renvoie déjà toutes les colonnes : aucune requête de plus, aucune vue comptée)
+function fillPublishForm(p) {
+  const put = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  put('pub-title', p.title || ''); put('pub-mode', p.mode || ''); put('pub-type', p.type_bien || ''); put('pub-wilaya', p.wilaya || '');
+  put('pub-price', fieldNum(p.price)); put('pub-surface', fieldNum(p.surface_m2)); put('pub-rooms', fieldNum(p.rooms));
+  put('pub-baths', fieldNum(p.baths)); put('pub-floor', fieldNum(p.floor));
+  put('pub-commune', p.commune || ''); put('pub-address', p.address || ''); put('pub-desc', p.description || '');
+  put('pub-video', p.video_url || ''); put('pub-tour', p.tour_url || '');
+  const feats = Array.isArray(p.features) ? p.features : [];
+  document.querySelectorAll('.feature-toggle').forEach(b => b.classList.toggle('selected', feats.includes(b.dataset.v)));
+  const urls = Array.isArray(p.photos) && p.photos.length ? p.photos : (p.image ? [p.image] : []);
+  uploadedPhotos = urls.map(url => ({ url, preview: thumbUrl(url, 480) || url }));
+  renderPhotoPreviews();
+  ['pub-error', 'pub-success'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+}
+
+// Bouton « Modifier » d'une carte du tableau de bord : seul l'identifiant passe par l'attribut, l'annonce vient de la liste déjà chargée
+function editProperty(id) {
+  const p = dashListings.find(x => x.id === id);
+  if (!p) return;
+  publishEditId = p.id;
+  showPage('publier');
+  fillPublishForm(p);
+}
+
+// « Annuler » : retour au tableau de bord si l'on modifiait, à l'accueil sinon
+function cancelPublish() { showPage(publishEditId ? 'dashboard' : 'home'); }
+
 async function submitProperty() {
-  const title   = document.getElementById('pub-title').value;
-  const mode    = document.getElementById('pub-mode').value;
-  const type    = document.getElementById('pub-type').value;
-  const price   = document.getElementById('pub-price').value;
-  const wilaya  = document.getElementById('pub-wilaya').value;
+  const editing = publishEditId;
+  const val     = id => document.getElementById(id).value;
+  const title   = val('pub-title');
+  const mode    = val('pub-mode');
+  const type    = val('pub-type');
+  const price   = val('pub-price');
+  const wilaya  = val('pub-wilaya');
 
   const errEl = document.getElementById('pub-error');
   const sucEl = document.getElementById('pub-success');
@@ -3798,9 +3866,10 @@ async function submitProperty() {
 
   const features = Array.from(document.querySelectorAll('.feature-toggle.selected')).map(b => b.dataset.v);
 
-  // Upload des photos
+  // Photos : celles déjà en ligne gardent leur adresse (dans l'ordre choisi), les nouvelles sont envoyées
   let photoUrls = [];
   for (const p of uploadedPhotos) {
+    if (p.url) { photoUrls.push(p.url); continue; }
     try {
       const fd = new FormData();
       fd.append('file', p.file);
@@ -3811,19 +3880,35 @@ async function submitProperty() {
   }
 
   try {
-    const body = {
-      title, mode, type_bien: type, price: Number(price), wilaya,
-      commune:     document.getElementById('pub-commune').value || null,
-      address:     document.getElementById('pub-address').value || null,
-      description: document.getElementById('pub-desc').value || '',
-      surface_m2:  Number(document.getElementById('pub-surface').value) || null,
-      rooms:       Number(document.getElementById('pub-rooms').value) || null,
-      baths:       Number(document.getElementById('pub-baths').value) || null,
-      floor:       Number(document.getElementById('pub-floor').value) || null,
+    const fields = {
+      title, price: Number(price),
+      commune:     val('pub-commune') || null,
+      address:     val('pub-address') || null,
+      description: val('pub-desc') || '',
+      surface_m2:  Number(val('pub-surface')) || null,
+      rooms:       Number(val('pub-rooms')) || null,
+      baths:       Number(val('pub-baths')) || null,
+      floor:       val('pub-floor') === '' ? null : Number(val('pub-floor')),
       features, photos: photoUrls,
       image: photoUrls[0] || '',
-      video_url:   document.getElementById('pub-video').value.trim() || null,
-      tour_url:    document.getElementById('pub-tour').value.trim() || null,
+      video_url:   val('pub-video').trim() || null,
+      tour_url:    val('pub-tour').trim() || null,
+    };
+    if (editing) {
+      const r = await api('/properties/' + editing, 'PUT', fields);
+      const pending = r.status === 'pending';
+      sucEl.textContent = (pending ? '⏳ ' : '✅ ') + T(pending ? 'pub_edit_pending' : 'pub_edit_saved');
+      const QWE = { duplicate_own: 'q_dup_own', duplicate_other: 'q_dup_other', price_low: 'q_price_low', price_high: 'q_price_high' };
+      const warnsE = (r.warnings || []).map(w => T(QWE[w.code] || 'q_price_low').replace('{title}', w.title || ''));
+      if (warnsE.length) sucEl.innerHTML = esc(sucEl.textContent) + '<ul class="q-list">' + warnsE.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
+      sucEl.classList.remove('hidden');
+      // Les photos envoyées sont désormais en ligne : un second clic ne les renvoie pas
+      uploadedPhotos = photoUrls.map(url => ({ url, preview: thumbUrl(url, 480) || url }));
+      renderPhotoPreviews();
+      setTimeout(() => { if (publishEditId === editing) showPage('dashboard'); }, warnsE.length ? 9000 : 1500);
+      return;
+    }
+    const body = { ...fields, mode, type_bien: type, wilaya,
       ...publishAffiliation(),   // agency_id / project_id : annonce publiée au nom de sa vitrine (pro.js)
     };
     const r = await api('/properties', 'POST', body);

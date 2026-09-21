@@ -300,7 +300,8 @@
 <div id="page-publier" class="hidden">
   <div id="main">
     <div class="form-card">
-      <h2><span data-i18n="pub_heading">📋 Publier une annonce</span></h2>
+      <h2><span id="pub-heading-text" data-i18n="pub_heading">📋 Publier une annonce</span></h2>
+      <p id="pub-edit-note" class="hidden" style="font-size:.85rem;color:var(--text-muted);margin:-.4rem 0 1rem" data-i18n="pub_edit_locked"></p>
       <div id="pub-error" class="error-msg hidden"></div>
       <!-- Publier au nom de sa vitrine (agence / promoteur), éventuellement dans un programme : rempli par initPublishAs() (pro.js) -->
       <div id="pub-as-wrap" class="form-section hidden">
@@ -426,8 +427,8 @@
       </div>
 
       <div style="margin-top:1.5rem;display:flex;gap:.75rem">
-        <button class="btn btn-primary" onclick="submitProperty()" style="flex:1;padding:.75rem" data-i18n="pub_submit">Publier l'annonce</button>
-        <button class="btn btn-outline" onclick="showPage('home')" data-i18n="pub_cancel">Annuler</button>
+        <button id="pub-submit-btn" class="btn btn-primary" onclick="submitProperty()" style="flex:1;padding:.75rem" data-i18n="pub_submit">Publier l'annonce</button>
+        <button class="btn btn-outline" onclick="cancelPublish()" data-i18n="pub_cancel">Annuler</button>
       </div>
     </div>
   </div>

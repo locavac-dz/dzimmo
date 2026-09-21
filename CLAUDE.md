@@ -156,8 +156,22 @@ Windows : `demarrer.bat`
 - **CSP** : `frame-src` n'autorise que ces quatre lecteurs (plus Google si `GOOGLE_CLIENT_ID`) ; `object-src` reste `'none'`.
 - **Vie privée** : la fiche affiche une façade (`.media-facade`), sans image ni requête vers un tiers. Le lecteur n'est créé qu'au clic (`loadMedia`), dans un iframe `sandbox`
   (ni navigation du haut, ni formulaires) ; aucune miniature YouTube (elle contacterait Google à l'affichage de la page). Le front n'utilise que `m.embed` / `m.url` du serveur, en https.
-- Front : champs `#pub-video` / `#pub-tour` du formulaire de publication (pas d'écran de modification d'annonce dans l'interface : le `PUT` de l'API les accepte), section de fiche `mediaHTML`,
+- **Kuula** : la conversion `/post/<id>` → `/share/<id>` suit la documentation officielle de Kuula (les liens `/post/…` sont des pages de profil, non incrustables ; seuls `/share/…` le sont). Les formes composées
+  `/share/<post>/collection/<tour>` et `/post/<x>/collection/<y>`, ainsi que `mls.kuu.la`, sont **refusées** (400) : les accepter demande `parseTour`, `CANONICAL`, une migration de la contrainte CHECK, `VIDEO_FRAMES` et des tests.
+- Front : champs `#pub-video` / `#pub-tour` du formulaire de publication **et** de l'écran « Modifier » (voir plus bas), section de fiche `mediaHTML`,
   pastille `.media-badge` des cartes. Tests : `tests/unit/videos.test.js`, `tests/unit/media-front.test.js`, `tests/api/video-visite.test.js`.
+
+## Modification d'une annonce
+
+- **Le formulaire de publication sert aussi à modifier** (`#page-publier`, état `publishEditId`) : bouton « Modifier » (`editProperty(id)`) sur chaque carte du tableau de bord, quel que soit le statut.
+  Les données viennent de `dashListings` (la liste renvoie déjà `p.*`) : aucun appel de plus, aucune vue comptée. `fillPublishForm` remplit, `resetPublishForm` vide (sortie du mode
+  édition, dans `showPage`), `syncPublishMode` règle titre, bouton (la clé `data-i18n` change avec, pour que le changement de langue garde le bon texte) et note. `cancelPublish` revient au tableau de bord.
+- **Figés en édition** : mode, type de bien et wilaya (champs désactivés ; le serveur ne les change pas, ils fondent le contrôle de qualité et la recherche) et la vitrine (`initPublishAs` s'arrête si `publishEditId`).
+- **Photos** : celles déjà en ligne sont `{ url, preview }` (reprises telles quelles, dans l'ordre choisi), les nouvelles `{ file, preview }` (envoyées à la validation) ; l'aperçu passe par `esc()`.
+- **`PUT /api/properties/:id`** accepte titre, description, prix, surface, pièces, salles de bain, **étage, commune, adresse**, équipements, photos, `video_url`, `tour_url`. Refus 400 traduits : `Titre invalide.`
+  (vide ou non texte), `Prix invalide.` (≤ 0 ou non numérique), `Valeur numérique invalide.` (négatif ou non numérique). Surface, pièces et salles de bain vides deviennent NULL (jamais 0) ; l'étage 0 est gardé.
+  Commune, adresse et étage ne remettent pas l'annonce en modération ; les `CONTENT_FIELDS` (titre, description, photos, vidéo, visite) si, sauf compte de confiance ; une annonce refusée corrigée repart en `pending`.
+- Tests : `tests/api/modifier-annonce.test.js`, `tests/unit/edit-front.test.js`.
 
 ## Statistiques et conseils de l'annonceur
 
@@ -248,6 +262,8 @@ Windows : `demarrer.bat`
   Seules les annonces `active` avec position sont renvoyées ; jamais d'email du propriétaire. Limiteur partagé `geo` (60 / min, `server/app.js`).
 - **Vie privée** : la zone dessinée part en **POST** (ni dans l'adresse, ni dans les journaux du serveur) ; la position du visiteur n'est demandée qu'au clic sur « Autour de moi »,
   **arrondie à 3 décimales (~110 m)** avant envoi (`mapCoord`) ; ni la position ni la zone ne sont stockées, journalisées ou mises en `localStorage`.
+- **« Autour de moi » exige le HTTPS** (contexte sécurisé du navigateur) et l'autorisation de localisation de l'utilisateur ; un refus est annoncé par un message, la carte reste utilisable. Le serveur n'envoie aucun `Permissions-Policy` bloquant `geolocation`
+  (test dans `carte-zone.test.js`) : ne pas en ajouter, ni dans Express ni dans Nginx.
 - Tests : `tests/api/carte-zone.test.js` (polygone convexe et concave, filtres, limite, erreurs et traduction), `tests/unit/carte-front.test.js` (traductions FR / AR, POST, arrondi, échappement).
 
 ## Consignes

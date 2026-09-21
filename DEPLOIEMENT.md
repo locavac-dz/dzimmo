@@ -106,6 +106,9 @@ server {
 sudo certbot --nginx -d dzimmo.dz -d www.dzimmo.dz
 ```
 
+Le HTTPS n'est pas qu'une question de sécurité : le bouton « Autour de moi » de la carte utilise la géolocalisation du navigateur, qui n'est disponible qu'en contexte sécurisé (HTTPS ; `localhost` fait exception en développement).
+N'ajoutez pas d'en-tête `Permissions-Policy: geolocation=()` dans Nginx, il désactiverait ce bouton.
+
 ## 5. Premier compte administrateur
 
 S'inscrire sur le site avec l'adresse voulue, puis :

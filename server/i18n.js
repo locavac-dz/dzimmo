@@ -46,6 +46,8 @@ const AR = {
   'Avancement du programme invalide.': 'مرحلة إنجاز المشروع غير صالحة.',
   'Date de livraison invalide.': 'تاريخ التسليم غير صالح.',
   'Nombre de lots invalide.': 'عدد الوحدات غير صالح.',
+  'Titre invalide.': 'العنوان غير صالح.',
+  'Valeur numérique invalide.': 'قيمة رقمية غير صالحة.',
   'Équipements invalides.': 'المرافق غير صالحة.',
   'Seuls les promoteurs vérifiés peuvent publier un programme.': 'لا يمكن نشر مشروع إلا للمروّجين العقاريين الموثَّقين.',
 
