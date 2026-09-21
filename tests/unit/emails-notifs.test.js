@@ -31,6 +31,7 @@ const SAMPLES = {
   buildListingReported:           { name: 'Karim', propertyTitle: 'Villa X', url: 'https://dzimmo.dz/annonce/1-villa' },
   buildAdminReported:             { propertyTitle: 'Villa X', count: 3, url: 'https://dzimmo.dz/' },
   buildAlert:                     { kind: 'cron:newsletter', name: 'newsletter', detail: 'connect ECONNREFUSED' },
+  buildPriceDrop:                 { name: 'Karim', propertyTitle: 'Villa X', oldPrice: 30000000, newPrice: 27000000, percent: 10, url: 'https://dzimmo.dz/annonce/1-villa' },
   buildSecurityNotice:            { name: 'Karim', event: 'recovery' },
   buildNewsletterConfirm:         { confirmUrl: 'https://dzimmo.dz/newsletter/confirmation?e=1&t=abc' },
   buildNewsletter:                { subject: 'عرض جديد', body: 'مرحبا\n\nنص الرسالة', unsubscribeUrl: 'https://dzimmo.dz/newsletter/desinscription?e=1&t=abc' },

@@ -91,6 +91,7 @@ const TRANSLATIONS = {
     dash_status_updated:'Statut mis à jour.', dash_no_fav:'Aucun favori', dash_fav_hint:'Cœurez des annonces pour les retrouver ici.',
     alert_active:'🔔 Alerte active', ph_example:'ex : {v}',
     prof_title:'Informations personnelles', prof_name:'Nom', prof_email:'Email', prof_phone:'Téléphone', prof_bio:'Bio',
+    prof_notify_drop:'Alertes de baisse de prix', prof_notify_drop_hint:'Notification et email quand le prix d\'une annonce de vos favoris baisse d\'au moins 3 %.',
     prof_save:'Enregistrer', prof_logout:'Déconnexion', prof_logout_confirm:'Déconnexion ?', prof_updated:'✅ Profil mis à jour !',
     logout_done:'Déconnexion effectuée.', pub_choose:'Choisir…',
     mod_pending_ok:"Annonce envoyée ! Elle sera visible après validation par notre équipe (généralement sous 24 h). Vous serez notifié(e) de la décision.",
@@ -483,6 +484,7 @@ const TRANSLATIONS = {
     dash_status_updated:'تم تحديث الحالة.', dash_no_fav:'لا توجد مفضلات', dash_fav_hint:'أضف إعلانات إلى المفضلة لتجدها هنا.',
     alert_active:'🔔 تنبيه نشط', ph_example:'مثال: {v}',
     prof_title:'المعلومات الشخصية', prof_name:'الاسم', prof_email:'البريد الإلكتروني', prof_phone:'الهاتف', prof_bio:'نبذة',
+    prof_notify_drop:'تنبيهات انخفاض الأسعار', prof_notify_drop_hint:'إشعار وبريد إلكتروني عندما ينخفض سعر إعلان في مفضلتك بنسبة 3٪ على الأقل.',
     prof_save:'حفظ', prof_logout:'تسجيل الخروج', prof_logout_confirm:'هل تريد تسجيل الخروج؟', prof_updated:'✅ تم تحديث الملف الشخصي!',
     logout_done:'تم تسجيل الخروج.', pub_choose:'اختر…',
     mod_pending_ok:'تم إرسال الإعلان! سيظهر بعد مراجعة فريقنا له (عادةً خلال 24 ساعة). سيتم إشعارك بالقرار.',
@@ -3763,6 +3765,8 @@ async function dashTab(tab, more = false) {
           <div class="form-row"><label>${T('prof_email')}</label><input value="${esc(currentUser.email)}" disabled style="background:#f1f5f9"></div>
           <div class="form-row"><label>${T('prof_phone')}</label><input id="p-phone" type="tel" value="${esc(currentUser.phone || '')}"><div class="field-hint">${T('m_phone_hint')}</div></div>
           <div class="form-row"><label>${T('prof_bio')}</label><textarea id="p-bio" rows="3">${esc(currentUser.bio || '')}</textarea></div>
+          <label class="profile-check"><input type="checkbox" id="p-notify-drop"${currentUser.notify_price_drop === false ? '' : ' checked'}> <span>${T('prof_notify_drop')}</span></label>
+          <div class="field-hint">${T('prof_notify_drop_hint')}</div>
           <div style="display:flex;gap:.75rem;margin-top:1rem">
             <button class="btn btn-primary" style="flex:1" onclick="updateProfile()">${T('prof_save')}</button>
             <button class="btn btn-danger btn-sm" onclick="if(confirm(T('prof_logout_confirm'))) logout()">${T('prof_logout')}</button>
@@ -3836,8 +3840,9 @@ async function updateProfile() {
   const name  = document.getElementById('p-name')?.value;
   const phone = document.getElementById('p-phone')?.value;
   const bio   = document.getElementById('p-bio')?.value;
+  const notify_price_drop = !!document.getElementById('p-notify-drop')?.checked;
   try {
-    const updated = await api('/auth/profile', 'PUT', { name, phone, bio });
+    const updated = await api('/auth/profile', 'PUT', { name, phone, bio, notify_price_drop });
     currentUser = { ...currentUser, ...updated };
     document.getElementById('avatar-btn').textContent = (currentUser.name || '?')[0].toUpperCase();
     toast(T('prof_updated'));
@@ -4116,7 +4121,7 @@ function renderNotifList() {
   const list = document.getElementById('notif-list');
   if (!list) return;
   if (!_notifs.length) { list.innerHTML = '<div class="notif-empty">' + T('notif_empty') + '</div>'; return; }
-  const ICONS = { new_contact:'📩', contact_status:'✅', message:'💬', moderation_pending:'🛡️', moderation_decision:'📋' };
+  const ICONS = { new_contact:'📩', contact_status:'✅', message:'💬', moderation_pending:'🛡️', moderation_decision:'📋', price_drop:'📉' };
   list.innerHTML = _notifs.slice(0, 20).map(n => `
     <div class="notif-item${n.read ? '' : ' unread'}" onclick="clickNotif(${n.id}, ${n.link_id || 0})">
       <div class="notif-icon">${ICONS[n.notif_type] || '🔔'}</div>

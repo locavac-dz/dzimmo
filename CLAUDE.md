@@ -208,6 +208,18 @@ Windows : `demarrer.bat`
 - **Limites connues** : pas d'email de reçu (à faire avec SATIM) ; une annonce refusée en modération après paiement n'est pas remboursée automatiquement (remboursement manuel) ; la bande tire au hasard parmi *toutes* les annonces à la une (pas de pondération par durée achetée).
 - Tests : `tests/unit/featured.test.js`, `tests/unit/featured-front.test.js`, `tests/api/a-la-une.test.js`.
 
+## Alerte de baisse de prix
+
+- **Qui est prévenu** (`server/price-drop.js`, migration 026) : les membres qui ont l'annonce en favori, par notification (`price_drop`, FR/AR) et par email (`buildPriceDrop`, seulement si l'adresse est confirmée), dans leur langue.
+  Jamais l'annonceur, jamais un compte suspendu, au plus `MAX_RECIPIENTS` (500) membres. Choix du membre : `users.notify_price_drop` (actif par défaut), case « Alertes de baisse de prix » de l'onglet Profil
+  (`PUT /api/auth/profile` accepte un **booléen** seulement, sinon 400 ; reprise dans `safe()` et dans l'export RGPD).
+- **Garde-fous** (l'annonceur ne doit pas pouvoir inonder ses abonnés ni simuler une promotion) : baisse d'au moins `MIN_PERCENT` (3 %) ; nouveau prix **inférieur à tous les prix des 30 derniers jours** de `price_history`
+  (`lowestRecent`, lu **avant** l'insertion du nouveau prix : monter puis « baisser » ne prévient pas) ; une alerte par annonce et par `COOLDOWN_DAYS` (7) jours, réservée par un UPDATE atomique de
+  `properties.price_drop_notified_at` (`WHERE status = 'active' AND price = <nouveau prix>`, commun aux workers, aucun état en mémoire) ; annonces `active` seulement (une annonce remise en modération par la même
+  modification ne prévient personne).
+- **Déclenchement** : `PUT /api/properties/:id`, après l'insertion dans `price_history`, sans bloquer la réponse (`notifyDrop(...).catch(() => {})`). Aucune tâche planifiée. Le corps de l'email n'expose que le titre et les deux prix.
+- Limites connues : pas de résumé quotidien (un email par baisse) ; une baisse faite pendant la modération n'est jamais annoncée. Tests : `tests/unit/price-drop.test.js`, `tests/api/baisse-de-prix.test.js`.
+
 ## Vitrine des agences et des promoteurs
 
 - **Profil** (`server/agency.js`, table `agencies`) : `kind` (`agence` | `promoteur`), logo, couverture, slogan, services, zones, horaires,

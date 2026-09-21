@@ -12,6 +12,7 @@ const images  = require('../images');
 const videos = require('../videos');
 const advice = require('../advice');
 const geo     = require('../geo');
+const priceDrop = require('../price-drop');
 
 const MODES_VALIDES    = ['vente', 'location_longue', 'location_courte'];
 const TYPES_VALIDES    = ['appartement','villa','maison','bureau','local_commercial','terrain','ferme','entrepot'];
@@ -512,6 +513,9 @@ router.put('/:id', auth, async (req, res) => {
   if (property.owner_id === req.user.id) { changes.last_confirmed_at = new Date(); changes.expiry_notified_at = null; }
   if (changes.status === 'active') changes.expired_at = null;
 
+  // Le plus bas prix des 30 derniers jours se lit avant d'enregistrer le nouveau (alerte de baisse de prix, plus bas)
+  const lowestPrice = changes.price !== undefined && Number(changes.price) < Number(property.price)
+    ? await priceDrop.lowestRecent(property.id, property.price) : null;
   await db.properties.update({ id: property.id }, changes);
   if (assessed) await quality.save(property.id, assessed);
   if (resubmitted) {
@@ -525,6 +529,8 @@ router.put('/:id', auth, async (req, res) => {
       'INSERT INTO price_history (property_id, price) VALUES ($1, $2)',
       [property.id, changes.price]
     );
+    // Les membres qui suivent l'annonce sont prévenus d'une vraie baisse (seuil, plancher des 30 jours et délai : server/price-drop.js) ; sans bloquer la réponse
+    if (lowestPrice !== null) priceDrop.notifyDrop(property.id, property.price, changes.price, lowestPrice).catch(() => {});
   }
 
   res.json({ ok: true, status: changes.status || property.status, warnings: assessed ? quality.warningsFor(assessed) : [] });

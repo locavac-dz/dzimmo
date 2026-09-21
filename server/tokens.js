@@ -19,6 +19,7 @@ function safe(u) {
     is_agent: u.is_agent, is_admin: u.is_admin || false,
     bio: u.bio || '', avatar: u.avatar || '',
     email_verified: u.email_verified || false,
+    notify_price_drop: u.notify_price_drop !== false,   // alerte de baisse de prix des favoris (active par défaut)
     verified_kind: u.verified_kind || null,
     two_factor: !!u.totp_enabled_at,
     two_factor_required: !!u.is_admin && !u.totp_enabled_at && required(),   // l'administrateur doit configurer la double authentification

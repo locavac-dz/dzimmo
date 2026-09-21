@@ -127,9 +127,11 @@ router.get('/me', require('../middleware/auth'), async (req, res) => {
 
 // PUT /api/auth/profile
 router.put('/profile', require('../middleware/auth'), async (req, res) => {
-  const { name, phone, bio, avatar } = req.body;
+  const { name, phone, bio, avatar, notify_price_drop } = req.body;
   // Un champ présent doit être du texte : un nombre ou un objet donnait une erreur 500 (« .trim is not a function »)
   if ([name, phone, bio, avatar].some(v => v !== undefined && typeof v !== 'string'))
+    return res.status(400).json({ error: 'Données du profil invalides.' });
+  if (notify_price_drop !== undefined && typeof notify_price_drop !== 'boolean')
     return res.status(400).json({ error: 'Données du profil invalides.' });
   // L'avatar finit dans un attribut src : uniquement un fichier envoyé sur ce site (ou vide pour le retirer), jamais une adresse libre
   if (avatar !== undefined && avatar.trim() !== '' && !images.isUpload(avatar.trim()))
@@ -139,6 +141,7 @@ router.put('/profile', require('../middleware/auth'), async (req, res) => {
   if (phone  !== undefined) changes.phone  = phone.trim() || null;
   if (bio    !== undefined) changes.bio    = bio.trim();
   if (avatar !== undefined) changes.avatar = avatar.trim() || null;
+  if (notify_price_drop !== undefined) changes.notify_price_drop = notify_price_drop;
   if (!Object.keys(changes).length)
     return res.status(400).json({ error: 'Aucun champ à modifier.' });
   await db.users.update({ id: req.user.id }, changes);
@@ -266,6 +269,7 @@ router.get('/export', require('../middleware/auth'), async (req, res) => {
       id: user.id, name: user.name, email: user.email, phone: user.phone || null,
       bio: user.bio || null, avatar: user.avatar || null,
       is_agent: user.is_agent, verified_kind: user.verified_kind || null,
+      notify_price_drop: user.notify_price_drop !== false,
       lang: user.lang, created_at: user.created_at,
     },
     properties: props.rows,

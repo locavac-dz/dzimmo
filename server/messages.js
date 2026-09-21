@@ -18,6 +18,7 @@ const NOTIFS = {
     report_new:        { title: 'Annonce signalée',            body: '« {title} » a reçu un signalement.' },
     report_hidden:     { title: 'Annonce retirée après signalements', body: '« {title} » est repassée en modération.' },
     report_owner:      { title: 'Annonce en cours de vérification',   body: '« {title} » a été signalée et retirée le temps d’une vérification.' },
+    price_drop:        { title: 'Prix en baisse',              body: '« {title} » passe à {price} (−{percent} %).' },
   },
   ar: {
     contact_new:       { title: 'طلب تواصل جديد',              body: 'أرسل {name} طلباً بخصوص « {title} »' },
@@ -34,6 +35,7 @@ const NOTIFS = {
     report_new:        { title: 'إعلان تم الإبلاغ عنه',         body: 'تلقّى الإعلان « {title} » بلاغاً.' },
     report_hidden:     { title: 'إعلان سُحب بعد بلاغات',        body: 'عاد الإعلان « {title} » إلى قائمة المراجعة.' },
     report_owner:      { title: 'إعلان قيد المراجعة',           body: 'تم الإبلاغ عن الإعلان « {title} » وسحبه إلى حين مراجعته.' },
+    price_drop:        { title: 'انخفاض في السعر',              body: 'أصبح سعر « {title} » {price} (−{percent}٪).' },
   },
 };
 

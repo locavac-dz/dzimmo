@@ -503,6 +503,7 @@
       width: 100%; padding: .55rem .75rem; border: 1.5px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: .9rem;
     }
     .vf-panel .vf-radio { display: flex; gap: .5rem; align-items: flex-start; font-weight: 500; margin: .35rem 0; }
+    .profile-check { display: flex; gap: .5rem; align-items: flex-start; font-weight: 500; margin: .35rem 0 .1rem; cursor: pointer; }
     .vf-panel .vf-hint { font-size: .78rem; color: var(--text-muted); margin-top: .25rem; }
     .vf-docs { display: flex; gap: .5rem; flex-wrap: wrap; margin: .6rem 0; }
     .vf-docs img { height: 150px; max-width: 100%; border-radius: 8px; border: 1px solid var(--border); background: var(--border); cursor: zoom-in; object-fit: contain; }

@@ -372,6 +372,30 @@ function buildListingExpired(lang, { name, propertyTitle, renewUrl }) {
   };
 }
 
+// Baisse de prix d'une annonce en favoris (server/price-drop.js). Les prix et le pourcentage arrivent en nombres : tout est forcé en nombre.
+function buildPriceDrop(lang, { name, propertyTitle, oldPrice, newPrice, percent, url }) {
+  const u = ui(lang);
+  return {
+    subject: pick(lang, `📉 Prix en baisse (−${Number(percent)} %) — ${propertyTitle}`, `📉 انخفاض في السعر (−${Number(percent)}٪) — ${propertyTitle}`),
+    html: wrap(`
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Un bien de vos favoris baisse son prix', 'عقار في مفضلتك خفّض سعره')}</h2>
+      <p>${u.hello} <strong>${esc(name)}</strong>${pick(lang, ',', '،')}</p>
+      <p>${pick(lang,
+        `Le prix de <strong>${esc(propertyTitle)}</strong> vient de baisser de ${Number(percent)} %.`,
+        `انخفض سعر <strong>${esc(propertyTitle)}</strong> بنسبة ${Number(percent)}٪.`)}</p>
+      <div style="background:#f0fdf4;border-radius:8px;padding:12px 16px;margin:14px 0;font-size:1.05rem">
+        <span style="color:#888;text-decoration:line-through">${fmt(oldPrice)} ${u.dzd}</span>
+        &nbsp;${u.arrow}&nbsp;
+        <strong style="color:#0C6E4F">${fmt(newPrice)} ${u.dzd}</strong>
+      </div>
+      ${centered(button(url, pick(lang, "Voir l'annonce", 'عرض الإعلان'), lang, true))}
+      <p style="font-size:.8rem;color:#aaa;margin-top:1.5rem">${pick(lang,
+        'Vous recevez cet email car cette annonce est dans vos favoris. Pour ne plus recevoir ces alertes, décochez « Alertes de baisse de prix » dans Mon compte → Profil.',
+        'وصلتك هذه الرسالة لأن هذا الإعلان في مفضلتك. لإيقاف هذه التنبيهات ألغِ تحديد «تنبيهات انخفاض الأسعار» في حسابي ← الملف الشخصي.')}</p>
+    `, lang),
+  };
+}
+
 // Message du formulaire de la page Contact, adressé à l'équipe du site (langue de l'administrateur destinataire).
 // Tout ce qui vient du visiteur passe par esc() ; son adresse sert d'adresse de réponse (replyTo), jamais d'expéditeur.
 const CONTACT_SUBJECTS = {
@@ -522,6 +546,7 @@ function buildSecurityNotice(lang, { name, event }) {
 }
 
 const mailAlert = d => send(d.to, buildAlert(d.lang, d));
+const mailPriceDrop = d => send(d.to, buildPriceDrop(d.lang, d));
 const mailSecurityNotice = d => send(d.to, buildSecurityNotice(d.lang, d));
 const mailListingReported = d => send(d.to, buildListingReported(d.lang, d));
 const mailAdminReported = d => send(d.to, buildAdminReported(d.lang, d));
@@ -544,10 +569,10 @@ module.exports = {
   mailWelcome, mailVerifyEmail, mailPasswordReset,
   mailContactRequest, mailNewMessage, mailSearchAlert,
   mailModerationDecision, mailAdminPending, mailVerificationDecision, mailAdminVerificationPending,
-  mailExpiryReminder, mailListingExpired, mailListingReported, mailAdminReported, mailAlert, mailSecurityNotice, mailSiteContact, mailNewsletterConfirm, mailNewsletter, CONTACT_SUBJECTS,
+  mailExpiryReminder, mailListingExpired, mailListingReported, mailAdminReported, mailAlert, mailPriceDrop, mailSecurityNotice, mailSiteContact, mailNewsletterConfirm, mailNewsletter, CONTACT_SUBJECTS,
   // gabarits purs (tests)
   build: { buildWelcome, buildVerifyEmail, buildPasswordReset, buildContactRequest, buildNewMessage,
            buildSearchAlert, buildModerationDecision, buildAdminPending,
            buildVerificationDecision, buildAdminVerificationPending, buildExpiryReminder, buildListingExpired, buildSiteContact, buildNewsletterConfirm, buildNewsletter,
-           buildListingReported, buildAdminReported, buildAlert, buildSecurityNotice },
+           buildListingReported, buildAdminReported, buildAlert, buildPriceDrop, buildSecurityNotice },
 };
