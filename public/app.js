@@ -392,6 +392,11 @@ const TRANSLATIONS = {
     map_zone_results_poly:'{n} bien(s) dans la zone dessinée', map_truncated:'Zone très dense : seuls {n} biens sont affichés, resserrez la recherche.',
     map_me_btn:'🎯 Autour de moi', map_me_locating:'⏳ Localisation…', map_me_denied:"Impossible d'accéder à votre position.", map_me_here:'Vous êtes ici (position approximative)',
     dash_stats_btn:'📈 30j', dash_stats_title:'Statistiques · 30 derniers jours',
+    featured_badge:'⭐ À la une', featured_title:'⭐ Annonces à la une', u_day_one:'jour', u_day_two:'jours', u_day_many:'jours',
+    dash_feature_btn:'⭐ Mettre à la une', dash_featured_until:"⭐ À la une jusqu'au {date}",
+    pr_title:'Mettre votre annonce à la une', pr_intro:"Votre annonce apparaît en tête de l'accueil et de la page Annonces pendant la durée choisie.",
+    pr_extend_note:"Si l'annonce est déjà à la une, la durée s'ajoute à la fin de la période en cours.", pr_test_note:"Mode test : aucun argent n'est prélevé.",
+    pr_pay:'Payer et mettre à la une', pr_closed:'Les mises à la une ne sont pas ouvertes pour le moment.', pr_choose:'Choisissez une formule.', pr_done:"Votre annonce est à la une jusqu'au {date}.",
     st_views:'Vues', st_favs:'Favoris', st_clicks:'Clics', st_calls:'Appels', st_wa:'WhatsApp', st_contacts:'Demandes',
     st_favs_total:'{n} au total', st_no_data:"Pas encore de visite sur cette période.", st_advice:'Conseils', st_advice_tip:"Conseils calculés d'après les statistiques de cette annonce.",
     dash_edit:'✏️ Modifier', pub_edit_heading:"✏️ Modifier l'annonce", pub_edit_submit:'Enregistrer les modifications',
@@ -779,6 +784,11 @@ const TRANSLATIONS = {
     map_zone_results_poly:'{n} عقار في المنطقة المرسومة', map_truncated:'منطقة مزدحمة جدًا: يتم عرض {n} عقار فقط، ضيّق البحث.',
     map_me_btn:'🎯 حولي', map_me_locating:'⏳ جارٍ التحديد…', map_me_denied:'تعذّر الوصول إلى موقعك.', map_me_here:'أنت هنا (موقع تقريبي)',
     dash_stats_btn:'📈 30ي', dash_stats_title:'الإحصائيات · آخر 30 يوماً',
+    featured_badge:'⭐ مميز', featured_title:'⭐ إعلانات مميزة', u_day_one:'يوم', u_day_two:'يومان', u_day_many:'أيام',
+    dash_feature_btn:'⭐ إبراز الإعلان', dash_featured_until:'⭐ مميز حتى {date}',
+    pr_title:'إبراز إعلانك', pr_intro:'يظهر إعلانك في أعلى الصفحة الرئيسية وصفحة الإعلانات طوال المدة المختارة.',
+    pr_extend_note:'إذا كان الإعلان مميزاً بالفعل، تُضاف المدة إلى نهاية الفترة الحالية.', pr_test_note:'وضع تجريبي: لا يُخصم أي مبلغ.',
+    pr_pay:'الدفع والإبراز', pr_closed:'الإبراز غير متاح حالياً.', pr_choose:'اختر صيغة.', pr_done:'إعلانك مميز حتى {date}.',
     st_views:'المشاهدات', st_favs:'المفضّلة', st_clicks:'النقرات', st_calls:'المكالمات', st_wa:'واتساب', st_contacts:'الطلبات',
     st_favs_total:'{n} في المجموع', st_no_data:'لا توجد زيارات بعد خلال هذه الفترة.', st_advice:'نصائح', st_advice_tip:'نصائح محسوبة انطلاقاً من إحصائيات هذا الإعلان.',
     dash_edit:'✏️ تعديل', pub_edit_heading:'✏️ تعديل الإعلان', pub_edit_submit:'حفظ التعديلات',
@@ -1399,6 +1409,7 @@ async function loadHomeProperties(mode = '') {
     const resp = await api('/properties?' + params);
     countEl.textContent = resp.total + ' ' + unit(resp.total, 'st_ad');   // « 7 annonces » / « 7 إعلانات » (duel et pluriel arabes compris)
     renderGrid(grid, resp.data);
+    loadFeatured('home-featured', { mode });
   } catch (e) { grid.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
 }
 
@@ -1446,10 +1457,13 @@ async function loadAnnonces(page = 1) {
     const { data, total, pages } = resp;
     countEl.textContent = total + ' ' + T(total > 1 ? 'res_many' : 'res_one');
     if (!data.length) {
+      document.getElementById('annonces-featured')?.classList.add('hidden');
       grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🔍</div><h3>Aucune annonce trouvée</h3><p>Essayez d\'élargir vos critères.</p></div>';
       return;
     }
     renderGrid(grid, data);
+    if (page === 1) loadFeatured('annonces-featured', { mode: get('f-mode'), type_bien: get('f-type'), wilaya: get('f-wilaya') }, 3);
+    else document.getElementById('annonces-featured')?.classList.add('hidden');
     renderPagination('annonces-pagination', page, pages, 'loadAnnonces');
   } catch (e) { grid.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
 }
@@ -1492,6 +1506,33 @@ function renderGrid(container, props) {
   container.innerHTML = props.map(p => cardHTML(p)).join('');
 }
 
+// Formules « À la une » (GET /api/promotions/plans) : lues une fois ; un échec n'est pas mémorisé (on réessaie au prochain affichage)
+let _promo = null;
+async function promoPlans() {
+  if (_promo) return _promo;
+  try { _promo = await api('/promotions/plans'); } catch { return { enabled: false, plans: [], simulated: false }; }
+  return _promo;
+}
+
+// À la une : la date de fin vient du serveur (properties.featured_until) ; le navigateur ne fait que la comparer à l'heure courante
+const isFeatured = p => !!(p && p.featured_until && new Date(p.featured_until).getTime() > Date.now());
+
+// Bande « À la une » : quelques annonces tirées au hasard par le serveur (rotation équitable), au-dessus de la liste normale.
+// Masquée s'il n'y en a aucune ou si le chargement échoue (la liste, elle, n'en dépend pas).
+async function loadFeatured(containerId, filters = {}, limit = 4) {
+  const box = document.getElementById(containerId);
+  if (!box) return;
+  const params = new URLSearchParams({ limit });
+  for (const k of ['mode', 'type_bien', 'wilaya']) if (filters[k]) params.set(k, filters[k]);
+  try {
+    const { data } = await api('/properties/featured?' + params);
+    if (!data || !data.length) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="section-header"><div class="section-title">' + T('featured_title') + '</div></div>'
+      + '<div class="grid">' + data.map(p => cardHTML(p)).join('') + '</div>';
+    box.classList.remove('hidden');
+  } catch { box.classList.add('hidden'); box.innerHTML = ''; }
+}
+
 function cardHTML(p) {
   window._propCache[p.id] = p;
   const price = priceText(p);
@@ -1506,6 +1547,7 @@ function cardHTML(p) {
     <div class="card">
       <img class="card-img" ${imgAttrs(p.image || 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70', '(max-width: 640px) 100vw, 320px')} alt="${esc(p.title)}" loading="lazy" onerror="this.removeAttribute('srcset');this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70'">
       ${p.verified ? '<span class="verified-badge">' + T('verified_badge') + '</span>' : ''}
+      ${isFeatured(p) ? '<span class="featured-badge">' + T('featured_badge') + '</span>' : ''}
       ${p.video_url || p.tour_url ? '<span class="media-badge">' + (p.tour_url ? '🧭 ' + T('media_badge_tour') : '🎬 ' + T('media_badge_video')) + '</span>' : ''}
       ${token ? `<button class="card-fav" onclick="event.stopPropagation();toggleFav(${p.id},this)" title="${T('fav_tip')}">🤍</button>` : ''}
       <button class="card-cmp${isCmp ? ' active' : ''}" data-id="${p.id}"
@@ -2908,6 +2950,7 @@ async function adminLoadProperties(page = 1) {
                   <option value="active">Actif</option><option value="sold">Vendu</option>
                   <option value="rented">Loué</option><option value="archived">Archivé</option>
                 </select>
+                <button class="btn btn-outline btn-sm promo-btn" style="padding:.25rem .45rem;font-size:.78rem;white-space:nowrap" data-id="${p.id}" onclick="adminFeature(this.dataset.id)">⭐ ${isFeatured(p) ? 'jusqu\'au ' + new Date(p.featured_until).toLocaleDateString('fr-DZ') : 'À la une'}</button>
                 ${!p.verified ? `<button class="btn btn-outline btn-sm" style="padding:.25rem .45rem;font-size:.78rem;border-color:#0C6E4F;color:var(--primary-text);white-space:nowrap" onclick="adminVerifyProperty(${p.id})">✓ Vérifier</button>` : ''}
                 <button class="btn btn-outline btn-sm" style="padding:.25rem .45rem;font-size:.78rem;border-color:#ef4444;color:#ef4444" data-title="${esc(p.title)}" onclick="adminDeleteProperty(${p.id}, this.dataset.title)">🗑</button>
               </td>
@@ -2928,6 +2971,19 @@ async function adminSetStatus(id, status, sel) {
     toast('✅ Statut mis à jour.');
     adminLoadProperties(_adminPage.properties);
   } catch (e) { toast('❌ ' + e.message); sel.value = ''; }
+}
+
+// Met une annonce à la une gratuitement (durée en jours, ajoutée à la période en cours) ou la retire (0)
+async function adminFeature(id) {
+  const v = prompt('Durée « À la une » en jours (1 à 365, ajoutée à la période en cours ; 0 pour retirer) :', '7');
+  if (v === null) return;
+  const days = Number(v.trim());
+  if (v.trim() === '' || !Number.isInteger(days) || days < 0 || days > 365) { toast('❌ Durée invalide.'); return; }
+  try {
+    await api('/admin/properties/' + id + '/une', 'PUT', { days });
+    toast(days ? '✅ Annonce mise à la une.' : '✅ Mise à la une retirée.');
+    adminLoadProperties(_adminPage.properties);
+  } catch (e) { toast('❌ ' + e.message); }
 }
 
 async function adminVerifyProperty(id) {
@@ -3522,6 +3578,7 @@ async function dashTab(tab, more = false) {
       return;
     }
 
+    const promo = await promoPlans();
     const SCOLOR = { active:'#0C6E4F', sold:'#3b82f6', rented:'#f59e0b', archived:'#94a3b8', pending:'#d97706', rejected:'#dc2626', expired:'#b45309' };
     const SLBL   = Object.fromEntries(['active','sold','rented','archived','pending','rejected','expired'].map(k => [k, T('dash_st_' + k)]));
     // « Retirée » : archivée automatiquement faute de confirmation (l'annonceur peut la renouveler)
@@ -3548,6 +3605,7 @@ async function dashTab(tab, more = false) {
             ${p.status === 'rejected' && p.moderation_reason ? `<div style="font-size:.79rem;color:#dc2626;margin-top:.25rem">${T('dash_reason')} ${esc(modReason(p.moderation_reason))}</div>` : ''}
             ${p.status === 'active' && p.last_confirmed_at ? `<div style="font-size:.76rem;margin-top:.3rem;color:${p.expires_at ? '#b45309' : 'var(--text-muted)'};font-weight:${p.expires_at ? 700 : 400}">${p.expires_at
               ? T('dash_expires').replace('{date}', day(p.expires_at)) : T('dash_confirmed').replace('{date}', day(p.last_confirmed_at))}</div>` : ''}
+            ${isFeatured(p) ? `<div class="promo-until">${T('dash_featured_until').replace('{date}', day(p.featured_until))}</div>` : ''}
             ${stOf(p) === 'expired' ? `<div style="font-size:.78rem;color:#b45309;margin-top:.3rem">${T('dash_expired_note')}</div>` : ''}
             ${p.status === 'pending' && (p.quality_flags || []).some(f => FLAGGED.includes(f)) ? `<div style="font-size:.78rem;color:#b45309;margin-top:.3rem">⚠ ${T('q_pending_flag')}</div>` : ''}
             <div style="display:flex;gap:1.1rem;margin-top:.4rem;flex-wrap:wrap">
@@ -3564,6 +3622,7 @@ async function dashTab(tab, more = false) {
             ${p.status === 'rejected' ? `<button class="btn btn-outline btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap;border-color:#dc2626;color:#dc2626" onclick="ownerDelete(${p.id})">${T('dash_delete')}</button>` : ''}
             ${p.status==='active'?`<button class="btn ${p.expires_at ? 'btn-primary' : 'btn-outline'} btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap" onclick="ownerRenew(${p.id})">${T('dash_still')}</button>`:''}
             ${stOf(p)==='expired'?`<button class="btn btn-primary btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap" onclick="ownerRenew(${p.id})">${T('dash_renew')}</button>`:''}
+            ${p.status==='active' && promo.enabled && promo.plans.length ? `<button class="btn btn-outline btn-sm promo-btn" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap" data-id="${p.id}" onclick="openPromote(this.dataset.id)">${T('dash_feature_btn')}</button>` : ''}
             ${p.status==='active'?`<button class="btn btn-outline btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap;border-color:#94a3b8;color:#64748b" onclick="ownerArchive(${p.id})">${T('dash_archive')}</button>`:''}
           </div>
         </div>`).join('')}
@@ -4104,6 +4163,45 @@ async function loadUnreadCount() {
 }
 
 // ── Modals ─────────────────────────────────────────
+// ── Mise à la une d'une annonce ───────────────────────────────────────────────────
+// Les formules et les prix viennent du serveur (jours et montants forcés en nombres). Paiement simulé (développement) : le navigateur
+// confirme lui-même ; en production, le serveur renverra une adresse de paiement https (SATIM) vers laquelle on redirige.
+let _promoId = 0;
+
+async function openPromote(id) {
+  const promo = await promoPlans();
+  if (!promo.enabled || !promo.plans.length) { toast('❌ ' + T('pr_closed')); return; }
+  _promoId = Number(id) || 0;
+  document.getElementById('promote-plans').innerHTML = promo.plans.map((pl, i) => {
+    const days = Number(pl.days), price = Number(pl.price);
+    return `<label class="promo-plan"><input type="radio" name="promo-days" value="${days}"${i === 0 ? ' checked' : ''}>
+      <span>${days} ${unit(days, 'u_day')}</span><strong>${formatPrice(price)} ${T('u_dzd')}</strong></label>`;
+  }).join('');
+  document.getElementById('promote-test').classList.toggle('hidden', !promo.simulated);
+  const msg = document.getElementById('promote-msg'); msg.className = 'hidden'; msg.textContent = '';
+  document.getElementById('promote-pay').disabled = false;
+  openModal('promote');
+}
+
+async function submitPromote() {
+  const msg = document.getElementById('promote-msg');
+  const days = Number(document.querySelector('input[name="promo-days"]:checked')?.value);
+  if (!days) { msg.className = 'error-msg'; msg.textContent = T('pr_choose'); return; }
+  const btn = document.getElementById('promote-pay');
+  btn.disabled = true;   // un seul envoi : pas de double commande sur un double clic
+  try {
+    const order = await api('/promotions', 'POST', { property_id: _promoId, days });
+    if (order.simulated) {
+      const done = await api('/promotions/' + order.id + '/simulate', 'POST');
+      closeModal('promote');
+      toast('✅ ' + T('pr_done').replace('{date}', new Date(done.featured_until).toLocaleDateString('fr-DZ')), 4500);
+      if (currentPage === 'dashboard') dashTab('mes-annonces');
+    } else if (isHttps(order.redirect)) {
+      location.href = order.redirect;
+    } else throw new Error(T('pr_closed'));
+  } catch (e) { msg.className = 'error-msg'; msg.textContent = e.message; btn.disabled = false; }
+}
+
 // ── Signalement d'une annonce ─────────────────────────────────────────────────────
 // Connexion requise. Le serveur borne les dépôts (un par membre et par annonce, 10 par jour) et retire seul l'annonce
 // à partir de REPORT_AUTO_HIDE membres fiables : ici on ne fait que recueillir le motif.

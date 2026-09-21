@@ -129,6 +129,14 @@ const geoLimiter = rateLimit({
 });
 app.use('/api/properties/nearby', geoLimiter);
 app.use('/api/properties/zone', geoLimiter);
+// Commandes de mise à la une : chaque appel écrit en base, donc plafonné par adresse IP
+const promotionLimiter = rateLimit({
+  ...shared('promotion'),
+  windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Trop de requêtes. Réessayez dans une minute.' },
+  skip: () => process.env.NODE_ENV === 'test',
+});
+app.use('/api/promotions', promotionLimiter);
 app.use('/api/properties/:id/click', clickLimiter);
 app.use('/api/properties/:id/confirm', authLimiter);
 
@@ -222,6 +230,7 @@ app.use('/api/messages',   require('./routes/messages'));
 app.use('/api/upload',     require('./routes/upload'));
 app.use('/api/agencies',   require('./routes/agencies'));
 app.use('/api/projects',   require('./routes/projects'));
+app.use('/api/promotions', require('./routes/promotions')); // mise à la une payante (server/featured.js, server/payments.js)
 app.use('/api/favorites',  require('./routes/favorites'));
 app.use('/api/stats',      require('./routes/stats'));
 app.use('/api/admin/verifications', require('./routes/admin-verifications'));

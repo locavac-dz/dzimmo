@@ -45,7 +45,7 @@ router.get('/properties', admin, async (req, res) => {
   const cond = searchCondition(req.query.q, ['title', 'wilaya'], params);
   if (cond) conds.push(cond);
   res.json(await paginate(pool, {
-    columns: 'id, title, wilaya, mode, type_bien, price, status, verified, owner_id, created_at',
+    columns: 'id, title, wilaya, mode, type_bien, price, status, verified, featured_until, owner_id, created_at',
     from: 'properties', where: conds.length ? 'WHERE ' + conds.join(' AND ') : '', params, orderBy: 'id DESC', query: req.query }));
 });
 
@@ -104,6 +104,16 @@ router.put('/properties/:id/status', admin, async (req, res) => {
     await db.properties.update({ id: toId(req.params.id) ?? 0 }, { status });
   }
   res.json({ ok: true });
+});
+
+// PUT /api/admin/properties/:id/une { days } — met une annonce à la une gratuitement (days 1 à 365, prolonge l'éventuelle mise en avant en cours) ou retire la mise à la une (days 0)
+router.put('/properties/:id/une', admin, async (req, res) => {
+  const featured = require('../featured');
+  const days = req.body && req.body.days;
+  if (!Number.isInteger(days) || days < 0 || days > featured.MAX_DAYS) return res.status(400).json({ error: 'Durée invalide.' });
+  const r = await featured.grant(toId(req.params.id) ?? 0, days);
+  if (!r) return res.status(404).json({ error: 'Annonce introuvable.' });
+  res.json({ ok: true, featured_until: r.featured_until });
 });
 
 // PUT /api/admin/properties/:id/verify

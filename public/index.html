@@ -146,6 +146,8 @@
 
   <!-- Annonces récentes -->
   <div id="main">
+    <!-- Annonces mises à la une (masqué tant qu'il n'y en a aucune) : rempli par loadFeatured() -->
+    <section id="home-featured" class="featured-strip hidden"></section>
     <div class="section-header">
       <div>
         <div class="section-title" data-i18n="recent_listings">Annonces récentes</div>
@@ -280,6 +282,7 @@
         </select>
       </div>
     </div>
+    <section id="annonces-featured" class="featured-strip hidden"></section>
     <div class="grid" id="annonces-grid"><div class="loading"><div class="spinner"></div></div></div>
     <div id="annonces-pagination"></div>
     <!--SEO_LANDING-->
@@ -1112,6 +1115,20 @@
     <div class="form-row"><label data-i18n="rp_motif">Motif</label><select id="report-motif"></select></div>
     <div class="form-row"><label data-i18n="rp_message">Précisions (facultatif)</label><textarea id="report-message" maxlength="500" rows="3"></textarea></div>
     <button class="btn btn-primary" style="width:100%;padding:.75rem;margin-top:.5rem" onclick="submitReport()" data-i18n="rp_send">Envoyer le signalement</button>
+  </div>
+</div>
+
+<!-- Mise à la une d'une annonce (formules et prix fournis par GET /api/promotions/plans) -->
+<div class="modal-overlay hidden" id="modal-promote">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('promote')">×</button>
+    <h2 data-i18n="pr_title">Mettre votre annonce à la une</h2>
+    <p style="font-size:.9rem;color:var(--text-muted);margin-bottom:1rem" data-i18n="pr_intro">Votre annonce apparaît en tête de l'accueil et de la page Annonces pendant la durée choisie.</p>
+    <div id="promote-msg" class="hidden"></div>
+    <div id="promote-plans" class="promo-plans"></div>
+    <p style="font-size:.8rem;color:var(--text-muted);margin-top:.6rem" data-i18n="pr_extend_note">Si l'annonce est déjà à la une, la durée s'ajoute à la fin de la période en cours.</p>
+    <p id="promote-test" class="hidden" style="font-size:.8rem;color:var(--gold-text);font-weight:600" data-i18n="pr_test_note">Mode test : aucun argent n'est prélevé.</p>
+    <button class="btn btn-primary" id="promote-pay" style="width:100%;padding:.75rem;margin-top:.5rem" onclick="submitPromote()" data-i18n="pr_pay">Payer et mettre à la une</button>
   </div>
 </div>
 

@@ -231,3 +231,9 @@ cd /srv/dzimmo && git pull && npm ci --omit=dev && pm2 reload dzimmo
 
 `pm2 reload` renouvelle les workers un par un, sans coupure. Les nouvelles migrations s'appliquent au redémarrage.
 Les tests tournent sur GitHub Actions (`.github/workflows/ci.yml`) à chaque poussée.
+
+## 11. Mises à la une payantes
+
+Elles sont **fermées en production** (`FEATURED_ENABLED` absent) : le paiement en ligne SATIM n'est pas encore raccordé (`server/payments.js`), et le démarrage refuse
+`FEATURED_ENABLED=true` ou `PAYMENT_PROVIDER=simulated`. Un administrateur peut en revanche mettre une annonce à la une gratuitement (Administration → Annonces → ⭐).
+Avant d'ouvrir les mises à la une payantes : contrat SATIM signé, raccordement de `checkout()` et de son retour, tarifs dans `FEATURED_PRICES`.

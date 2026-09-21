@@ -296,6 +296,28 @@ router.post('/zone', async (req, res) => {
   res.json({ data, total: data.length, truncated });
 });
 
+// GET /api/properties/featured[?wilaya=&mode=&type_bien=&limit=] — annonces « À la une » (DOIT être avant /:id) : publiées, mise en avant en cours.
+// Ordre aléatoire à chaque appel (rotation équitable entre les annonceurs) ; l'annonce reste aussi dans la liste normale (aucune page décalée).
+router.get('/featured', async (req, res) => {
+  const params = [];
+  const add = v => { params.push(v); return '$' + params.length; };
+  const conds = ["p.status = 'active'", 'p.featured_until > now()'];
+  const { mode, type_bien, wilaya } = req.query;
+  if (typeof mode === 'string' && MODES_VALIDES.includes(mode))            conds.push('p.mode = ' + add(mode));
+  if (typeof type_bien === 'string' && TYPES_VALIDES.includes(type_bien))  conds.push('p.type_bien = ' + add(type_bien));
+  if (typeof wilaya === 'string' && wilaya && wilaya.length <= 60)         conds.push('p.wilaya = ' + add(wilaya));
+  const limit = Math.min(12, Math.max(1, parseInt(req.query.limit) || 6));
+  const { rows } = await db.pool.query(`
+    SELECT p.*,
+      u.name AS owner_name, u.phone AS owner_phone, u.avatar AS owner_avatar, u.verified_kind AS owner_verified_kind,
+      a.name AS agency_name, a.logo AS agency_logo, a.phone AS agency_phone,
+      COALESCE(a.verified, false) AS agency_verified, a.kind AS agency_kind
+    FROM (SELECT p.* FROM properties p WHERE ${conds.join(' AND ')} ORDER BY random() LIMIT ${limit}) p
+    LEFT JOIN users    u ON u.id = p.owner_id
+    LEFT JOIN agencies a ON a.id = p.agency_id`, params);
+  res.json({ data: rows });
+});
+
 // GET /api/properties/:id
 router.get('/:id', optionalAuth, async (req, res) => {
   const property = await db.properties.findById(req.params.id);

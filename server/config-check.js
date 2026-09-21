@@ -87,6 +87,18 @@ function checkConfig(env = process.env) {
       warnings.push(`${name} doit être un nombre entier de jours entre 1 et 365 (« ${v} » ignoré : ${def} jours utilisés).`);
   }
 
+  // Mises à la une payantes (server/featured.js, server/payments.js) : ouvertes seulement avec un vrai paiement raccordé
+  const fe = String(env.FEATURED_ENABLED ?? '').trim().toLowerCase();
+  const payProvider = String(env.PAYMENT_PROVIDER || '').trim().toLowerCase();
+  if (payProvider === 'simulated')
+    errors.push("PAYMENT_PROVIDER=simulated en production : le paiement simulé n'encaisse rien (les mises à la une seraient offertes à tous). Retirer la variable.");
+  if (fe === 'true')
+    errors.push("FEATURED_ENABLED=true : le paiement en ligne SATIM n'est pas encore raccordé (server/payments.js). Laisser FEATURED_ENABLED=false ; un administrateur peut mettre une annonce à la une depuis l'administration.");
+  if (env.FEATURED_PRICES !== undefined && String(env.FEATURED_PRICES).trim() !== '') {
+    const bad = String(env.FEATURED_PRICES).split(',').map(s => s.trim()).filter(s => !/^\d{1,3}:\d{1,7}$/.test(s) || Number(s.split(':')[0]) < 1 || Number(s.split(':')[0]) > 365);
+    if (bad.length) warnings.push(`FEATURED_PRICES contient des formules illisibles (« ${bad.join(', ')} » ignorée(s)) : attendu « jours:prix » séparés par des virgules, par exemple 7:1500,30:4000.`);
+  }
+
   const NO_MAIL = 'aucun email (confirmation, mot de passe oublié, alertes) ne sera envoyé.';
   if (!env.EMAIL_HOST) warnings.push('EMAIL_HOST est absent : ' + NO_MAIL);
   else if (/(^|\.)example\.(com|org|net)$/i.test(env.EMAIL_HOST.trim())) warnings.push(`EMAIL_HOST est encore la valeur d'exemple (${env.EMAIL_HOST}) : ` + NO_MAIL);

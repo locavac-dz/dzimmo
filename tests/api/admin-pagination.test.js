@@ -107,7 +107,7 @@ test('annonces : filtre de statut + recherche + pagination, colonnes allégées'
   assert.equal(tout.total, 45);
   assert.equal(tout.items.length, 25);
   assert.deepEqual(Object.keys(tout.items[0]).sort(),
-    ['created_at', 'id', 'mode', 'owner_id', 'price', 'status', 'title', 'type_bien', 'verified', 'wilaya'],
+    ['created_at', 'featured_until', 'id', 'mode', 'owner_id', 'price', 'status', 'title', 'type_bien', 'verified', 'wilaya'],
     'ni description ni photos dans la liste');
   assert.equal((await get('/properties?status=pending')).body.total, 12);
   assert.equal((await get('/properties?status=rejected')).body.total, 4);

@@ -9,6 +9,7 @@
       --adv-fg: #0C6E4F;              /* texte du badge « identité » : vert foncé en clair, menthe en sombre */
       --primary-text: #0C6E4F;        /* vert utilisé COMME TEXTE (prix, liens, onglets) : éclairci en thème sombre pour rester lisible ; --primary reste le fond des boutons */
       --accent: #f59e0b;
+      --gold-text: #b45309;           /* ambre utilisé COMME TEXTE (mise à la une) : éclairci en thème sombre, comme --primary-text */
       --red: #dc2626;
       --text: #1e293b;
       --text-secondary: #475569;
@@ -26,20 +27,20 @@
       :root:not([data-theme="light"]) {
         --text: #e2e8f0; --text-secondary: #cbd5e1; --text-muted: #94a3b8;
         --border: #334155; --bg: #0f172a; --white: #1e293b; --surface: #1e293b;
-        --primary-light: rgba(12,110,79,.2); --adv-fg: #6ee7b7; --primary-text: #34d399;
+        --primary-light: rgba(12,110,79,.2); --adv-fg: #6ee7b7; --primary-text: #34d399; --gold-text: #fbbf24;
         --shadow: 0 2px 12px rgba(0,0,0,.35); --shadow-lg: 0 8px 32px rgba(0,0,0,.55);
       }
     }
     :root[data-theme="dark"] {
       --text: #e2e8f0; --text-secondary: #cbd5e1; --text-muted: #94a3b8;
       --border: #334155; --bg: #0f172a; --white: #1e293b; --surface: #1e293b;
-      --primary-light: rgba(12,110,79,.2); --adv-fg: #6ee7b7; --primary-text: #34d399;
+      --primary-light: rgba(12,110,79,.2); --adv-fg: #6ee7b7; --primary-text: #34d399; --gold-text: #fbbf24;
       --shadow: 0 2px 12px rgba(0,0,0,.35); --shadow-lg: 0 8px 32px rgba(0,0,0,.55);
     }
     :root[data-theme="light"] {
       --text: #1e293b; --text-secondary: #475569; --text-muted: #64748b;
       --border: #e2e8f0; --bg: #f8fafc; --white: #ffffff; --surface: #ffffff;
-      --primary-light: #e8f5f0; --adv-fg: #0C6E4F; --primary-text: #0C6E4F;
+      --primary-light: #e8f5f0; --adv-fg: #0C6E4F; --primary-text: #0C6E4F; --gold-text: #b45309;
       --shadow: 0 2px 12px rgba(0,0,0,.08); --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
     }
     *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -221,6 +222,27 @@
       background: var(--primary); color: #fff;
       padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;
     }
+
+    /* Pastille « À la une » d'une carte (en bas de la photo, à l'opposé de la pastille vidéo) ; #b45309 sous du blanc : contraste 5:1 */
+    .featured-badge {
+      position: absolute; top: 166px; inset-inline-end: 10px;
+      background: #b45309; color: #fff;
+      padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;
+    }
+    /* Bande « À la une » de l'accueil et de la page Annonces */
+    .featured-strip { margin-bottom: 2rem; }
+    .promo-until { font-size: .78rem; margin-top: .3rem; color: var(--gold-text); font-weight: 700; }
+    .btn.promo-btn { border-color: var(--gold-text); color: var(--gold-text); }
+    .featured-strip .section-title { color: var(--text); }
+    /* Formules de la fenêtre « Mettre à la une » */
+    .promo-plans { display: flex; flex-direction: column; gap: .5rem; }
+    .promo-plan {
+      display: flex; align-items: center; gap: .6rem; padding: .65rem .85rem; cursor: pointer;
+      border: 1.5px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: .92rem;
+    }
+    .promo-plan:has(input:checked) { border-color: var(--primary); background: var(--primary-light, var(--bg)); }
+    .promo-plan input { width: auto; margin: 0; }
+    .promo-plan strong { margin-inline-start: auto; white-space: nowrap; color: var(--primary-text); }
 
     /* Pastille « Vidéo » / « Visite 3D » d'une carte (sous le bouton de comparaison, en bas de la photo) */
     .media-badge {

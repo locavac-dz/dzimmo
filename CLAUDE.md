@@ -187,6 +187,27 @@ Windows : `demarrer.bat`
 - **Front** : `statsPanelHTML(stats)` (public/app.js) est pure (données → chaîne, tout par `esc()`, paramètres forcés en nombres, code inconnu ignoré) ; `showPropertyStats`
   l'affiche sous la carte de l'annonce (bouton 📈 30j du tableau de bord) : totaux, trois courbes (vues, favoris, clics) et conseils.
 
+## Mise à la une (« À la une »)
+
+- **Un seul état : `properties.featured_until`** (migration 024) : à la une tant que la date est dans le futur, **aucune tâche planifiée** (rien à expirer, rien qui dépende d'un worker).
+  Un achat prolonge à partir de la fin en cours (`GREATEST(COALESCE(featured_until, now()), now()) + jours`), une mise à la une terminée repart d'aujourd'hui. Index partiel `idx_properties_featured`.
+  Historique dans `promotions` (`days`, `amount` en DZD, `provider` `simulated` | `satim` | `admin`, `status` `pending` | `paid` | `cancelled`) : jamais d'adresse IP ni de donnée de carte.
+- **Où elle se voit** : pastille `.featured-badge` sur toute carte à la une (`isFeatured(p)`) et **bande** `#home-featured` (accueil, 4 biens) / `#annonces-featured` (page 1 des annonces, 3 biens, mêmes mode / type / wilaya que la recherche),
+  remplie par `loadFeatured` depuis `GET /api/properties/featured` (`limit` 1–12, défaut 6 ; ordre **aléatoire** à chaque appel = rotation équitable ; annonces `active` seulement ; jamais d'email de propriétaire).
+  Les listes et leur pagination **ne changent pas** (pas de tri à la une) : l'annonce reste dans la liste normale. Bande masquée si vide ou en cas d'erreur. Route déclarée **avant** `/:id`.
+- **Commande** (`server/routes/promotions.js`, `/api/promotions`, limiteur partagé `promotion`) : `GET /plans` (public : `{ enabled, currency, plans, simulated }`), `POST /` `{ property_id, days }`
+  (connexion ; propriétaire de l'annonce, annonce `active`, formule connue ; annule la commande en attente de la même annonce puis en crée une), `POST /:id/simulate` (mode simulé seulement, 404 sinon).
+  `activate()` (`server/featured.js`) fait passer la commande de `pending` à `paid` par un UPDATE atomique : une confirmation reçue deux fois ne compte qu'une fois.
+- **Formules** : `FEATURED_PRICES` (`jours:prix`, défaut `7:1500,15:2500,30:4000`, six au plus, entrées illisibles ignorées et signalées par `config-check`). `FEATURED_ENABLED` : ouvert par défaut hors production, **fermé en production** tant qu'il n'est pas `true`.
+- **Paiement** (`server/payments.js`) : `simulated` (développement et tests : aucun argent, le navigateur confirme lui-même) ou `satim` (**pas encore raccordé** : `checkout()` lève une erreur → 503 « Le paiement en ligne n'est pas disponible. » et commande annulée).
+  Le mode simulé n'existe **jamais** en production, quoi que dise la configuration ; `config-check` refuse `PAYMENT_PROVIDER=simulated` et `FEATURED_ENABLED=true` en production tant que SATIM n'est pas raccordé (on n'encaisse jamais faussement).
+  Raccorder SATIM = implémenter `checkout()` (enregistrement de la commande, `{ redirect: 'https://…' }`), le retour vérifié côté serveur qui appelle `activate()`, l'email de reçu (FR **et** AR, jeu de données dans `emails-notifs.test.js`), puis retirer la règle de `config-check`.
+- **Administration** : `PUT /api/admin/properties/:id/une { days }` (entier 0–365 ; `> 0` prolonge gratuitement et historise à 0 DZD `admin`, `0` retire) ; bouton ⭐ de la liste des annonces (panneau en français seul).
+- **Front** : bouton « ⭐ Mettre à la une » du tableau de bord (annonces `active`, formules ouvertes) → fenêtre `#modal-promote` (formules du serveur forcées en nombres, `unit(days, 'u_day')`, note « mode test » si simulé) ; ligne « À la une jusqu'au … » sur la carte.
+  Couleur ambre : `var(--gold-text)` (éclairci en thème sombre, comme `--primary-text`), jamais `#b45309` en dur pour du texte.
+- **Limites connues** : pas d'email de reçu (à faire avec SATIM) ; une annonce refusée en modération après paiement n'est pas remboursée automatiquement (remboursement manuel) ; la bande tire au hasard parmi *toutes* les annonces à la une (pas de pondération par durée achetée).
+- Tests : `tests/unit/featured.test.js`, `tests/unit/featured-front.test.js`, `tests/api/a-la-une.test.js`.
+
 ## Vitrine des agences et des promoteurs
 
 - **Profil** (`server/agency.js`, table `agencies`) : `kind` (`agence` | `promoteur`), logo, couverture, slogan, services, zones, horaires,
