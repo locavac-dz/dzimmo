@@ -48,7 +48,7 @@ const TRANSLATIONS = {
     nav_admin:'⚙️ Admin', notif_title:'🔔 Notifications', notif_read_all:'Tout lire', notif_empty:'Aucune notification',
     cmp_compare:'⚖ Comparer', cmp_clear:'✕ Vider', cmp_title:'⚖ Comparateur de biens', cmp_close:'✕ Fermer',
     filter_search:'Recherche', filter_kw_ph:'Mot-clé…', filter_apply:'🔍 Filtrer',
-    near_me:'📍 Près de moi', near_me_results:'📍 Résultats près de :', near_me_clear:'✕ Retirer',
+    near_me:'📍 Près de moi', near_me_results:'📍 Résultats près de :', near_me_clear:'✕ Retirer', commune_in:'🏘️ Commune :',
     annonces_heading:'Annonces immobilières', res_one:'résultat', res_many:'résultats',
     pub_first_photo:'La première photo sera la photo principale.',
     msg_title:'💬 Messagerie', msg_select:'Sélectionnez une conversation', msg_none:'Aucune conversation',
@@ -440,7 +440,7 @@ const TRANSLATIONS = {
     nav_admin:'⚙️ الإدارة', notif_title:'🔔 الإشعارات', notif_read_all:'قراءة الكل', notif_empty:'لا توجد إشعارات',
     cmp_compare:'⚖ مقارنة', cmp_clear:'✕ إفراغ', cmp_title:'⚖ مقارنة العقارات', cmp_close:'✕ إغلاق',
     filter_search:'بحث', filter_kw_ph:'كلمة مفتاحية…', filter_apply:'🔍 تصفية',
-    near_me:'📍 بالقرب مني', near_me_results:'📍 نتائج بالقرب من:', near_me_clear:'✕ إزالة',
+    near_me:'📍 بالقرب مني', near_me_results:'📍 نتائج بالقرب من:', near_me_clear:'✕ إزالة', commune_in:'🏘️ البلدية:',
     annonces_heading:'إعلانات عقارية', res_one:'نتيجة', res_many:'نتائج',
     pub_first_photo:'ستكون الصورة الأولى هي الصورة الرئيسية.',
     msg_title:'💬 الرسائل', msg_select:'اختر محادثة', msg_none:'لا توجد محادثات',
@@ -979,6 +979,7 @@ async function init() {
 
   populateWilayas();
   initGoogle();
+  document.getElementById('f-wilaya').addEventListener('change', () => setCommune(null));   // la commune appartient à une wilaya
   if (token) await loadCurrentUser();
   loadHomeProperties();
   loadHomePros();
@@ -991,6 +992,7 @@ async function init() {
     document.getElementById('f-type').value   = landing.type;
     document.getElementById('f-wilaya').value = landing.wilaya;
     showPage('annonces');
+    setCommune(landing.commune, document.querySelector('#seo-landing [data-seo-k]')?.dataset.seoK);   // libellé exact rendu par le serveur
     loadAnnonces(1);
   }
   // Annuaires et fiches de la vitrine : /agences, /promoteurs, /programmes, /agence/12-nom, /promoteur/7-nom, /programme/5-nom
@@ -1022,6 +1024,7 @@ async function init() {
   if (params.get('page') === 'annonces') {
     const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
     set('f-wilaya',      params.get('f-wilaya'));
+    if (/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(params.get('f-commune') || '')) setCommune(params.get('f-commune'));
     set('f-mode',        params.get('f-mode'));
     set('f-type',        params.get('f-type'));
     set('f-min-price',   params.get('f-min-price'));
@@ -1245,35 +1248,56 @@ const SEO_TYPES = { 'appartements': 'appartement', 'villas': 'villa', 'maisons':
   'locaux-commerciaux': 'local_commercial', 'terrains': 'terrain', 'fermes': 'ferme', 'entrepots': 'entrepot' };
 const invertMap = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [v, k]));
 
-// /vente/appartements/oran -> { mode, type, wilaya } ; null si ce n'est pas une page de recherche
+// /vente/appartements/oran/bir-el-djir -> { mode, type, wilaya, commune } ; null si ce n'est pas une page de recherche.
+// La commune est un texte libre : on ne garde que son slug (le serveur le reconnaît et le rend lisible), jamais un texte de l'adresse tel quel.
 function parseLandingPath(pathname) {
   const seg = pathname.split('/').filter(Boolean).map(decodeURIComponent);
-  if (!seg.length || !Object.hasOwn(SEO_MODES, seg[0]) || seg.length > 3) return null;
-  const f = { mode: SEO_MODES[seg[0]], type: '', wilaya: '' };
-  for (const x of seg.slice(1)) {
-    const w = WILAYAS.find(n => slugify(n) === x);
-    if (Object.hasOwn(SEO_TYPES, x) && !f.type) f.type = SEO_TYPES[x];
-    else if (w && !f.wilaya) f.wilaya = w;
-    else return null;
+  if (!seg.length || !Object.hasOwn(SEO_MODES, seg[0]) || seg.length > 4) return null;
+  const rest = seg.slice(1), f = { mode: SEO_MODES[seg[0]], type: '', wilaya: '', commune: '' };
+  let i = 0;
+  if (Object.hasOwn(SEO_TYPES, rest[i])) f.type = SEO_TYPES[rest[i++]];
+  if (i < rest.length) {
+    const w = WILAYAS.find(n => slugify(n) === rest[i]);
+    if (!w) return null;
+    f.wilaya = w; i++;
+  }
+  if (i === rest.length - 1 && !f.type && Object.hasOwn(SEO_TYPES, rest[i])) f.type = SEO_TYPES[rest[i++]];   // ancienne forme wilaya/type
+  if (i < rest.length) {
+    if (i !== rest.length - 1 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(rest[i])) return null;
+    f.commune = rest[i];
   }
   return f;
 }
 
-function landingPath(mode, type, wilaya) {
-  return '/' + [invertMap(SEO_MODES)[mode], type && invertMap(SEO_TYPES)[type], wilaya && slugify(wilaya)]
+function landingPath(mode, type, wilaya, commune) {
+  return '/' + [invertMap(SEO_MODES)[mode], type && invertMap(SEO_TYPES)[type], wilaya && slugify(wilaya), wilaya && commune && slugify(commune)]
     .filter(Boolean).join('/');
 }
 
-// Libellé traduit (FR / AR) : « Appartements à vendre à Oran » / « شقق للبيع في وهران »
-function seoLabel(mode, type, wilaya) {
-  return T(type ? 'seo_t_' + type : 'seo_t_all') + ' ' + T('seo_m_' + mode) + (wilaya ? ' ' + T('seo_in') + ' ' + wilayaName(wilaya) : '');
+// Libellé traduit (FR / AR) : « Appartements à vendre à Oran » / « شقق للبيع في وهران » ; avec une commune : « … à Bir El Djir, Oran »
+function seoLabel(mode, type, wilaya, commune) {
+  const place = wilaya && commune ? T('seo_in') + ' ' + commune + (currentLang === 'ar' ? '، ' : ', ') + wilayaName(wilaya)
+    : wilaya ? T('seo_in') + ' ' + wilayaName(wilaya) : '';
+  return T(type ? 'seo_t_' + type : 'seo_t_all') + ' ' + T('seo_m_' + mode) + (place ? ' ' + place : '');
 }
+
+// Commune de la recherche en cours (page /vente/oran/bir-el-djir ou pastille) : { slug, label } ou null. Se retire avec la wilaya, la pastille ou en quittant la liste.
+let _commune = null;
+const prettySlug = slug => slug.replace(/-/g, ' ').replace(/\b[a-z]/g, c => c.toUpperCase());
+function setCommune(slug, label) {
+  _commune = slug ? { slug, label: label || prettySlug(slug) } : null;
+  const chip = document.getElementById('commune-chip');
+  if (!chip) return;
+  chip.classList.toggle('hidden', !_commune);
+  document.getElementById('commune-label').textContent = _commune ? _commune.label : '';
+}
+function clearCommune() { setCommune(null); loadAnnonces(); }
 
 // Les liens et titres rendus par le serveur (data-seo-*) suivent la langue choisie
 function relabelSeo() {
   document.querySelectorAll('[data-seo-m]').forEach(el => {
     const d = el.dataset;
-    el.textContent = seoLabel(d.seoM, d.seoT, d.seoW) + (d.seoC ? ` (${d.seoC})` : '');
+    el.textContent = seoLabel(d.seoM, d.seoT, d.seoW, d.seoK) + (d.seoC ? ` (${d.seoC})` : '');
   });
 }
 
@@ -1369,6 +1393,7 @@ function nearMe() {
       if (d < bestDist) { bestDist = d; bestIdx = i; }
     });
     const wilaya = WILAYAS[bestIdx];
+    setCommune(null);
     document.getElementById('f-wilaya').value = wilaya;
     document.getElementById('near-me-label').textContent = wilayaName(wilaya);
     document.getElementById('near-me-badge').style.display = '';
@@ -1384,6 +1409,7 @@ function clearNearMe() {
   document.getElementById('near-me-badge').style.display = 'none';
   document.getElementById('near-me-label').textContent = '';
   document.getElementById('f-wilaya').value = '';
+  setCommune(null);
   loadAnnonces();
 }
 
@@ -1392,6 +1418,7 @@ function doSearch() {
   const mode   = document.getElementById('s-mode').value;
   const type   = document.getElementById('s-type').value;
   showPage('annonces');
+  setCommune(null);
   if (wilaya) document.getElementById('f-wilaya').value = wilaya;
   if (mode)   document.getElementById('f-mode').value = mode;
   if (type)   document.getElementById('f-type').value = type;
@@ -1425,6 +1452,7 @@ async function loadAnnonces(page = 1) {
   const params = new URLSearchParams({ status: 'active', page, limit: 12 });
   const get = id => document.getElementById(id)?.value;
   if (get('f-wilaya'))      params.set('wilaya',      get('f-wilaya'));
+  if (_commune && get('f-wilaya')) params.set('commune', _commune.slug);
   if (get('f-mode'))        params.set('mode',        get('f-mode'));
   if (get('f-type'))        params.set('type_bien',   get('f-type'));
   if (get('f-min-price'))   params.set('min_price',   get('f-min-price'));
@@ -1441,13 +1469,15 @@ async function loadAnnonces(page = 1) {
     const v = get(id);
     if (v) urlParams.set(id, v);
   });
+  if (_commune && get('f-wilaya')) urlParams.set('f-commune', _commune.slug);
   if (page > 1) urlParams.set('p', page);
-  // Seuls mode / type / wilaya (tri par défaut, page 1) : URL indexable /vente/appartements/oran
+  // Seuls mode / type / wilaya (+ commune) (tri par défaut, page 1) : URL indexable /vente/appartements/oran
   const landingOnly = get('f-mode') && page === 1 && (!get('f-sort') || get('f-sort') === 'date_desc')
     && !['f-min-price', 'f-max-price', 'f-rooms', 'f-min-surface', 'f-q'].some(id => get(id));
   if (landingOnly) {
-    history.replaceState(null, '', langPath(landingPath(get('f-mode'), get('f-type'), get('f-wilaya'))));
-    document.title = seoLabel(get('f-mode'), get('f-type'), get('f-wilaya')) + ' | DzImmo';
+    const commune = get('f-wilaya') && _commune ? _commune : null;
+    history.replaceState(null, '', langPath(landingPath(get('f-mode'), get('f-type'), get('f-wilaya'), commune?.slug)));
+    document.title = seoLabel(get('f-mode'), get('f-type'), get('f-wilaya'), commune?.label) + ' | DzImmo';
   } else {
     history.replaceState(null, '', langPath('/') + '?' + urlParams.toString());
   }

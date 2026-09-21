@@ -120,7 +120,8 @@ router.get('/', optionalAuth, async (req, res) => {
 
   add('p.status = ?', status || 'active');
   if (wilaya)                                     add('p.wilaya = ?',       wilaya);
-  if (commune)                                    add('p.commune = ?',      commune);
+  // Commune : même écriture à la casse, aux accents et à la ponctuation près (« Bab-Ezzouar » = « bab ezzouar », comme les pages /vente/…/commune)
+  if (typeof commune === 'string' && commune.trim()) add('dz_norm(p.commune) = dz_norm(?)', commune);
   if (db.toId(req.query.agency_id)  !== null)     add('p.agency_id = ?',    db.toId(req.query.agency_id));    // vitrine d'une agence
   if (db.toId(req.query.project_id) !== null)     add('p.project_id = ?',   db.toId(req.query.project_id));   // lots d'un programme
   if (mode      && MODES_VALIDES.includes(mode))  add('p.mode = ?',        mode);

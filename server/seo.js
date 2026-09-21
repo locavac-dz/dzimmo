@@ -58,12 +58,15 @@ const plainPath = req => req.path.replace(AR_PREFIX, '') || '/';           // ch
 const bothLangs = routes => routes.flatMap(r => [r, arPath(r)]);
 const versions = (base, p) => ({ fr: base + p, ar: base + arPath(p) });     // adresses absolues des deux versions d'une page
 
-const landingPath = ({ mode, type, wilaya }) =>
-  '/' + [MODE_SLUG[mode], type && TYPE_SLUG[type], wilaya && WILAYA_SLUG.get(wilaya)].filter(Boolean).join('/');
+// Une commune n'a pas de référentiel : c'est le texte saisi par les annonceurs. Sa page est /<mode>[/<type>]/<wilaya>/<commune>, où le
+// dernier segment est le slug du texte (slugify) ; les variantes de saisie (« Bab Ezzouar », « bab-ezzouar ») partagent le même slug.
+const landingPath = ({ mode, type, wilaya, commune }) =>
+  '/' + [MODE_SLUG[mode], type && TYPE_SLUG[type], wilaya && WILAYA_SLUG.get(wilaya), wilaya && commune && slugify(commune)].filter(Boolean).join('/');
 
-const landingLabel = ({ mode, type, wilaya }, lang = 'fr') => {
+const landingLabel = ({ mode, type, wilaya, commune }, lang = 'fr') => {
   const t = textOf(lang);
-  return `${type ? t.typePlural[type] : t.all} ${t.mode[mode]}${wilaya ? ` ${t.in} ${t.wilaya(wilaya)}` : ''}`;
+  const place = wilaya && commune ? ` ${t.in} ${commune}${t.sep}${t.wilaya(wilaya)}` : wilaya ? ` ${t.in} ${t.wilaya(wilaya)}` : '';
+  return `${type ? t.typePlural[type] : t.all} ${t.mode[mode]}${place}`;
 };
 
 // /annonce/12-appartement-f4-vue-mer-a-alger (titre en arabe : repli sur type-mode-wilaya)
@@ -289,9 +292,60 @@ async function getFacets() {
   return rows;
 }
 
+// ── Communes ─────────────────────────────────────────────────────────────────
+// Texte libre : on regroupe par (wilaya, slug) et on garde comme libellé la saisie la plus fréquente (à égalité, l'ordre alphabétique :
+// le libellé ne dépend ni de l'ordre des lignes ni du cache). Une commune sans lettre latine (slug vide) n'a pas de page.
+const COMMUNE_MIN = 2;              // annonces actives minimum pour qu'une page de commune soit indexable et figure au sitemap
+const COMMUNE_SITEMAP_MAX = 5000;   // pages de communes au sitemap (les plus fournies d'abord) : reste sous la limite de 50 000 adresses
+
+function pickLabel(variants) {      // [{ commune, c }] -> libellé retenu
+  return [...variants].sort((a, b) => b.c - a.c || (a.commune < b.commune ? -1 : 1))[0].commune.trim();
+}
+
+// Commune d'une wilaya reconnue par son slug (annonces actives, tous modes) ; null si aucune annonce ne la porte
+async function resolveCommune(wilaya, slug) {
+  const r = await db.pool.query(
+    `SELECT commune, COUNT(*)::int AS c FROM properties
+      WHERE status = 'active' AND wilaya = $1 AND commune IS NOT NULL GROUP BY commune`, [wilaya]);
+  const same = r.rows.filter(x => slugify(x.commune) === slug);
+  return same.length ? { label: pickLabel(same), variants: same.map(x => x.commune) } : null;
+}
+
+let communeCache = { at: 0, rows: [] };
+async function getCommunes() {
+  if (Date.now() - communeCache.at < TEN_MIN) return communeCache.rows;
+  const r = await db.pool.query(
+    `SELECT mode, type_bien AS type, wilaya, commune, COUNT(*)::int AS c
+       FROM properties WHERE status = 'active' AND commune IS NOT NULL AND btrim(commune) <> ''
+      GROUP BY GROUPING SETS ((mode, wilaya, commune), (mode, type_bien, wilaya, commune))
+      ORDER BY c DESC LIMIT 20000`);
+  const ok = r.rows.filter(x => MODE_SLUG[x.mode] && (!x.type || TYPE_SLUG[x.type]) && WILAYA_SLUG.has(x.wilaya) && slugify(x.commune));
+  // Libellé par (wilaya, slug), d'après les lignes « tous types » : les saisies sont comptées une fois par mode
+  const seen = new Map();
+  for (const x of ok.filter(x => !x.type)) {
+    const k = x.wilaya + '|' + slugify(x.commune), v = seen.get(k) || new Map();
+    v.set(x.commune, (v.get(x.commune) || 0) + x.c);
+    seen.set(k, v);
+  }
+  const label = new Map([...seen].map(([k, v]) => [k, pickLabel([...v].map(([commune, c]) => ({ commune, c })))]));
+  const merged = new Map();
+  for (const x of ok) {
+    const name = label.get(x.wilaya + '|' + slugify(x.commune));
+    if (!name) continue;
+    const k = [x.mode, x.type || '', x.wilaya, slugify(name)].join('|');
+    const row = merged.get(k) || { mode: x.mode, type: x.type || null, wilaya: x.wilaya, commune: name, c: 0 };
+    row.c += x.c;
+    merged.set(k, row);
+  }
+  const rows = [...merged.values()].sort((a, b) => b.c - a.c);
+  communeCache = { at: Date.now(), rows };
+  return rows;
+}
+
 const kind = f => (f.type && f.wilaya ? 'tw' : f.type ? 't' : f.wilaya ? 'w' : 'm');
 const dataAttrs = f =>
-  `data-seo-m="${f.mode}"${f.type ? ` data-seo-t="${f.type}"` : ''}${f.wilaya ? ` data-seo-w="${escHtml(f.wilaya)}"` : ''}`;
+  `data-seo-m="${f.mode}"${f.type ? ` data-seo-t="${f.type}"` : ''}${f.wilaya ? ` data-seo-w="${escHtml(f.wilaya)}"` : ''}` +
+  `${f.commune ? ` data-seo-k="${escHtml(f.commune)}"` : ''}`;
 const link = (f, withCount, lang = 'fr') =>
   `<a href="${escHtml(localized(lang, landingPath(f)))}" ${dataAttrs(f)}${withCount ? ` data-seo-c="${f.c}"` : ''}>` +
   `${escHtml(landingLabel(f, lang))}${withCount ? ` (${f.c})` : ''}</a>`;
@@ -333,8 +387,9 @@ async function buildPagesSitemap(base) {
   const facets = await getFacets();
   const pros  = (await agencyData.directory({ per_page: 100, sort: 'recent' })).items;   // 100 : plafond de la pagination
   const progs = (await projectData.list({ per_page: 100 })).items;
+  const communes = (await getCommunes()).filter(x => x.c >= COMMUNE_MIN).slice(0, COMMUNE_SITEMAP_MAX);
   const pages = ['/', '/agences', '/promoteurs', '/programmes',
-                 ...pros.map(agencyPath), ...progs.map(projectPath), ...facets.map(landingPath)];
+                 ...pros.map(agencyPath), ...progs.map(projectPath), ...facets.map(landingPath), ...communes.map(landingPath)];
   return urlset(pages.flatMap(p => sitemapEntries(base, p)));
 }
 
@@ -369,27 +424,32 @@ async function landingPage(req, res, f, base, lang) {
   const args = [f.mode];
   if (f.type)   { args.push(f.type);   where.push(`type_bien = $${args.length}`); }
   if (f.wilaya) { args.push(f.wilaya); where.push(`wilaya = $${args.length}`); }
+  if (f.commune) { args.push(f.variants); where.push(`commune = ANY($${args.length})`); }   // toutes les saisies de la commune
   const w = where.join(' AND ');
 
-  const [list, agg, facets] = await Promise.all([
+  const [list, agg, facets, communes] = await Promise.all([
     db.pool.query(
       `SELECT id, title, type_bien, mode, wilaya, commune, price, image, created_at
          FROM properties WHERE ${w} ORDER BY created_at DESC LIMIT 24`, args),
     db.pool.query(`SELECT COUNT(*)::int AS c, MIN(price) AS minp FROM properties WHERE ${w}`, args),
     getFacets(),
+    getCommunes(),
   ]);
   const items = list.rows;
   const count = agg.rows[0].c;
   const label = landingLabel(f, lang);
   const canonical = base + localized(lang, landingPath(f));
 
+  const indexable = f.commune ? count >= COMMUNE_MIN : count > 0;
   const title = t.landingTitle(label, count);
   const description = t.landingDesc(label, count, agg.rows[0].minp, f.mode);
 
   // Fil d'Ariane : Accueil > mode > type > wilaya
   const crumbs = [{ name: t.home, path: '/' }, { name: landingLabel({ mode: f.mode }, lang), path: landingPath({ mode: f.mode }) }];
   if (f.type)   crumbs.push({ name: landingLabel({ mode: f.mode, type: f.type }, lang), path: landingPath({ mode: f.mode, type: f.type }) });
-  if (f.wilaya) crumbs.push({ name: label, path: landingPath(f) });
+  if (f.wilaya) crumbs.push({ name: f.commune ? landingLabel({ mode: f.mode, type: f.type, wilaya: f.wilaya }, lang) : label,
+                             path: landingPath({ mode: f.mode, type: f.type, wilaya: f.wilaya }) });
+  if (f.commune) crumbs.push({ name: label, path: landingPath(f) });
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -402,14 +462,26 @@ async function landingPage(req, res, f, base, lang) {
   };
 
   // « Voir aussi » : pages voisines ayant des annonces
-  const same = (a, b) => a.mode === b.mode && (a.type || null) === (b.type || null) && (a.wilaya || null) === (b.wilaya || null);
-  const otherMode = facets.filter(x => x.mode !== f.mode && (x.type || null) === (f.type || null) && (x.wilaya || null) === (f.wilaya || null));
-  const related = (f.type && f.wilaya)
+  const same = (a, b) => a.mode === b.mode && (a.type || null) === (b.type || null) && (a.wilaya || null) === (b.wilaya || null)
+    && (a.commune ? slugify(a.commune) : null) === (b.commune ? slugify(b.commune) : null);
+  const otherMode = f.commune ? [] : facets.filter(x => x.mode !== f.mode && (x.type || null) === (f.type || null) && (x.wilaya || null) === (f.wilaya || null));
+  const inCommune = x => x.c >= COMMUNE_MIN && x.wilaya === f.wilaya;
+  const related = f.commune
+    // Page de commune : la wilaya, puis la même commune sous d'autres types et d'autres modes
+    ? [...facets.filter(x => x.mode === f.mode && (x.type || null) === (f.type || null) && x.wilaya === f.wilaya),
+       ...communes.filter(x => inCommune(x) && slugify(x.commune) === slugify(f.commune))
+         .sort((a, b) => (b.mode === f.mode) - (a.mode === f.mode) || b.c - a.c)]
+    : (f.type && f.wilaya)
     ? facets.filter(x => x.mode === f.mode && ((kind(x) === 't' && x.type === f.type) || (kind(x) === 'w' && x.wilaya === f.wilaya)))
     : f.type   ? facets.filter(x => x.mode === f.mode && kind(x) === 'tw' && x.type === f.type)
     : f.wilaya ? facets.filter(x => x.mode === f.mode && kind(x) === 'tw' && x.wilaya === f.wilaya)
     :            facets.filter(x => x.mode === f.mode && (kind(x) === 't' || kind(x) === 'w'));
-  const seeAlso = [...related.filter(x => !same(x, f)).sort((a, b) => b.c - a.c).slice(0, 12), ...otherMode];
+  // Page de wilaya : ses communes les plus fournies (même mode, même type)
+  const topCommunes = f.wilaya && !f.commune
+    ? communes.filter(x => inCommune(x) && x.mode === f.mode && (x.type || null) === (f.type || null)).slice(0, 12) : [];
+  const seeAlso = f.commune
+    ? related.filter(x => !same(x, f)).slice(0, 12)
+    : [...related.filter(x => !same(x, f)).sort((a, b) => b.c - a.c).slice(0, 12), ...topCommunes, ...otherMode];
 
   const landing =
     `<section id="seo-landing" style="margin:2rem 0;font-size:.9rem;line-height:1.7">` +
@@ -424,8 +496,9 @@ async function landingPage(req, res, f, base, lang) {
   await send(res, {
     lang, title, description, canonical, jsonLd, landing,
     image: items[0] ? absolute(base, items[0].image) : null,
-    alternates: count ? versions(base, landingPath(f)) : undefined,
-    robots: count ? null : 'noindex,follow',   // page vide : pas d'indexation
+    // Page vide : pas d'indexation ; commune à une seule annonce : contenu trop mince, pas d'indexation non plus
+    alternates: indexable ? versions(base, landingPath(f)) : undefined,
+    robots: indexable ? null : 'noindex,follow',
   });
 }
 
@@ -539,13 +612,22 @@ function mount(app) {
   // Chemins écrits un par un : Express 5 n'accepte plus ni expression régulière ni « ? » dans un motif de route.
   const MODE_ROOTS = [...SLUG_MODE.keys()].map(m => '/' + m);
   const modeOf = req => plainPath(req).split('/')[1].toLowerCase();
-  app.get(bothLangs(MODE_ROOTS.flatMap(r => [r, r + '/:a', r + '/:a/:b'])), async (req, res) => {
+  app.get(bothLangs(MODE_ROOTS.flatMap(r => [r, r + '/:a', r + '/:a/:b', r + '/:a/:b/:c'])), async (req, res) => {
     const base = baseUrl(req), lang = langOfReq(req);
-    const f = { mode: SLUG_MODE.get(modeOf(req)), type: null, wilaya: null };
-    for (const seg of [req.params.a, req.params.b].filter(Boolean).map(x => x.toLowerCase())) {   // /VENTE/Oran → 301 vers la forme canonique
-      if (SLUG_TYPE.has(seg) && !f.type)            f.type = SLUG_TYPE.get(seg);
-      else if (SLUG_WILAYA.has(seg) && !f.wilaya)   f.wilaya = SLUG_WILAYA.get(seg);
-      else return notFound(req, res);
+    const f = { mode: SLUG_MODE.get(modeOf(req)), type: null, wilaya: null, commune: null, variants: null };
+    // Forme canonique : [type/][wilaya/][commune]. « wilaya puis type » (ancienne forme) reste acceptée et redirigée ; /VENTE/Oran → 301 aussi.
+    const segs = [req.params.a, req.params.b, req.params.c].filter(Boolean).map(x => x.toLowerCase());
+    let i = 0;
+    if (SLUG_TYPE.has(segs[i])) f.type = SLUG_TYPE.get(segs[i++]);
+    if (i < segs.length) {
+      if (!SLUG_WILAYA.has(segs[i])) return notFound(req, res);
+      f.wilaya = SLUG_WILAYA.get(segs[i++]);
+    }
+    if (i < segs.length && i === segs.length - 1 && !f.type && SLUG_TYPE.has(segs[i])) f.type = SLUG_TYPE.get(segs[i++]);
+    if (i < segs.length) {                                    // dernier segment : la commune (une saisie connue de cette wilaya)
+      const c = i === segs.length - 1 ? await resolveCommune(f.wilaya, segs[i]) : null;
+      if (!c) return notFound(req, res);
+      f.commune = c.label; f.variants = c.variants;
     }
     // Ordre canonique mode/type/wilaya, sans slash final
     const canonicalPath = localized(lang, landingPath(f));

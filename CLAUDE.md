@@ -239,6 +239,14 @@ Windows : `demarrer.bat`
   annonce non active et 404 : `noindex`, sans hreflang. Les redirections 301 canoniques (casse, ordre, slash final, slug erroné) existent aussi en `/ar`.
 - **Sitemap** : `/sitemap.xml` est un **index** (`sitemap-pages.xml` + `sitemap-annonces-N.xml`, tranches de 20 000 annonces, tranche inexistante = 404) ;
   chaque page y figure deux fois (français, arabe) avec ses `xhtml:link`. Les tests lisent le tout par `fullSitemap(s)` (`tests/helpers/sitemap.js`).
+- **Pages de commune** (`/vente/oran/bir-el-djir`, `/vente/villas/oran/bir-el-djir`, et `/ar/…`) : la commune est un **texte libre** saisi par les annonceurs, sans référentiel. Son slug
+  (`slugify`) est le dernier segment ; `resolveCommune(wilaya, slug)` (`server/seo.js`) le retrouve parmi les saisies des annonces actives de la wilaya (404 sinon : jamais de page pour un nom
+  qu'aucune annonce ne porte), et **toutes les saisies de même slug** (« Bir El Djir », « bir-el-djir ») sont réunies (`commune = ANY(variants)`) ; le libellé affiché est la saisie la plus fréquente
+  (`pickLabel`, stable à égalité). `getCommunes()` (cache 10 min, `GROUPING SETS`) nourrit le sitemap et les liens : **indexable et au sitemap à partir de `COMMUNE_MIN` (2) annonces**, au plus
+  `COMMUNE_SITEMAP_MAX` (5 000) pages les plus fournies ; en dessous, la page est servie mais `noindex`, sans hreflang. La page de wilaya liste ses 12 communes les plus fournies, la page de commune
+  renvoie vers sa wilaya et les autres types / modes. Une commune sans lettre latine (slug vide) n'a pas de page. **Front** : `parseLandingPath` lit la commune (slug validé), la pastille
+  `#commune-chip` (`setCommune`, `clearCommune`) la montre ; elle part à l'API comme `commune=<slug>` avec la wilaya, et se retire en changeant de wilaya. **API** : le filtre `commune` de
+  `GET /api/properties` compare `dz_norm(commune)` (casse, accents et tirets ignorés ; index migration 025) ; une valeur qui n'est pas un texte est ignorée. Tests : `tests/api/seo-communes.test.js`, `tests/unit/commune-front.test.js`.
 - **Front** : l'adresse `/ar…` impose l'arabe (sinon `dz_lang`) ; `routePath()` donne le chemin sans `/ar` (à utiliser à la place de `location.pathname`
   pour router), `langPath(p)` ajoute le préfixe selon la langue affichée (tout lien ou `replaceState` de page passe par lui), et `applyLang` appelle
   `syncLangUrl()` pour que l'adresse suive la langue choisie (sauf `/newsletter/…`, dont les liens gardent la leur).
