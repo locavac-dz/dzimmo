@@ -142,7 +142,7 @@ const exportLimiter = rateLimit({
 });
 app.use('/api/auth/export', exportLimiter);
 
-// Formulaires publics sans compte (page Contact, newsletter) : chaque appel peut envoyer un email ou écrire en base
+// Formulaire public sans compte (page Contact) : chaque appel envoie un email
 const contactLimiter = rateLimit({
   ...shared('contact'),
   windowMs: 60 * 60 * 1000,
@@ -153,7 +153,6 @@ const contactLimiter = rateLimit({
   skip: () => process.env.NODE_ENV === 'test',
 });
 app.use('/api/contact', contactLimiter);
-app.use('/api/newsletter', contactLimiter);
 
 app.use(express.json());
 // Express 5 laisse req.body à undefined quand la requête n'a pas de corps JSON : les routes lisent `const { … } = req.body`,
@@ -201,7 +200,6 @@ app.use('/api/stats',      require('./routes/stats'));
 app.use('/api/admin/verifications', require('./routes/admin-verifications'));
 app.use('/api/admin',      require('./routes/admin'));
 app.use('/api/verification', require('./routes/verification'));
-app.use('/api/newsletter', require('./routes/newsletter'));
 app.use('/api/alerts',    require('./routes/alerts'));
 app.use('/api/import',    require('./routes/import'));
 

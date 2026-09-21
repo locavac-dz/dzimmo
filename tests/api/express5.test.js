@@ -9,7 +9,7 @@ test.before(async () => { s = await startServer(); });
 test.after(() => s.stop());
 
 test('POST sans corps : la réponse reste le 400 / 401 de la route, jamais une erreur 500', async () => {
-  for (const url of ['/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/contact', '/api/newsletter/subscribe']) {
+  for (const url of ['/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/contact']) {
     const r = await s.request('POST', url);
     assert.ok(r.status >= 400 && r.status < 500, `${url} → ${r.status}`);
     assert.equal(typeof r.body.error, 'string', url);

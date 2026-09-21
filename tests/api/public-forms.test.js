@@ -1,5 +1,5 @@
-// Formulaires publics sans compte : page Contact (POST /api/contact) et newsletter
-// (POST /api/newsletter/subscribe, DELETE /api/newsletter/unsubscribe, GET /api/admin/newsletter).
+// Formulaire public sans compte : page Contact (POST /api/contact). La newsletter n'a plus de route publique ;
+// seule la liste d'administration (GET /api/admin/newsletter) des abonnés existants subsiste.
 const test   = require('node:test');
 const assert = require('node:assert/strict');
 const fs     = require('node:fs');
@@ -108,38 +108,21 @@ test('contact : rien n\'est stocké, /api/contacts (demandes sur une annonce) n\
   const fn = front.slice(front.indexOf('async function submitContactPage'), front.indexOf('function openChat'));
   assert.doesNotMatch(fn, /catch\s*\{[^}]*Message envoy/, 'un échec ne doit plus afficher « Message envoyé »');
   for (const key of ['ct_sent', 'ct_failed']) assert.equal(front.split(key + ':').length - 1, 2, key + ' en français et en arabe');
-  // Le limiteur de ces formulaires publics compte dans PostgreSQL comme les autres
+  // Le limiteur de ce formulaire public compte dans PostgreSQL comme les autres
   const app = fs.readFileSync(path.join(ROOT, 'server', 'app.js'), 'utf8');
   assert.match(app, /\.\.\.shared\('contact'\)/);
-  for (const route of ['/api/contact', '/api/newsletter']) assert.ok(app.includes(`app.use('${route}', contactLimiter)`), route);
+  assert.ok(app.includes("app.use('/api/contact', contactLimiter)"));
 });
 
-test('newsletter : inscription (adresse normalisée, doublon silencieux), désinscription par jeton', async () => {
-  const r = await post('/api/newsletter/subscribe', { email: '  Lecteur@Exemple.DZ ' });
-  assert.equal(r.status, 200);
-  assert.match(r.body.unsubToken, /^[0-9a-f]{32}$/);
-  assert.equal((await post('/api/newsletter/subscribe', { email: 'lecteur@exemple.dz' })).status, 200, 'déjà inscrit : silencieux');
-  const rows = (await q("SELECT email FROM newsletter_subscribers WHERE email ILIKE 'lecteur@%'")).rows;
-  assert.deepEqual(rows, [{ email: 'lecteur@exemple.dz' }]);
-
-  const del = body => s.request('DELETE', '/api/newsletter/unsubscribe', { body });
-  assert.equal((await del({ email: 'lecteur@exemple.dz' })).status, 400);
-  assert.equal((await del({ email: 'lecteur@exemple.dz', token: 'f'.repeat(32) })).status, 403);
-  assert.equal((await del({ email: 'lecteur@exemple.dz', token: 'court' })).status, 403);
-  assert.equal((await del({ email: 'autre@exemple.dz', token: r.body.unsubToken })).status, 403, 'le jeton ne vaut que pour son adresse');
-  assert.equal((await q("SELECT count(*)::int AS n FROM newsletter_subscribers WHERE email = 'lecteur@exemple.dz'")).rows[0].n, 1);
-  assert.equal((await del({ email: 'Lecteur@exemple.dz', token: r.body.unsubToken })).status, 200);
-  assert.equal((await q("SELECT count(*)::int AS n FROM newsletter_subscribers WHERE email = 'lecteur@exemple.dz'")).rows[0].n, 0);
-});
-
-test('newsletter : une adresse qui n\'est pas une chaîne valide est refusée proprement (400 / 403, jamais 500)', async () => {
-  for (const email of [undefined, '', 'sans-arobase', ['a@b.dz'], { a: 1 }, 42, 'a'.repeat(250) + '@b.dz']) {
-    const r = await post('/api/newsletter/subscribe', { email });
-    assert.equal(r.status, 400, JSON.stringify(email));
-    assert.equal(r.body.error, 'Adresse email invalide.');
+test('newsletter : plus aucune route publique (ni inscription, ni désinscription, ni jeton), rien n’est écrit en base', async () => {
+  const before = (await q('SELECT count(*)::int AS n FROM newsletter_subscribers')).rows[0].n;
+  for (const [method, url] of [['POST', '/api/newsletter/subscribe'], ['DELETE', '/api/newsletter/unsubscribe'], ['GET', '/api/newsletter']]) {
+    const r = await s.request(method, url, { body: method === 'GET' ? undefined : { email: 'lecteur@exemple.dz', token: 'f'.repeat(32) } });
+    assert.equal(r.status, 404, method + ' ' + url);
+    assert.doesNotMatch(JSON.stringify(r.body), /[0-9a-f]{32}/, 'aucun jeton dans la réponse');
   }
-  for (const body of [{ email: ['a@b.dz'], token: 'x' }, { email: 'a@b.dz', token: ['x'] }, { email: { a: 1 }, token: { b: 2 } }])
-    assert.equal((await s.request('DELETE', '/api/newsletter/unsubscribe', { body })).status, 403, JSON.stringify(body));
+  assert.equal((await q('SELECT count(*)::int AS n FROM newsletter_subscribers')).rows[0].n, before);
+  for (const f of ['server/routes/newsletter.js']) assert.ok(!fs.existsSync(path.join(ROOT, f)), f + ' supprimé');
 });
 
 test('newsletter : la liste des abonnés est réservée aux administrateurs et paginée', async () => {

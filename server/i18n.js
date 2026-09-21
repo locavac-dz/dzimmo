@@ -113,13 +113,11 @@ const AR = {
   'Vous avez déjà une agence enregistrée.': 'لديك وكالة مسجَّلة بالفعل.',
   'Aucune agence trouvée.': 'لم يتم العثور على أي وكالة.',
 
-  // Alertes, favoris, newsletter
+  // Alertes, favoris
   'Maximum 5 alertes autorisées par compte.': 'الحد الأقصى 5 تنبيهات لكل حساب.',
   'Alerte introuvable.': 'التنبيه غير موجود.',
   'property_id requis.': 'معرّف الإعلان مطلوب.',
   'Déjà dans les favoris.': 'موجود بالفعل في المفضلة.',
-  'Email et token requis.': 'البريد الإلكتروني والرمز مطلوبان.',
-  'Token invalide.': 'رمز غير صالح.',
 
   // Page Contact (visiteur → équipe du site)
   'Nom et message requis.': 'الاسم والرسالة مطلوبان.',

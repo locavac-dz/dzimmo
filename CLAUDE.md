@@ -174,7 +174,11 @@ Windows : `demarrer.bat`
   **est** le résultat (page Contact) répond 503 en cas d'échec, jamais un faux « envoyé ».
 - **Page Contact** (`POST /api/contact`, `server/routes/contact.js`) — à ne pas confondre avec `/api/contacts` (demandes sur une annonce) :
   le message part à `CONTACT_EMAIL`, sinon aux administrateurs (dans leur langue), avec l'adresse du visiteur en `Reply-To` seulement ;
-  il n'est ni stocké ni journalisé. Contact et newsletter partagent le limiteur `contact`.
+  il n'est ni stocké ni journalisé. Le limiteur `contact` est partagé entre les workers.
+- **Newsletter** : aucune route publique (inscription et désinscription retirées : le jeton de désinscription se déduisait de l'adresse, et personne
+  ne consentait à figurer dans la liste). La table `newsletter_subscribers` et sa liste d'administration ne servent qu'à consulter les
+  abonnés existants. Une vraie newsletter exigerait une double confirmation par email (FR + AR), un lien de désinscription à jeton
+  dans chaque envoi et une page de désinscription : ne pas rétablir une inscription sans ces trois éléments.
 - Envoi d'images (`server/routes/upload.js`) : un fichier illisible est une erreur du client (400), et l'envoi multiple est tout ou rien
   (les fichiers déjà écrits sont retirés).
 - Toute image saisie par un utilisateur (annonce, logo, programme…) est validée par `server/images.js` : fichier envoyé sur ce site
