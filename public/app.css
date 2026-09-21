@@ -221,6 +221,25 @@
       padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;
     }
 
+    /* Pastille « Vidéo » / « Visite 3D » d'une carte (sous le bouton de comparaison, en bas de la photo) */
+    .media-badge {
+      position: absolute; top: 166px; inset-inline-start: 10px;
+      background: rgba(15,23,42,.82); color: #fff;
+      padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600;
+    }
+    /* Vidéo et visite virtuelle de la fiche : façade cliquable, remplacée par le lecteur au clic */
+    .media-facade, .media-frame {
+      display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: var(--radius);
+    }
+    .media-facade {
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem; padding: 1rem;
+      background: #0f172a; color: #fff; cursor: pointer; font-family: inherit; text-align: center;
+    }
+    .media-facade:hover, .media-facade:focus-visible { background: #1e293b; }
+    .media-play { font-size: 1.15rem; font-weight: 700; }
+    .media-note { font-size: .78rem; color: #cbd5e1; max-width: 32rem; }
+    .media-open { display: inline-block; margin-top: .4rem; font-size: .82rem; color: var(--primary); }
+
     /* ── Détail annonce ── */
     .detail-gallery {
       display: grid; grid-template-columns: 2fr 1fr; gap: 0.5rem;

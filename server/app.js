@@ -23,12 +23,13 @@ if (TRUST_PROXY && TRUST_PROXY !== '0' && TRUST_PROXY !== 'false') {
 // Le front est une SPA sans étape de build : scripts et gestionnaires d'événements (onclick="…")
 // sont en ligne, d'où 'unsafe-inline'. Le reste de la politique reste restrictif : scripts et
 // styles externes limités à cdnjs (Leaflet), images https (photos, tuiles OpenStreetMap),
-// aucun objet / iframe étranger, WebSocket vers notre propre origine uniquement.
+// aucun objet, iframe étranger seulement pour les lecteurs de vidéo et de visite virtuelle, WebSocket vers notre propre origine uniquement.
 const isProd = process.env.NODE_ENV === 'production';
 // Connexion avec Google (facultative) : le bouton officiel exige son script, son cadre, ses appels et sa feuille de style
 // (https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid#content_security_policy),
 // et une fenêtre d'ouverture qui autorise les popups. Rien de tout cela n'est ouvert tant que GOOGLE_CLIENT_ID est absent.
 const GOOGLE_ON = !!process.env.GOOGLE_CLIENT_ID;
+const VIDEO_FRAMES = ['https://www.youtube-nocookie.com', 'https://player.vimeo.com', 'https://my.matterport.com', 'https://kuula.co'];
 app.use(helmet({
   contentSecurityPolicy: {
     useDefaults: false,
@@ -40,7 +41,8 @@ app.use(helmet({
       imgSrc:         ["'self'", 'data:', 'blob:', 'https:'],
       fontSrc:        ["'self'", 'data:'],
       connectSrc:     ["'self'", ...(GOOGLE_ON ? ['https://accounts.google.com/gsi/'] : [])],
-      ...(GOOGLE_ON ? { frameSrc: ["'self'", 'https://accounts.google.com/gsi/'] } : {}),
+      // Vidéos et visites virtuelles des annonces (server/videos.js) : seuls ces lecteurs peuvent être incrustés, chargés au clic du visiteur
+      frameSrc:       ["'self'", ...VIDEO_FRAMES, ...(GOOGLE_ON ? ['https://accounts.google.com/gsi/'] : [])],
       objectSrc:      ["'none'"],
       baseUri:        ["'self'"],
       formAction:     ["'self'"],

@@ -9,6 +9,7 @@ const quality = require('../quality');
 const expiry  = require('../expiry');
 const clicks  = require('../clicks');
 const images  = require('../images');
+const videos = require('../videos');
 const geo     = require('../geo');
 
 const MODES_VALIDES    = ['vente', 'location_longue', 'location_courte'];
@@ -49,6 +50,9 @@ async function withOwner(property) {
     agency_phone: agency ? agency.phone : null,
     agency_kind:  agency ? agency.kind  : null,
     project:      project && project.rows[0] ? project.rows[0] : null,
+    // { provider, url, embed } reconstruits par le serveur : la page ne met jamais dans un iframe une adresse saisie
+    video:        videos.describe('video', property.video_url),
+    tour:         videos.describe('tour', property.tour_url),
   };
 }
 
@@ -329,7 +333,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 // POST /api/properties
 router.post('/', auth, async (req, res) => {
   const { title, description, mode, type_bien, price, surface_m2, rooms, baths, floor, total_floors,
-          wilaya, commune, address, lat, lng, image, photos, features } = req.body;
+          wilaya, commune, address, lat, lng, image, photos, features, video_url, tour_url } = req.body;
 
   if (!title || !mode || !type_bien || !price || !wilaya)
     return res.status(400).json({ error: 'Champs obligatoires : titre, mode, type, prix, wilaya.' });
@@ -340,6 +344,9 @@ router.post('/', auth, async (req, res) => {
   // image et photos sont rendues dans des attributs src : uniquement nos envois (voir server/images.js)
   const imageError = images.invalid({ image, photos });
   if (imageError) return res.status(400).json({ error: imageError });
+  // vidéo et visite virtuelle : liens de fournisseurs reconnus, gardés sous leur forme canonique (voir server/videos.js)
+  const videoError = videos.invalid({ video_url, tour_url });
+  if (videoError) return res.status(400).json({ error: videoError });
   const cleanFeats = cleanFeatures(features);
   if (!cleanFeats) return res.status(400).json({ error: 'Équipements invalides.' });
 
@@ -375,6 +382,7 @@ router.post('/', auth, async (req, res) => {
     wilaya, commune: commune || null, address: address || null,
     lat: lat ? Number(lat) : null, lng: lng ? Number(lng) : null,
     image: finalImage, photos: JSON.stringify(finalPhotos),
+    video_url: videos.clean('video', video_url), tour_url: videos.clean('tour', tour_url),
     features: JSON.stringify(cleanFeats),
     status:       direct ? 'active' : 'pending',
     published_at: direct ? new Date() : null,
@@ -404,9 +412,11 @@ router.put('/:id', auth, async (req, res) => {
   if (property.owner_id !== req.user.id && !req.user.is_admin)
     return res.status(403).json({ error: 'Accès refusé.' });
 
-  const { title, description, price, surface_m2, rooms, baths, status, features, image, photos } = req.body;
+  const { title, description, price, surface_m2, rooms, baths, status, features, image, photos, video_url, tour_url } = req.body;
   const imageError = images.invalid({ image, photos });
   if (imageError) return res.status(400).json({ error: imageError });
+  const videoError = videos.invalid({ video_url, tour_url });
+  if (videoError) return res.status(400).json({ error: videoError });
   const cleanFeats = features !== undefined ? cleanFeatures(features) : undefined;
   if (cleanFeats === null) return res.status(400).json({ error: 'Équipements invalides.' });
   const changes = {};
@@ -417,6 +427,8 @@ router.put('/:id', auth, async (req, res) => {
   if (rooms       !== undefined) changes.rooms       = Number(rooms);
   if (baths       !== undefined) changes.baths       = Number(baths);
   if (image       !== undefined) changes.image       = image || '';
+  if (video_url   !== undefined) changes.video_url   = videos.clean('video', video_url);
+  if (tour_url    !== undefined) changes.tour_url    = videos.clean('tour', tour_url);
   if (status      !== undefined && STATUTS_VALIDES.includes(status)) {
     // Un propriétaire ne peut pas court-circuiter la modération : une annonce en attente, refusée,
     // ou archivée après un refus (motif conservé) ne repasse pas « active » sans validation.

@@ -142,6 +142,23 @@ Windows : `demarrer.bat`
   (`PUT /api/admin/signalements/:id/resolve` avec `action: 'reject'`) ; toute décision de modération (`moderation.decide`) classe les signalements en attente
   de l'annonce (fondés si refusée, ignorés si approuvée).
 
+## Vidéo et visite virtuelle
+
+- **Liens seulement, aucun fichier** (`server/videos.js`, colonnes `properties.video_url` / `tour_url`, migration 022) : `video_url` = YouTube ou Vimeo, `tour_url` = Matterport ou Kuula.
+  Pas d'envoi de vidéo par choix (transcodage, bande passante, stockage) ; l'ajouter demanderait un vrai pipeline, pas un `multer` de plus.
+- **Même principe que `server/images.js`** : l'adresse saisie n'est jamais gardée telle quelle. `videos.parse(kind, valeur)` exige https, refuse identifiants, port et
+  caractères piégés, reconnaît le fournisseur par son domaine **exact**, en extrait l'identifiant et reconstruit l'adresse **canonique** (stockée) et l'adresse
+  d'incrustation (`embed`, jamais stockée : `youtube-nocookie.com`, `player.vimeo.com`…). La contrainte CHECK de la migration 022 reprend `videos.CANONICAL` :
+  les garder identiques (un nouveau fournisseur = `parseVideo`/`parseTour`, `CANONICAL`, la migration, `VIDEO_FRAMES` de `server/app.js`, `MEDIA_NAMES` du front, les tests).
+- `videos.invalid()` est appelée par `POST` et `PUT /api/properties` (messages traduits dans `server/i18n.js`) ; `videos.clean()` donne la valeur à écrire.
+  `video_url` et `tour_url` sont des `CONTENT_FIELDS` : les changer sur une annonce validée la remet en modération (un lien identique sous une autre forme, non).
+- La fiche (`GET /api/properties/:id`) renvoie `video` / `tour` = `{ provider, url, embed }` reconstruits depuis la valeur stockée ; les listes ne portent que `video_url` / `tour_url` (pastille de la carte).
+- **CSP** : `frame-src` n'autorise que ces quatre lecteurs (plus Google si `GOOGLE_CLIENT_ID`) ; `object-src` reste `'none'`.
+- **Vie privée** : la fiche affiche une façade (`.media-facade`), sans image ni requête vers un tiers. Le lecteur n'est créé qu'au clic (`loadMedia`), dans un iframe `sandbox`
+  (ni navigation du haut, ni formulaires) ; aucune miniature YouTube (elle contacterait Google à l'affichage de la page). Le front n'utilise que `m.embed` / `m.url` du serveur, en https.
+- Front : champs `#pub-video` / `#pub-tour` du formulaire de publication (pas d'écran de modification d'annonce dans l'interface : le `PUT` de l'API les accepte), section de fiche `mediaHTML`,
+  pastille `.media-badge` des cartes. Tests : `tests/unit/videos.test.js`, `tests/unit/media-front.test.js`, `tests/api/video-visite.test.js`.
+
 ## Vitrine des agences et des promoteurs
 
 - **Profil** (`server/agency.js`, table `agencies`) : `kind` (`agence` | `promoteur`), logo, couverture, slogan, services, zones, horaires,

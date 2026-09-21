@@ -35,6 +35,8 @@ const AR = {
   'Adresse web invalide (http:// ou https:// attendu).': 'عنوان الويب غير صالح (يجب أن يبدأ بـ http:// أو https://).',
   'Lien de réseau social invalide.': 'رابط الشبكة الاجتماعية غير صالح.',
   'Image invalide : envoyez-la depuis le formulaire.': 'صورة غير صالحة: أرسلها من خلال النموذج.',
+  'Lien vidéo invalide : utilisez un lien YouTube ou Vimeo.': 'رابط الفيديو غير صالح: استخدم رابط YouTube أو Vimeo.',
+  'Lien de visite virtuelle invalide : utilisez un lien Matterport ou Kuula.': 'رابط الجولة الافتراضية غير صالح: استخدم رابط Matterport أو Kuula.',
   'Année de création invalide.': 'سنة التأسيس غير صالحة.',
   'Services ou zones invalides.': 'الخدمات أو المناطق غير صالحة.',
   "Vous ne pouvez publier qu'au nom de votre propre agence.": 'لا يمكنك النشر إلا باسم وكالتك الخاصة.',

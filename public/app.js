@@ -137,6 +137,11 @@ const TRANSLATIONS = {
     pub_desc_ph:'Décrivez votre bien : état, équipements, environnement…',
     pub_features:'🏷️ Caractéristiques', pub_photos:'📷 Photos',
     pub_photos_hint:'Cliquez pour ajouter des photos (max 10, JPEG/PNG/WebP)',
+    pub_media:'🎬 Vidéo et visite virtuelle (facultatif)', pub_video:'Vidéo (YouTube ou Vimeo)', pub_tour:'Visite virtuelle (Matterport ou Kuula)',
+    pub_video_ph:'https://www.youtube.com/watch?v=…', pub_tour_ph:'https://my.matterport.com/show/?m=…',
+    pub_media_hint:'Collez le lien de partage : nous n\'hébergeons aucun fichier vidéo. Le lecteur ne se charge qu\'au clic du visiteur.',
+    media_video:'Vidéo', media_tour:'Visite virtuelle', media_load_video:'▶ Lire la vidéo', media_load_tour:'🧭 Lancer la visite virtuelle',
+    media_privacy:'Le lecteur {p} ne se charge qu\'au clic : aucun cookie tiers avant.', media_open:'Ouvrir sur {p}', media_badge_video:'Vidéo', media_badge_tour:'Visite 3D',
     pub_submit:"Publier l'annonce", pub_cancel:'Annuler',
     f_meuble:'Meublé', f_parking:'Parking', f_balcon:'Balcon', f_terrasse:'Terrasse',
     f_ascenseur:'Ascenseur', f_gardien:'Gardien', f_piscine:'Piscine',
@@ -502,6 +507,11 @@ const TRANSLATIONS = {
     pub_desc_ph:'صف عقارك: الحالة، التجهيزات، المحيط…',
     pub_features:'🏷️ المميزات', pub_photos:'📷 الصور',
     pub_photos_hint:'انقر لإضافة صور (10 كحد أقصى، JPEG/PNG/WebP)',
+    pub_media:'🎬 فيديو وجولة افتراضية (اختياري)', pub_video:'فيديو (يوتيوب أو فيميو)', pub_tour:'جولة افتراضية (Matterport أو Kuula)',
+    pub_video_ph:'https://www.youtube.com/watch?v=…', pub_tour_ph:'https://my.matterport.com/show/?m=…',
+    pub_media_hint:'الصق رابط المشاركة: نحن لا نستضيف أي ملف فيديو. لا يُحمَّل المشغّل إلا بعد نقر الزائر.',
+    media_video:'فيديو', media_tour:'جولة افتراضية', media_load_video:'▶ تشغيل الفيديو', media_load_tour:'🧭 بدء الجولة الافتراضية',
+    media_privacy:'لا يُحمَّل مشغّل {p} إلا بعد النقر: لا ملفات تعريف ارتباط من طرف ثالث قبل ذلك.', media_open:'فتح على {p}', media_badge_video:'فيديو', media_badge_tour:'جولة 3D',
     pub_submit:'نشر الإعلان', pub_cancel:'إلغاء',
     f_meuble:'مفروشة', f_parking:'موقف سيارات', f_balcon:'شرفة', f_terrasse:'تراس',
     f_ascenseur:'مصعد', f_gardien:'حارس', f_piscine:'مسبح',
@@ -1459,6 +1469,7 @@ function cardHTML(p) {
     <div class="card">
       <img class="card-img" ${imgAttrs(p.image || 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70', '(max-width: 640px) 100vw, 320px')} alt="${esc(p.title)}" loading="lazy" onerror="this.removeAttribute('srcset');this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70'">
       ${p.verified ? '<span class="verified-badge">' + T('verified_badge') + '</span>' : ''}
+      ${p.video_url || p.tour_url ? '<span class="media-badge">' + (p.tour_url ? '🧭 ' + T('media_badge_tour') : '🎬 ' + T('media_badge_video')) + '</span>' : ''}
       ${token ? `<button class="card-fav" onclick="event.stopPropagation();toggleFav(${p.id},this)" title="${T('fav_tip')}">🤍</button>` : ''}
       <button class="card-cmp${isCmp ? ' active' : ''}" data-id="${p.id}"
               onclick="event.stopPropagation();toggleCompare(${p.id})" title="${T('cmp_tip')}">⚖</button>
@@ -1476,6 +1487,45 @@ function cardHTML(p) {
       </div>
     </div>
   </div>`;
+}
+
+// ── Vidéo et visite virtuelle de la fiche ────────
+// Le serveur renvoie { provider, url, embed } reconstruits depuis l'identifiant (server/videos.js). Le lecteur d'un tiers ne se charge qu'au
+// clic du visiteur (aucun cookie ni requête vers YouTube, Vimeo, Matterport ou Kuula avant), et il est incrusté dans un iframe isolé (sandbox).
+const MEDIA_NAMES = { youtube: 'YouTube', vimeo: 'Vimeo', matterport: 'Matterport', kuula: 'Kuula' };
+const isHttps = v => typeof v === 'string' && v.startsWith('https://');
+
+function mediaHTML(p) {
+  return ['video', 'tour'].map(kind => {
+    const m = p[kind];
+    if (!m || !MEDIA_NAMES[m.provider] || !isHttps(m.embed) || !isHttps(m.url)) return '';
+    const name = MEDIA_NAMES[m.provider];
+    return `
+    <div class="media-block">
+      <h3 style="font-size:1rem;font-weight:700;margin:1.5rem 0 .75rem">${kind === 'tour' ? '🧭' : '🎬'} ${T('media_' + kind)}</h3>
+      <button type="button" class="media-facade" data-kind="${kind}" onclick="loadMedia(this)">
+        <span class="media-play">${T('media_load_' + kind)}</span>
+        <span class="media-note">${esc(T('media_privacy').replace('{p}', name))}</span>
+      </button>
+      <a class="media-open" href="${esc(m.url)}" target="_blank" rel="noopener noreferrer">${esc(T('media_open').replace('{p}', name))}</a>
+    </div>`;
+  }).join('');
+}
+
+function loadMedia(btn) {
+  const kind = btn.dataset.kind;
+  const m = window._detailMedia && window._detailMedia[kind];
+  if (!m || !isHttps(m.embed)) return;
+  const f = document.createElement('iframe');
+  f.className = 'media-frame';
+  f.src = m.embed;
+  f.title = T('media_' + kind);
+  f.loading = 'lazy';
+  f.referrerPolicy = 'strict-origin-when-cross-origin';
+  f.allowFullscreen = true;
+  f.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture; fullscreen; accelerometer; gyroscope; xr-spatial-tracking');
+  f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox');
+  btn.replaceWith(f);
 }
 
 // ── Détail annonce ────────────────────────────────
@@ -1527,6 +1577,7 @@ function renderDetail(p) {
 
     // Une clé inconnue est affichée telle quelle : elle vient des données, donc échappée
     let featuresHTML = feats.map(f => `<span class="feature-chip">${esc(FEATURES[f] || f)}</span>`).join('');
+    window._detailMedia = { video: p.video || null, tour: p.tour || null };   // lu par loadMedia : jamais d'adresse dans un onclick
     window._detailPhotos = photos;   // lue par la visionneuse : du JSON dans un attribut onclick casserait l'attribut (guillemets)
 
     container.innerHTML = `
@@ -1558,6 +1609,7 @@ function renderDetail(p) {
           ${featuresHTML ? `<div class="detail-features">${featuresHTML}</div>` : ''}
           <h3 style="font-size:1rem;font-weight:700;margin-bottom:.75rem">${T('det_desc')}</h3>
           <div class="detail-desc">${esc(p.description || T('det_no_desc'))}</div>
+          ${mediaHTML(p)}
           ${p.reviews > 0 ? `
           <div style="margin-top:2rem">
             <h3 style="font-size:1rem;font-weight:700;margin-bottom:.75rem">${T('det_reviews')} (${p.reviews})</h3>
@@ -3744,6 +3796,8 @@ async function submitProperty() {
       floor:       Number(document.getElementById('pub-floor').value) || null,
       features, photos: photoUrls,
       image: photoUrls[0] || '',
+      video_url:   document.getElementById('pub-video').value.trim() || null,
+      tour_url:    document.getElementById('pub-tour').value.trim() || null,
       ...publishAffiliation(),   // agency_id / project_id : annonce publiée au nom de sa vitrine (pro.js)
     };
     const r = await api('/properties', 'POST', body);
@@ -3757,6 +3811,7 @@ async function submitProperty() {
     if (warns.length) sucEl.innerHTML = esc(sucEl.textContent) + '<ul class="q-list">' + warns.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
     sucEl.classList.remove('hidden');
     uploadedPhotos = [];
+    document.getElementById('pub-video').value = document.getElementById('pub-tour').value = '';
     renderPhotoPreviews();
     setTimeout(() => pending ? showPage('dashboard') : showPage('detail', r.id), warns.length ? 9000 : pending ? 3500 : 1500);
   } catch (e) {

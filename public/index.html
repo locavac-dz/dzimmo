@@ -412,6 +412,19 @@
         <p style="font-size:.8rem;color:var(--text-muted);margin-top:.5rem" data-i18n="pub_first_photo">La première photo sera la photo principale.</p>
       </div>
 
+      <div class="form-section">
+        <div class="form-section-title" data-i18n="pub_media">🎬 Vidéo et visite virtuelle (facultatif)</div>
+        <div class="form-group">
+          <label for="pub-video" data-i18n="pub_video">Vidéo (YouTube ou Vimeo)</label>
+          <input id="pub-video" type="url" inputmode="url" autocomplete="off" dir="ltr" data-i18n="pub_video_ph" data-i18n-attr="placeholder" placeholder="https://www.youtube.com/watch?v=…">
+        </div>
+        <div class="form-group" style="margin-top:.6rem">
+          <label for="pub-tour" data-i18n="pub_tour">Visite virtuelle (Matterport ou Kuula)</label>
+          <input id="pub-tour" type="url" inputmode="url" autocomplete="off" dir="ltr" data-i18n="pub_tour_ph" data-i18n-attr="placeholder" placeholder="https://my.matterport.com/show/?m=…">
+        </div>
+        <p style="font-size:.8rem;color:var(--text-muted);margin-top:.5rem" data-i18n="pub_media_hint">Collez le lien de partage : nous n'hébergeons aucun fichier vidéo. Le lecteur ne se charge qu'au clic du visiteur.</p>
+      </div>
+
       <div style="margin-top:1.5rem;display:flex;gap:.75rem">
         <button class="btn btn-primary" onclick="submitProperty()" style="flex:1;padding:.75rem" data-i18n="pub_submit">Publier l'annonce</button>
         <button class="btn btn-outline" onclick="showPage('home')" data-i18n="pub_cancel">Annuler</button>

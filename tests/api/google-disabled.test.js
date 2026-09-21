@@ -15,7 +15,8 @@ test('aucun accès à Google dans la politique de sécurité tant que la connexi
     const csp = r.headers.get('content-security-policy');
     assert.ok(csp, url);
     assert.doesNotMatch(csp, /google/i, url);
-    assert.doesNotMatch(csp, /frame-src/, 'les cadres restent limités par default-src');
+    // seuls les lecteurs de vidéo et de visite virtuelle (server/videos.js) sont incrustables : aucun cadre Google
+    assert.match(csp, /frame-src 'self' https:\/\/www\.youtube-nocookie\.com https:\/\/player\.vimeo\.com https:\/\/my\.matterport\.com https:\/\/kuula\.co(;|$)/, url);
     assert.notEqual(r.headers.get('cross-origin-opener-policy'), 'same-origin-allow-popups', url);
     assert.equal(r.headers.get('cross-origin-opener-policy'), 'same-origin', 'valeur stricte de helmet conservée');
   }
