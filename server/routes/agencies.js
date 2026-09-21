@@ -17,6 +17,94 @@ router.get('/mine/info', auth, async (req, res) => {
   res.json(mine);
 });
 
+// GET /api/agencies/me/stats — stats globales des 30 derniers jours pour toutes les annonces de l'agence de l'utilisateur connecté.
+// totals : vues, favoris, clics (appels / WhatsApp), demandes de contact, nombre d'annonces actives et total.
+// top : 5 annonces les plus vues sur la période (id, titre, statut, views_30d, contacts_30d).
+router.get('/me/stats', auth, async (req, res) => {
+  const mine = await db.agencies.findOne({ owner_id: req.user.id });
+  if (!mine) return res.status(404).json({ error: 'Aucune agence trouvée.' });
+
+  const [daysR, views, favorites, clicks, favTotal, contacts, counts, top] = await Promise.all([
+    db.pool.query(`SELECT to_char(d, 'YYYY-MM-DD') AS day FROM generate_series(CURRENT_DATE - 29, CURRENT_DATE, interval '1 day') d ORDER BY d`),
+    db.pool.query(
+      `SELECT day::text, SUM(views)::int AS views FROM property_views_daily
+       WHERE property_id IN (SELECT id FROM properties WHERE agency_id = $1)
+         AND day >= CURRENT_DATE - 29
+       GROUP BY day ORDER BY day`, [mine.id]
+    ),
+    db.pool.query(
+      `SELECT created_at::date::text AS day, COUNT(*)::int AS n FROM favorites
+       WHERE property_id IN (SELECT id FROM properties WHERE agency_id = $1)
+         AND created_at >= CURRENT_DATE - 29
+       GROUP BY 1 ORDER BY 1`, [mine.id]
+    ),
+    db.pool.query(
+      `SELECT day::text, channel, SUM(n)::int AS n FROM contact_clicks
+       WHERE property_id IN (SELECT id FROM properties WHERE agency_id = $1)
+         AND day >= CURRENT_DATE - 29
+       GROUP BY day, channel ORDER BY day`, [mine.id]
+    ),
+    db.pool.query(
+      `SELECT COUNT(*)::int AS n FROM favorites
+       WHERE property_id IN (SELECT id FROM properties WHERE agency_id = $1)`, [mine.id]
+    ),
+    db.pool.query(
+      `SELECT COUNT(*)::int AS n FROM contact_requests
+       WHERE property_id IN (SELECT id FROM properties WHERE agency_id = $1)
+         AND created_at >= CURRENT_DATE - 29`, [mine.id]
+    ),
+    db.pool.query(
+      `SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'active')::int AS active
+       FROM properties WHERE agency_id = $1`, [mine.id]
+    ),
+    db.pool.query(
+      `SELECT p.id, p.title, p.status,
+              (SELECT COALESCE(SUM(v.views), 0)::int FROM property_views_daily v
+               WHERE v.property_id = p.id AND v.day >= CURRENT_DATE - 29)  AS views_30d,
+              (SELECT COUNT(*)::int FROM contact_requests cr
+               WHERE cr.property_id = p.id AND cr.created_at >= CURRENT_DATE - 29) AS contacts_30d
+       FROM properties p
+       WHERE p.agency_id = $1
+       ORDER BY views_30d DESC, p.id DESC
+       LIMIT 5`, [mine.id]
+    ),
+  ]);
+
+  const list = daysR.rows.map(r => r.day);
+  const daily = (rows, pick) => {
+    const m = {};
+    rows.forEach(r => { m[r.day] = (m[r.day] || 0) + Number(pick(r)); });
+    return list.map(d => m[d] || 0);
+  };
+  const channel = ch => clicks.rows.filter(r => r.channel === ch);
+  const series = {
+    views:     daily(views.rows, r => r.views),
+    favorites: daily(favorites.rows, r => r.n),
+    clicks:    daily(clicks.rows, r => r.n),
+  };
+  const total = a => a.reduce((t, v) => t + v, 0);
+  const c = counts.rows[0] || { total: 0, active: 0 };
+
+  res.json({
+    days: list,
+    views: views.rows,
+    favorites: favorites.rows,
+    clicks: clicks.rows,
+    totals: {
+      views_30d:        total(series.views),
+      views_7d:         total(series.views.slice(-7)),
+      favorites_30d:    total(series.favorites),
+      favorites_total:  favTotal.rows[0].n,
+      calls_30d:        total(daily(channel('call'),      r => r.n)),
+      whatsapps_30d:    total(daily(channel('whatsapp'),  r => r.n)),
+      contacts_30d:     contacts.rows[0].n,
+      listings_active:  c.active,
+      listings_total:   c.total,
+    },
+    top: top.rows,
+  });
+});
+
 // GET /api/agencies/:id — fiche publique : profil, chiffres, avis, premiers programmes (les annonces se lisent par /api/properties?agency_id=)
 router.get('/:id', optionalAuth, async (req, res) => {
   const a = await agency.profile(req.params.id, req.user ? req.user.id : null);

@@ -220,6 +220,19 @@ Windows : `demarrer.bat`
 - **Déclenchement** : `PUT /api/properties/:id`, après l'insertion dans `price_history`, sans bloquer la réponse (`notifyDrop(...).catch(() => {})`). Aucune tâche planifiée. Le corps de l'email n'expose que le titre et les deux prix.
 - Limites connues : pas de résumé quotidien (un email par baisse) ; une baisse faite pendant la modération n'est jamais annoncée. Tests : `tests/unit/price-drop.test.js`, `tests/api/baisse-de-prix.test.js`.
 
+## Statistiques globales de l'agence
+
+- **`GET /api/agencies/me/stats`** (propriétaire de l'agence uniquement, `server/routes/agencies.js`, route déclarée **avant** `GET /:id`) : totaux sur 30 jours de toutes les annonces de l'agence —
+  `views_30d`, `views_7d`, `favorites_30d`, `favorites_total`, `calls_30d`, `whatsapps_30d`, `contacts_30d`, `listings_active`, `listings_total` — ainsi que `days` (30 dates ISO), les séries brutes
+  `views` / `favorites` / `clicks` et `top` (5 annonces les plus vues : id, titre, statut, `views_30d`, `contacts_30d`). Jamais d'email du propriétaire dans la réponse.
+- **Agrégats en sous-requêtes corrélées** : le `top` utilise des sous-requêtes pour `views_30d` et `contacts_30d` plutôt que des LEFT JOIN, afin d'éviter la multiplication des lignes
+  quand plusieurs dates ou contacts existent pour une même annonce.
+- **Front** : `agenceStatsHTML(stats)` (`public/pro.js`, fonction pure → chaîne HTML) rendue au sommet de `vtRender` si les stats existent ; `dashVitrine` appelle `/agencies/me/stats`
+  après `/agencies/mine/info` (agence existante seulement). Totaux, courbes SVG (réutilise `STAT_COLORS`) et top 5 filtré aux annonces avec au moins 1 vue ou 1 demande.
+  Chaque titre de l'annonce passe par `esc()`, seul `Number(p.id)` est interpolé dans `onclick` (règle `pro-front.test.js`).
+- **Clés i18n** (FR + AR dans `public/app.js`) : `vt_stats_title`, `vt_stats_listings`, `vt_stats_top`.
+- Tests : `tests/api/agence-stats.test.js` (401, 404, structure, totaux, top, agence vide, isolation), `tests/unit/agence-stats-front.test.js` (clés i18n, câblage, `esc()`, onclick, signature de `vtRender`).
+
 ## Fiche imprimable (avec code QR)
 
 - **Page** `/annonce/12-titre/fiche` (et `/ar/…`, déclarée par `bothLangs` dans `server/seo.js`) : une page A4 rendue par le serveur (`server/fiche.js`, pas par la SPA) — photos (4 au plus),

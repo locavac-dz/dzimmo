@@ -432,16 +432,73 @@ function vtCompleteness(m) {
 }
 
 async function dashVitrine(c) {
-  let mine = null;
+  let mine = null, agStats = null;
   try { mine = await api('/agencies/mine/info'); }
   catch (e) { if (e.status !== 404) { c.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message)}</p>`; return; } }
+  if (mine) { try { agStats = await api('/agencies/me/stats'); } catch {} }
   Object.assign(_vt, { mine, logo: mine ? mine.logo || '' : '', cover: mine ? mine.cover || '' : '',
     services: mine ? [...(mine.services || [])] : [], coverage: mine ? [...(mine.coverage || [])] : [] });
-  vtRender(c);
+  vtRender(c, agStats);
   if (mine && mine.kind === 'promoteur') pgRenderSection();
 }
 
-function vtRender(c = document.getElementById('dash-tab-content')) {
+// HTML du panneau de statistiques globales d'une agence (30 j). Fonction pure : tout passe par esc(). Utilise STAT_COLORS de app.js.
+function agenceStatsHTML(stats) {
+  const days = stats.days || [];
+  const t = stats.totals || {};
+  const pick = (rows, key) => { const m = {}; (rows || []).forEach(r => { m[r.day] = (m[r.day] || 0) + Number(r[key]); }); return days.map(d => m[d] || 0); };
+  const series = { views: pick(stats.views, 'views'), favorites: pick(stats.favorites, 'n'), clicks: pick(stats.clicks, 'n') };
+  const maxV = Math.max(1, ...series.views, ...series.favorites, ...series.clicks);
+  const W = 520, H = 100, pad = { t: 8, b: 16, l: 24, r: 8 };
+  const last = Math.max(days.length - 1, 1);
+  const pw = (W - pad.l - pad.r) / last;
+  const px = i => pad.l + i * pw;
+  const py = v => pad.t + (1 - v / maxV) * (H - pad.t - pad.b);
+  const line = arr => arr.map((v, i) => (i ? 'L' : 'M') + px(i).toFixed(1) + ',' + py(v).toFixed(1)).join(' ');
+  const locale = currentLang === 'ar' ? 'ar-DZ' : 'fr-DZ';
+  const labels = [0, Math.floor(last / 2), last].filter(i => days[i]).map(i => {
+    const lbl = new Date(days[i] + 'T12:00:00').toLocaleDateString(locale, { day: '2-digit', month: 'short' });
+    const anchor = i === 0 ? 'start' : i === last ? 'end' : 'middle';
+    return `<text x="${px(i).toFixed(1)}" y="${H - 3}" text-anchor="${anchor}" font-size="8" fill="currentColor" opacity=".6">${esc(lbl)}</text>`;
+  }).join('');
+  const box = (label, value, color, sub) => `<div style="flex:1;min-width:84px;border:1px solid var(--border);border-radius:8px;padding:.35rem .5rem">
+      <div style="font-size:.72rem;color:${color};font-weight:700">${esc(label)}</div>
+      <div style="font-size:1.05rem;font-weight:800">${Number(value) || 0}</div>${sub ? `<div style="font-size:.68rem;color:var(--text-muted)">${esc(sub)}</div>` : ''}</div>`;
+  const totals = `<div style="display:flex;gap:.45rem;flex-wrap:wrap;margin-bottom:.6rem">
+    ${box(T('st_views'), t.views_30d, STAT_COLORS.views)}
+    ${box(T('st_favs'), t.favorites_30d, STAT_COLORS.favorites, T('st_favs_total').replace('{n}', Number(t.favorites_total) || 0))}
+    ${box('📞 ' + T('st_calls'), t.calls_30d, STAT_COLORS.clicks)}
+    ${box('💬 ' + T('st_wa'), t.whatsapps_30d, STAT_COLORS.clicks)}
+    ${box('📩 ' + T('st_contacts'), t.contacts_30d, 'var(--text-muted)')}
+    ${box('🏠 ' + T('vt_stats_listings'), t.listings_active, 'var(--text-muted)', T('st_favs_total').replace('{n}', Number(t.listings_total) || 0))}
+  </div>`;
+  const empty = !series.views.some(Boolean) && !series.favorites.some(Boolean) && !series.clicks.some(Boolean);
+  const chart = empty
+    ? `<div style="font-size:.82rem;color:var(--text-muted);text-align:center;padding:.4rem">${esc(T('st_no_data'))}</div>`
+    : `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;color:var(--text);overflow:visible" direction="ltr">
+        <line x1="${pad.l}" y1="${H - pad.b}" x2="${W - pad.r}" y2="${H - pad.b}" stroke="var(--border)" stroke-width="1"/>
+        ${['views', 'favorites', 'clicks'].map(k => `<path d="${line(series[k])}" fill="none" stroke="${STAT_COLORS[k]}" stroke-width="1.5" stroke-linejoin="round"/>`).join('')}
+        ${labels}
+      </svg>`;
+  const topItems = (stats.top || []).filter(p => p.views_30d > 0 || p.contacts_30d > 0).slice(0, 5);
+  const topHTML = topItems.length ? `<div style="margin-top:.6rem;padding-top:.5rem;border-top:1px solid var(--border)">
+    <div style="font-size:.8rem;font-weight:700;color:var(--text-muted);margin-bottom:.3rem">${esc(T('vt_stats_top'))}</div>
+    ${topItems.map(p => `<div style="display:flex;align-items:center;gap:.5rem;font-size:.82rem;margin:.2rem 0">
+      <button class="btn-link" style="flex:1;text-align:start;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82rem" onclick="showPage('detail',${Number(p.id)})">${esc(p.title)}</button>
+      <span style="flex-shrink:0;color:${STAT_COLORS.views};font-variant-numeric:tabular-nums">👁 ${Number(p.views_30d) || 0}</span>
+      <span style="flex-shrink:0;color:var(--text-muted);font-variant-numeric:tabular-nums">📩 ${Number(p.contacts_30d) || 0}</span>
+    </div>`).join('')}
+  </div>` : '';
+  return `<div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem;box-shadow:var(--shadow)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;gap:.5rem;flex-wrap:wrap">
+      <span style="font-size:.9rem;font-weight:700">${esc(T('vt_stats_title'))}</span>
+      <span style="font-size:.78rem;color:var(--text-muted)"><span style="color:${STAT_COLORS.views}">— ${esc(T('st_views'))}</span> &nbsp; <span style="color:${STAT_COLORS.favorites}">— ${esc(T('st_favs'))}</span> &nbsp; <span style="color:${STAT_COLORS.clicks}">— ${esc(T('st_clicks'))}</span></span>
+    </div>
+    ${totals}${chart}${topHTML}
+  </div>`;
+}
+
+function vtRender(c = document.getElementById('dash-tab-content'), agStats = null) {
   const m = _vt.mine;
   const f = m || {};
   const comp = m ? vtCompleteness(m) : null;
@@ -449,6 +506,7 @@ function vtRender(c = document.getElementById('dash-tab-content')) {
     <span>${icon} <b>${T('kind_' + k)}</b><small>${T('vt_kind_' + k + '_hint')}</small></span></label>`;
   c.innerHTML = `
   <div class="vt-wrap">
+    ${agStats ? agenceStatsHTML(agStats) : ''}
     ${m ? `
     <div class="vt-status">
       <div>
