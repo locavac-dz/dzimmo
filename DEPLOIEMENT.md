@@ -208,13 +208,19 @@ createdb dzimmo_neuve && pg_restore -d dzimmo_neuve --no-owner backups/dzimmo-AA
 Puis pointer `DATABASE_URL` vers cette base et `pm2 reload dzimmo`, ou restaurer sur place avec `pg_restore -d dzimmo --clean`.
 Les justificatifs de vérification ne sont jamais sauvegardés (supprimés dès la décision) : rien à restaurer de ce côté.
 
-## 8. Cache du navigateur
+## 8. Référencement (Google)
+
+Le site existe en français et en arabe (`/ar/…`) ; les deux versions se désignent par `hreflang`. Après le premier déploiement, déclarer dans la
+Search Console **une seule** adresse : `https://<domaine>/sitemap.xml` (c'est un index : les fichiers `sitemap-pages.xml` et `sitemap-annonces-N.xml`
+sont lus à partir de lui, et l'adresse est aussi indiquée dans `robots.txt`). Nginx doit laisser passer `/ar/…` et `/sitemap-*.xml` vers l'application.
+
+## 9. Cache du navigateur
 
 L'application pose elle-même les en-têtes de cache (rien à ajouter dans Nginx) : photos et miniatures `immutable` pendant un an,
 `app.js` / `app.css` / `pro.js` / `contrats.js` versionnés par empreinte (`?v=…`) donc immuables, pages revalidées par ETag.
 Un déploiement n'exige aucune purge : l'adresse des scripts change dès que leur contenu change.
 
-## 9. Mises à jour
+## 10. Mises à jour
 
 ```bash
 cd /srv/dzimmo && git pull && npm ci --omit=dev && pm2 reload dzimmo

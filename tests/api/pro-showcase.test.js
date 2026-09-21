@@ -2,6 +2,7 @@
 const test   = require('node:test');
 const assert = require('node:assert/strict');
 const { startServer } = require('../helpers/server');
+const { fullSitemap } = require('../helpers/sitemap');
 const { AR } = require('../../server/i18n');
 
 let s, admin;
@@ -446,7 +447,7 @@ test('SEO : pages /agence et /promoteur (titre, données structurées, canonique
   }
   // Sitemap : annuaires, vitrines et programmes visibles
   await post('/api/projects', v.token, { ...PROG, name: 'Programme Sitemap' });
-  const map = (await s.request('GET', '/sitemap.xml')).text;
+  const map = await fullSitemap(s);
   for (const frag of ['/agences<', '/promoteurs<', '/programmes<', `/agence/${id}-agence-test-fils<`, `/promoteur/${pid}-promoteur-etoile<`, '-programme-sitemap<'])
     assert.ok(map.includes(frag), frag);
 });

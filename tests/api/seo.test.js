@@ -2,6 +2,7 @@
 const test   = require('node:test');
 const assert = require('node:assert/strict');
 const { startServer } = require('../helpers/server');
+const { fullSitemap } = require('../helpers/sitemap');
 
 let s, admin, sample;
 const BASE = 'https://dzimmo.test';   // APP_URL défini par le helper
@@ -48,11 +49,14 @@ test('robots.txt et sitemap.xml', async () => {
   const robots = await s.request('GET', '/robots.txt');
   assert.match(robots.text, /Disallow: \/api\//);
   assert.match(robots.text, new RegExp(`Sitemap: ${BASE}/sitemap.xml`));
-  const sm = await s.request('GET', '/sitemap.xml');
-  assert.equal(sm.status, 200);
-  assert.match(sm.headers.get('content-type'), /xml/);
-  assert.match(sm.text, new RegExp(`<loc>${BASE}/</loc>`));
-  assert.match(sm.text, new RegExp(`<loc>${BASE}/annonce/${sample.id}-`));
+  const index = await s.request('GET', '/sitemap.xml');
+  assert.equal(index.status, 200);
+  assert.match(index.headers.get('content-type'), /xml/);
+  assert.match(index.text, /<sitemapindex/);
+  assert.match(index.text, new RegExp(`<loc>${BASE}/sitemap-pages.xml</loc>`));
+  const sm = await fullSitemap(s);
+  assert.match(sm, new RegExp(`<loc>${BASE}/</loc>`));
+  assert.match(sm, new RegExp(`<loc>${BASE}/annonce/${sample.id}-`));
 });
 
 test('annonce : redirection 301 vers l\'URL canonique, puis page avec meta et JSON-LD', async () => {
@@ -118,7 +122,7 @@ test('page de recherche valide mais sans annonce : 200 + noindex, absente du sit
   const r = await s.request('GET', '/location-saisonniere/fermes/adrar');
   assert.equal(r.status, 200);
   assert.match(r.text, /<meta name="robots" content="noindex,follow">/);
-  assert.doesNotMatch((await s.request('GET', '/sitemap.xml')).text, /location-saisonniere\/fermes\/adrar/);
+  assert.doesNotMatch(await fullSitemap(s), /location-saisonniere\/fermes\/adrar/);
 });
 
 test('pages de recherche invalides : 404', async () => {
@@ -138,7 +142,7 @@ test('annonce en attente : jamais dans le sitemap ni en page publique', async ()
     title: 'Villa secrète en attente', mode: 'vente', type_bien: 'villa', price: 30000000, wilaya: 'Blida', photos: [] } });
   assert.equal(r.body.status, 'pending');
   assert.equal((await s.request('GET', `/annonce/${r.body.id}-villa-secrete-en-attente`)).status, 404);
-  assert.doesNotMatch((await s.request('GET', '/sitemap.xml')).text, /villa-secrete/);
+  assert.doesNotMatch(await fullSitemap(s), /villa-secrete/);
 });
 
 test('échappement : un titre malveillant ne peut pas injecter de HTML dans le <head>', async () => {

@@ -21,6 +21,9 @@ const PRO_SPINNER = '<div class="loading"><div class="spinner"></div></div>';
 const proSlug   = s => { const x = slugify(s); return x ? '-' + x : ''; };
 const proPath   = a => `/${a.kind === 'promoteur' ? 'promoteur' : 'agence'}/${a.id}${proSlug(a.name)}`;
 const progPath  = p => `/programme/${p.id}${proSlug(p.name)}`;
+// Adresse dans la langue affichée (/ar/agence/12-nom en arabe) : liens, adresse du navigateur et lien partagé
+const proHref   = a => langPath(proPath(a));
+const progHref  = p => langPath(progPath(p));
 
 // Clic sur un lien de carte : navigation dans la SPA, sauf Ctrl/Cmd/Maj/clic milieu (le navigateur ouvre alors le vrai lien)
 function proGo(e, page, data) {
@@ -81,7 +84,7 @@ function proCardHTML(a) {
     a.project_count ? `🏗 <b>${a.project_count}</b> ${unit(a.project_count, 'u_prog')}` : '',
   ].filter(Boolean).join(' · ');
   return `
-  <a class="pro-card" href="${esc(proPath(a))}" onclick="return proGo(event,'agency-detail',${a.id})">
+  <a class="pro-card" href="${esc(proHref(a))}" onclick="return proGo(event,'agency-detail',${a.id})">
     ${a.cover ? `<img class="pro-cover" ${imgAttrs(a.cover, '(max-width: 720px) 100vw, 330px')} alt="" loading="lazy">` : '<div class="pro-cover pro-cover-none"></div>'}
     ${proLogoHTML(a, 'pro-logo-card')}
     <div class="pro-card-body">
@@ -108,7 +111,7 @@ async function loadAgences(page = 1) {
   if (val('ag-wilaya')) qs.set('wilaya', val('ag-wilaya'));
   if (val('ag-sort')) qs.set('sort', val('ag-sort'));
   if (document.getElementById('ag-verified')?.checked) qs.set('verified', '1');
-  history.replaceState(null, '', _pro.kind === 'promoteur' ? '/promoteurs' : '/agences');
+  history.replaceState(null, '', langPath(_pro.kind === 'promoteur' ? '/promoteurs' : '/agences'));
   document.title = T(_pro.kind === 'promoteur' ? 'pro_title_promoteur' : 'pro_title_all') + ' | DzImmo';
   try {
     const r = await api('/agencies?' + qs);
@@ -142,7 +145,7 @@ const progStatusHTML = st => `<span class="pg-status pg-${esc(st)}">${T('pg_st_'
 
 function progCardHTML(p) {
   return `
-  <a class="pro-card pg-card" href="${esc(progPath(p))}" onclick="return proGo(event,'programme-detail',${p.id})">
+  <a class="pro-card pg-card" href="${esc(progHref(p))}" onclick="return proGo(event,'programme-detail',${p.id})">
     ${p.image ? `<img class="pro-cover" ${imgAttrs(p.image, '(max-width: 720px) 100vw, 330px')} alt="${esc(p.name)}" loading="lazy">` : '<div class="pro-cover pro-cover-none"></div>'}
     <div class="pro-card-body">
       <div class="pg-card-top">${progStatusHTML(p.status)}${deliveryText(p) ? `<span class="pg-when">${esc(deliveryText(p))}</span>` : ''}</div>
@@ -166,7 +169,7 @@ async function loadProgrammes(page = 1) {
   if (val('pg-wilaya')) qs.set('wilaya', val('pg-wilaya'));
   if (val('pg-status')) qs.set('status', val('pg-status'));
   if (_prog.agency) qs.set('agency_id', _prog.agency);
-  history.replaceState(null, '', '/programmes');
+  history.replaceState(null, '', langPath('/programmes'));
   document.title = T('pro_title_prog') + ' | DzImmo';
   renderProTabs();
   const filter = document.getElementById('programmes-agency');
@@ -202,7 +205,7 @@ async function loadAgencyDetail(id) {
   try {
     const a = await api('/agencies/' + id);
     window._agency = a;
-    history.replaceState(null, '', proPath(a));
+    history.replaceState(null, '', proHref(a));
     document.title = `${a.name} — ${T('kind_' + a.kind)} | DzImmo`;
     const ph = a.phone;
     const year = new Date().getFullYear();
@@ -239,7 +242,7 @@ async function loadAgencyDetail(id) {
         </div>
       </header>
       <div class="pro-actions">
-        ${proContactHTML(a, T('ag_wa_msg').replace('{name}', a.name).replace('{url}', location.origin + proPath(a)))}${links}
+        ${proContactHTML(a, T('ag_wa_msg').replace('{name}', a.name).replace('{url}', location.origin + proHref(a)))}${links}
         <button class="btn btn-outline" onclick="proShare()">🔗 ${T('ag_share')}</button>
         ${a.is_mine ? `<button class="btn btn-outline" onclick="proGoVitrine()">✏️ ${T('ag_edit')}</button>` : ''}
       </div>
@@ -290,7 +293,7 @@ async function loadAgencyDetail(id) {
             <div class="pro-review-top">${starsHTML(r.rating)} <b>${esc(r.author_name || T('det_anon'))}</b>
               <span class="pro-review-date">${new Date(r.created_at).toLocaleDateString('fr-DZ')}</span></div>
             ${r.comment ? `<p>${esc(r.comment)}</p>` : ''}
-            <a class="pro-review-on" href="/annonce/${r.property_id}" onclick="return proGo(event,'detail',${r.property_id})">${T('ag_review_on')} ${esc(r.property_title)}</a>
+            <a class="pro-review-on" href="${langPath('/annonce/' + r.property_id)}" onclick="return proGo(event,'detail',${r.property_id})">${T('ag_review_on')} ${esc(r.property_title)}</a>
           </article>`).join('')}</div>
       </section>` : ''}
     </div>`;
@@ -336,7 +339,7 @@ async function loadProgrammeDetail(id) {
   c.innerHTML = PRO_SPINNER;
   try {
     const p = await api('/projects/' + id);
-    history.replaceState(null, '', progPath(p));
+    history.replaceState(null, '', progHref(p));
     document.title = `${p.name} — ${T('pg_title_suffix')} | DzImmo`;
     const photos = (Array.isArray(p.photos) && p.photos.length ? p.photos : [p.image]).filter(Boolean);
     const stock = p.total_units ? Math.min(100, Math.round(((p.sold_count || 0) / p.total_units) * 100)) : null;
@@ -370,9 +373,9 @@ async function loadProgrammeDetail(id) {
         </div>
         <aside class="pg-promoter">
           <div class="pg-by-lg">${proLogoHTML(agency, 'pro-logo-mini')}
-            <div><a class="pg-by-name" href="${esc(proPath(agency))}" onclick="return proGo(event,'agency-detail',${p.agency_id})">${esc(p.agency_name)}</a>
+            <div><a class="pg-by-name" href="${esc(proHref(agency))}" onclick="return proGo(event,'agency-detail',${p.agency_id})">${esc(p.agency_name)}</a>
               <div class="pro-badges">${p.agency_verified ? proVerifiedHTML() : ''}${proKindHTML(p.agency_kind)}</div></div></div>
-          <div class="pro-actions stack">${proContactHTML(agency, T('pg_wa_msg').replace('{name}', p.name).replace('{url}', location.origin + progPath(p)))}</div>
+          <div class="pro-actions stack">${proContactHTML(agency, T('pg_wa_msg').replace('{name}', p.name).replace('{url}', location.origin + progHref(p)))}</div>
         </aside>
       </div>
       <section class="pro-section">
@@ -453,7 +456,7 @@ function vtRender(c = document.getElementById('dash-tab-content')) {
         <div class="vt-meter" title="${comp.pct} %"><div style="width:${comp.pct}%"></div></div>
         <div class="vt-meter-label">${T('vt_complete').replace('{p}', comp.pct)}${comp.todo.length ? ' — ' + comp.todo.map(k => T(k)).join(' · ') : ''}</div>
       </div>
-      <a class="btn btn-outline" href="${esc(proPath(m))}" onclick="return proGo(event,'agency-detail',${m.id})">👁 ${T('vt_view')}</a>
+      <a class="btn btn-outline" href="${esc(proHref(m))}" onclick="return proGo(event,'agency-detail',${m.id})">👁 ${T('vt_view')}</a>
     </div>
     ${m.verified ? `<p class="vt-ok">✓ ${T('vt_verified_ok')}</p>`
       : `<div class="vt-cta">🛡️ <div><b>${T('vt_verify_title')}</b><p>${T('vt_verify_text')}</p></div><button class="btn btn-primary" onclick="dashTab('verification')">${T('vt_verify_btn')}</button></div>`}
@@ -591,7 +594,7 @@ async function pgRenderSection() {
           <div class="pg-row-meta">📍 ${esc(wilayaName(p.wilaya))} · ${p.available_count} ${unit(p.available_count, 'u_lot_avail')}${p.sold_count ? ' · ' + p.sold_count + ' ' + unit(p.sold_count, 'u_lot_sold') : ''}${p.visible ? '' : ' · <span class="pg-hidden">' + T('pg_hidden_short') + '</span>'}</div>
         </div>
         <div class="pg-row-actions">
-          ${p.visible ? `<a class="btn btn-outline btn-sm" href="${esc(progPath(p))}" onclick="return proGo(event,'programme-detail',${p.id})">${T('dash_view')}</a>` : ''}
+          ${p.visible ? `<a class="btn btn-outline btn-sm" href="${esc(progHref(p))}" onclick="return proGo(event,'programme-detail',${p.id})">${T('dash_view')}</a>` : ''}
           <button class="btn btn-outline btn-sm" onclick="pgForm(${p.id})">${T('pg_edit')}</button>
           <button class="btn btn-danger btn-sm" onclick="pgDelete(${p.id})">✕</button>
         </div>

@@ -16,7 +16,7 @@ const fn = name => html.match(new RegExp(`function ${name}\\([^)]*\\) \\{[\\s\\S
 function sandbox({ els = {}, lang = 'fr' } = {}) {
   const calls = { showPage: [] };
   const ctx = {
-    T: k => k, currentLang: lang, currentPage: 'agences', calls, encodeURIComponent, WILAYAS: ['Alger', 'Oran'],
+    T: k => k, langPath: p => p, currentLang: lang, currentPage: 'agences', calls, encodeURIComponent, WILAYAS: ['Alger', 'Oran'],
     wilayaName: w => w, formatPrice: n => String(n), token: 't', currentUser: { id: 1 },
     showPage: (...a) => calls.showPage.push(a),
     document: { getElementById: id => els[id] || null, querySelectorAll: () => [] },

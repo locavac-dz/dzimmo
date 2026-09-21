@@ -6,6 +6,7 @@ const fs     = require('node:fs');
 const path   = require('node:path');
 const { startServer, ROOT } = require('../helpers/server');
 const { readFront } = require('../helpers/front');
+const { fullSitemap } = require('../helpers/sitemap');
 
 let s, admin, newsletter, mailer;
 const mails = [];
@@ -189,7 +190,7 @@ test('pages /newsletter/confirmation et /newsletter/desinscription : 200, jamais
     assert.match(r.text, /id="page-newsletter"/);
   }
   assert.match((await s.request('GET', '/robots.txt')).text, /Disallow: \/newsletter\//);
-  assert.doesNotMatch((await s.request('GET', '/sitemap.xml')).text, /newsletter/);
+  assert.doesNotMatch(await fullSitemap(s), /newsletter/);
   assert.equal((await s.request('GET', '/newsletter/autre')).status, 404);
 });
 

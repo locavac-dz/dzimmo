@@ -6,7 +6,19 @@ let uploadedPhotos = [];
 let wsConn = null;
 
 // ── i18n FR / AR ──────────────────────────────────────────────────────────────
-let currentLang = localStorage.getItem('dz_lang') || 'fr';
+// Version arabe d'une page : le même chemin précédé de « /ar » (/ar/vente/oran, voir server/seo.js). L'adresse l'emporte sur la langue mémorisée.
+const AR_PATH = /^\/ar(?=\/|$)/i;
+let currentLang = AR_PATH.test(location.pathname) ? 'ar' : (localStorage.getItem('dz_lang') || 'fr');
+// Chemin français équivalent à l'adresse courante, et chemin d'une page dans la langue affichée
+const routePath = () => location.pathname.replace(AR_PATH, '') || '/';
+const langPath = p => currentLang === 'ar' ? '/ar' + (p === '/' ? '' : p) : p;
+// L'adresse suit la langue affichée (les liens des emails de la newsletter gardent la leur)
+function syncLangUrl() {
+  const p = routePath();
+  if (p.startsWith('/newsletter/')) return;
+  const want = langPath(p);
+  if (location.pathname !== want) history.replaceState(null, '', want + location.search + location.hash);
+}
 
 const TRANSLATIONS = {
   fr: {
@@ -764,6 +776,7 @@ function applyLang(lang, reload = true) {
   else if (currentPage === 'carte' && mapInstance) loadMapMarkers();
   else if (currentPage === 'dashboard' && currentUser) loadDashboard();
   relabelSeo();
+  syncLangUrl();
 }
 
 function rebuildSelects() {
@@ -906,7 +919,7 @@ async function init() {
 
   const params = new URLSearchParams(location.search);
   if (params.get('verify') === 'ok') toast('✅ Email vérifié. Bienvenue !');
-  const landing = parseLandingPath(location.pathname);
+  const landing = parseLandingPath(routePath());
   if (landing) {
     document.getElementById('f-mode').value   = landing.mode;
     document.getElementById('f-type').value   = landing.type;
@@ -915,7 +928,7 @@ async function init() {
     loadAnnonces(1);
   }
   // Annuaires et fiches de la vitrine : /agences, /promoteurs, /programmes, /agence/12-nom, /promoteur/7-nom, /programme/5-nom
-  const path = location.pathname;
+  const path = routePath();
   const proMatch = path.match(/^\/(?:agence|promoteur)\/(\d+)/), progMatch = path.match(/^\/programme\/(\d+)/);
   if (path === '/agences' || path === '/promoteurs') { _pro.kind = path === '/promoteurs' ? 'promoteur' : ''; showPage('agences'); }
   else if (path === '/programmes') showPage('programmes');
@@ -923,7 +936,7 @@ async function init() {
   else if (progMatch) showPage('programme-detail', Number(progMatch[1]));
   else if (path === '/newsletter/confirmation' || path === '/newsletter/desinscription')
     showNewsletterLink(path === '/newsletter/confirmation' ? 'confirm' : 'unsub', params);
-  const annonceMatch = location.pathname.match(/^\/annonce\/(\d+)/);
+  const annonceMatch = routePath().match(/^\/annonce\/(\d+)/);
   // Lien de l'email de rappel (?renew=jeton) : mémorisé avant que la fiche ne réécrive l'adresse
   if (annonceMatch && params.get('renew')) { window._renewToken = params.get('renew'); window._renewFor = Number(annonceMatch[1]); }
   if (annonceMatch)                  showPage('detail', Number(annonceMatch[1]));
@@ -1157,7 +1170,7 @@ function slugify(s) {
 
 function annonceUrl(id, title) {
   const slug = slugify(title);
-  return window.location.origin + '/annonce/' + id + (slug ? '-' + slug : '');
+  return window.location.origin + langPath('/annonce/' + id + (slug ? '-' + slug : ''));
 }
 
 // ── Pages de recherche indexables : /vente/appartements/oran (voir server/seo.js) ──
@@ -1204,7 +1217,7 @@ function showPage(page, data = null) {
   // Hors fiche annonce, on quitte l'URL /annonce/… (les filtres d'annonces réécrivent ensuite la query).
   // Annuaires, fiches de professionnels et de programmes règlent eux-mêmes leur adresse (/agences, /agence/12-nom…, pro.js).
   if (page !== 'detail') {
-    if (location.pathname !== '/' && !PRO_PAGES.includes(page)) history.replaceState(null, '', '/');
+    if (routePath() !== '/' && !PRO_PAGES.includes(page)) history.replaceState(null, '', langPath('/'));
     document.title = DEFAULT_TITLE;
   }
   PAGES.forEach(p => {
@@ -1365,10 +1378,10 @@ async function loadAnnonces(page = 1) {
   const landingOnly = get('f-mode') && page === 1 && (!get('f-sort') || get('f-sort') === 'date_desc')
     && !['f-min-price', 'f-max-price', 'f-rooms', 'f-min-surface', 'f-q'].some(id => get(id));
   if (landingOnly) {
-    history.replaceState(null, '', landingPath(get('f-mode'), get('f-type'), get('f-wilaya')));
+    history.replaceState(null, '', langPath(landingPath(get('f-mode'), get('f-type'), get('f-wilaya'))));
     document.title = seoLabel(get('f-mode'), get('f-type'), get('f-wilaya')) + ' | DzImmo';
   } else {
-    history.replaceState(null, '', '/?' + urlParams.toString());
+    history.replaceState(null, '', langPath('/') + '?' + urlParams.toString());
   }
 
   try {
@@ -2236,7 +2249,7 @@ function shareWhatsApp(id, title, price) {
 
 function copyPropertyLink(id) {
   // Sur la fiche, l'URL courante est déjà l'URL propre /annonce/id-slug
-  const url = location.pathname.startsWith('/annonce/') ? location.origin + location.pathname : annonceUrl(id, '');
+  const url = routePath().startsWith('/annonce/') ? location.origin + location.pathname : annonceUrl(id, '');
   navigator.clipboard.writeText(url).then(() => toast(T('link_copied'))).catch(() => {
     const el = document.createElement('textarea');
     el.value = url; document.body.appendChild(el); el.select();

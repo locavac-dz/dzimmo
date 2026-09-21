@@ -1,7 +1,10 @@
-// ── SEO : URL d'annonces, balises meta / Open Graph, sitemap, robots ─────────
+// ── SEO : URL d'annonces, balises meta / Open Graph, hreflang, sitemap, robots ───────────────────────────────
 // Le front est une SPA : on sert index.html avec un <head> adapté à la page
 // demandée pour que les moteurs de recherche et les aperçus de partage
 // (WhatsApp, Facebook…) voient le titre, la description et la photo.
+//
+// Site bilingue : chaque page indexable existe en français (/vente/oran) et en arabe (/ar/vente/oran, même chemin précédé de « /ar »).
+// Les deux versions se renvoient l'une à l'autre par <link rel="alternate" hreflang> et par le sitemap ; les textes viennent de seo-text.js.
 const fs   = require('fs');
 const crypto = require('crypto');
 const path = require('path');
@@ -9,20 +12,12 @@ const db   = require('./db');
 const WILAYAS = require('./wilayas');
 const agencyData  = require('./agency');
 const projectData = require('./projects');
+const { textOf, fmtPrice } = require('./seo-text');
 
 const INDEX = path.join(__dirname, '..', 'public', 'index.html');
 
 // Annonces dont la page publique n'existe pas (retirée, en attente ou refusée de modération)
 const NOT_PUBLIC = ['archived', 'pending', 'rejected'];
-
-const DEFAULT_TITLE = 'DzImmo — Immobilier en Algérie';
-const DEFAULT_DESC  = 'Trouvez ou publiez des annonces immobilières en Algérie : appartements, villas, locaux, terrains à vendre ou à louer.';
-
-const TYPES = {
-  appartement: 'Appartement', villa: 'Villa', maison: 'Maison', bureau: 'Bureau',
-  local_commercial: 'Local commercial', terrain: 'Terrain', ferme: 'Ferme', entrepot: 'Entrepôt',
-};
-const MODES = { vente: 'à vendre', location_longue: 'à louer', location_courte: 'en location saisonnière' };
 
 // ── Pages de recherche indexables : /<mode>[/<type>][/<wilaya>] ──────────────
 // Ex. /vente/appartements/oran, /location/alger, /location-saisonniere
@@ -31,16 +26,10 @@ const TYPE_SLUG = {
   appartement: 'appartements', villa: 'villas', maison: 'maisons', bureau: 'bureaux',
   local_commercial: 'locaux-commerciaux', terrain: 'terrains', ferme: 'fermes', entrepot: 'entrepots',
 };
-const TYPE_PLURAL = {
-  appartement: 'Appartements', villa: 'Villas', maison: 'Maisons', bureau: 'Bureaux',
-  local_commercial: 'Locaux commerciaux', terrain: 'Terrains', ferme: 'Fermes', entrepot: 'Entrepôts',
-};
 
 // ── Utilitaires ──────────────────────────────────────────────────────────────
 const escHtml = s => String(s ?? '').replace(/[&<>"']/g,
   c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-
-const fmtPrice = n => Number(n).toLocaleString('fr-DZ').replace(/[\u202f\u00a0]/g, ' ');
 
 function truncate(s, max) {
   s = String(s || '').replace(/\s+/g, ' ').trim();
@@ -59,11 +48,23 @@ const SLUG_TYPE = invert(TYPE_SLUG);
 const WILAYA_SLUG = new Map(WILAYAS.map(w => [w, slugify(w)]));
 const SLUG_WILAYA = invert(Object.fromEntries(WILAYA_SLUG));
 
+// ── Langues : « /ar » devant le chemin français ──────────────────────────────
+// Les chemins calculés ci-dessous (propertyPath, landingPath…) sont ceux de la version française ; localized() donne celui d'une langue.
+const AR_PREFIX = /^\/ar(?=\/|$)/i;
+const arPath = p => '/ar' + (p === '/' ? '' : p);
+const localized = (lang, p) => lang === 'ar' ? arPath(p) : p;
+const langOfReq = req => AR_PREFIX.test(req.path) ? 'ar' : 'fr';
+const plainPath = req => req.path.replace(AR_PREFIX, '') || '/';           // chemin français équivalent à celui demandé
+const bothLangs = routes => routes.flatMap(r => [r, arPath(r)]);
+const versions = (base, p) => ({ fr: base + p, ar: base + arPath(p) });     // adresses absolues des deux versions d'une page
+
 const landingPath = ({ mode, type, wilaya }) =>
   '/' + [MODE_SLUG[mode], type && TYPE_SLUG[type], wilaya && WILAYA_SLUG.get(wilaya)].filter(Boolean).join('/');
 
-const landingLabel = ({ mode, type, wilaya }) =>
-  `${type ? TYPE_PLURAL[type] : 'Biens immobiliers'} ${MODES[mode]}${wilaya ? ' à ' + wilaya : ''}`;
+const landingLabel = ({ mode, type, wilaya }, lang = 'fr') => {
+  const t = textOf(lang);
+  return `${type ? t.typePlural[type] : t.all} ${t.mode[mode]}${wilaya ? ` ${t.in} ${t.wilaya(wilaya)}` : ''}`;
+};
 
 // /annonce/12-appartement-f4-vue-mer-a-alger (titre en arabe : repli sur type-mode-wilaya)
 function propertyPath(p) {
@@ -99,14 +100,14 @@ function template() {
 // Adresses versionnées des scripts et feuilles de style : /pro.js → /pro.js?v=<empreinte du contenu>. L'adresse change dès que le fichier
 // change, ce qui permet de les mettre en cache un an (voir staticCache dans app.js) sans jamais servir une version périmée.
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
-const versions = new Map();   // fichier -> { mtime, v }
+const assetVersions = new Map();   // fichier -> { mtime, v }
 function assetVersion(file) {
   let st;
   try { st = fs.statSync(path.join(PUBLIC_DIR, file)); } catch { return null; }
-  const known = versions.get(file);
+  const known = assetVersions.get(file);
   if (known && known.mtime === st.mtimeMs) return known.v;
   const v = crypto.createHash('sha1').update(fs.readFileSync(path.join(PUBLIC_DIR, file))).digest('hex').slice(0, 10);
-  versions.set(file, { mtime: st.mtimeMs, v });
+  assetVersions.set(file, { mtime: st.mtimeMs, v });
   return v;
 }
 const versionAssets = html => html.replace(/(src|href)="\/([\w.-]+\.(?:js|css))"/g, (m, attr, file) => {
@@ -115,7 +116,10 @@ const versionAssets = html => html.replace(/(src|href)="\/([\w.-]+\.(?:js|css))"
 });
 
 // Remplace title + description de index.html et insère les balises SEO
-function render({ title, description, canonical, image, robots, jsonLd, nav, landing }) {
+//   lang       : 'fr' | 'ar' (langue de cette version de la page : <html lang dir>, og:locale)
+//   alternates : { fr, ar } adresses absolues des deux versions ; absent = page non indexable (404, retirée…), aucun hreflang
+function render({ title, description, canonical, image, robots, jsonLd, nav, landing, lang = 'fr', alternates }) {
+  const t = textOf(lang), other = textOf(lang === 'ar' ? 'fr' : 'ar');
   // Sans photo propre à la page : visuel de marque (généré par `npm run build-brand`)
   const isDefaultImage = !image;
   image = image || new URL(canonical).origin + '/og-default.png';
@@ -123,10 +127,14 @@ function render({ title, description, canonical, image, robots, jsonLd, nav, lan
     `<title>${escHtml(title)}</title>`,
     `<meta name="description" content="${escHtml(description)}">`,
     `<link rel="canonical" href="${escHtml(canonical)}">`,
+    alternates ? `<link rel="alternate" hreflang="fr" href="${escHtml(alternates.fr)}">` : '',
+    alternates ? `<link rel="alternate" hreflang="ar" href="${escHtml(alternates.ar)}">` : '',
+    alternates ? `<link rel="alternate" hreflang="x-default" href="${escHtml(alternates.fr)}">` : '',
     robots ? `<meta name="robots" content="${robots}">` : '',
     '<meta property="og:site_name" content="DzImmo">',
     '<meta property="og:type" content="website">',
-    '<meta property="og:locale" content="fr_DZ">',
+    `<meta property="og:locale" content="${t.locale}">`,
+    alternates ? `<meta property="og:locale:alternate" content="${other.locale}">` : '',
     `<meta property="og:title" content="${escHtml(title)}">`,
     `<meta property="og:description" content="${escHtml(description)}">`,
     `<meta property="og:url" content="${escHtml(canonical)}">`,
@@ -141,6 +149,7 @@ function render({ title, description, canonical, image, robots, jsonLd, nav, lan
   ].filter(Boolean).join('\n  ');
 
   return versionAssets(template())
+    .replace(/<html lang="fr">/, `<html lang="${t.lang}" dir="${t.dir}">`)
     .replace(/<title>[\s\S]*?<\/title>\s*/, '')
     .replace(/<meta name="description"[^>]*>\s*/, '')
     .replace('<!--SEO_HEAD-->', () => tags)
@@ -153,21 +162,40 @@ async function getProperty(id) {
   return r.rows[0] || null;
 }
 
+// Fil d'Ariane (BreadcrumbList) : crumbs = [{ name, path }] avec des chemins français, localisés ici
+const breadcrumb = (base, lang, crumbs) => ({
+  '@type': 'BreadcrumbList',
+  itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: base + localized(lang, c.path) })),
+});
+
 // ── Contenu SEO d'une annonce ────────────────────────────────────────────────
-function propertyMeta(p, base) {
-  const type   = TYPES[p.type_bien] || 'Bien';
-  const mode   = MODES[p.mode] || '';
-  const place  = [p.commune, p.wilaya].filter(Boolean).join(', ');
-  const price  = fmtPrice(p.price) + ' DZD' + (p.mode === 'vente' ? '' : '/mois');
-  const facts  = [`${type} ${mode}`.trim(), place, p.surface_m2 && `${Number(p.surface_m2)} m²`,
-                  p.rooms && `${p.rooms} pièces`, price].filter(Boolean).join(' · ');
+function propertyMeta(p, base, lang = 'fr') {
+  const t      = textOf(lang);
+  const type   = t.type[p.type_bien] || (lang === 'ar' ? 'عقار' : 'Bien');
+  const mode   = t.mode[p.mode] || '';
+  const wilaya = t.wilaya(p.wilaya);
+  const place  = [p.commune, wilaya].filter(Boolean).join(t.sep);
+  const price  = t.price(p.price, p.mode);
+  const facts  = [`${type} ${mode}`.trim(), place, p.surface_m2 && t.area(Number(p.surface_m2)),
+                  p.rooms && t.rooms(p.rooms), price].filter(Boolean).join(' · ');
   const description = truncate(p.description ? `${facts} — ${p.description}` : facts, 160);
-  const title = `${truncate(p.title, 55)} — ${price} | DzImmo`;
-  const canonical = base + propertyPath(p);
+  const title = t.propertyTitle(truncate(p.title, 55), price);
+  const canonical = base + localized(lang, propertyPath(p));
 
   const photos = (Array.isArray(p.photos) && p.photos.length ? p.photos : [p.image])
     .filter(Boolean).slice(0, 5).map(u => absolute(base, u));
   const image = photos[0] || null;
+  const indexable = p.status === 'active';
+
+  // Fil d'Ariane : Accueil > mode > type > wilaya > annonce (uniquement les niveaux connus du référentiel)
+  const crumbs = [{ name: t.home, path: '/' }];
+  if (MODE_SLUG[p.mode]) {
+    crumbs.push({ name: landingLabel({ mode: p.mode }, lang), path: landingPath({ mode: p.mode }) });
+    const ty = TYPE_SLUG[p.type_bien] ? p.type_bien : null, wi = WILAYA_SLUG.has(p.wilaya) ? p.wilaya : null;
+    if (ty) crumbs.push({ name: landingLabel({ mode: p.mode, type: ty }, lang), path: landingPath({ mode: p.mode, type: ty }) });
+    if (wi) crumbs.push({ name: landingLabel({ mode: p.mode, type: ty, wilaya: wi }, lang), path: landingPath({ mode: p.mode, type: ty, wilaya: wi }) });
+  }
+  crumbs.push({ name: p.title, path: propertyPath(p) });
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -175,71 +203,72 @@ function propertyMeta(p, base) {
     name: p.title,
     description: truncate(p.description || facts, 300),
     url: canonical,
+    inLanguage: lang,
     datePosted: p.created_at ? new Date(p.created_at).toISOString() : undefined,
     image: photos.length ? photos : undefined,
+    breadcrumb: breadcrumb(base, lang, crumbs),
     contentLocation: {
       '@type': 'Place',
       address: { '@type': 'PostalAddress', streetAddress: p.address || undefined,
-                 addressLocality: p.commune || undefined, addressRegion: p.wilaya, addressCountry: 'DZ' },
+                 addressLocality: p.commune || undefined, addressRegion: wilaya, addressCountry: 'DZ' },
       geo: p.lat != null && p.lng != null
         ? { '@type': 'GeoCoordinates', latitude: Number(p.lat), longitude: Number(p.lng) } : undefined,
     },
     offers: {
       '@type': 'Offer', price: Number(p.price), priceCurrency: 'DZD',
-      availability: p.status === 'active' ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
+      availability: indexable ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
     },
   };
-  return { title, description, canonical, image, jsonLd,
-           robots: p.status === 'active' ? null : 'noindex,follow' };  // vendu / loué : hors index
+  return { lang, title, description, canonical, image, jsonLd,
+           alternates: indexable ? versions(base, propertyPath(p)) : undefined,
+           robots: indexable ? null : 'noindex,follow' };  // vendu / loué : hors index
 }
 
 // ── Contenu SEO d'une vitrine (agence ou promoteur) ──────────────────────────
-function agencyMeta(a, base) {
+function agencyMeta(a, base, lang = 'fr') {
+  const t = textOf(lang);
   const promoter = a.kind === 'promoteur';
-  const label = promoter ? 'Promoteur immobilier' : 'Agence immobilière';
-  const count = Number(a.property_count);
-  const facts = `${label} à ${a.wilaya}` + (count ? ` · ${count} annonce${count > 1 ? 's' : ''}` : '') +
-    (a.review_count ? ` · note ${a.rating}/5 (${a.review_count} avis)` : '');
+  const label = t.agencyLabel(promoter);
+  const facts = t.agencyFacts(label, a);
   const description = truncate(a.tagline || a.description ? `${facts} — ${a.tagline || a.description}` : facts, 160);
-  const canonical = base + agencyPath(a);
+  const canonical = base + localized(lang, agencyPath(a));
   const image = absolute(base, a.cover || a.logo);
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': promoter ? 'Organization' : 'RealEstateAgent',
-    name: a.name, url: canonical,
+    name: a.name, url: canonical, inLanguage: lang,
     description: truncate(a.description || a.tagline || facts, 300),
     image: image || undefined, logo: absolute(base, a.logo) || undefined,
     telephone: a.phone || undefined,
     foundingDate: a.founded_year ? String(a.founded_year) : undefined,
     address: { '@type': 'PostalAddress', streetAddress: a.address || undefined, addressLocality: a.commune || undefined,
-               addressRegion: a.wilaya, addressCountry: 'DZ' },
-    areaServed: [...new Set([a.wilaya, ...(Array.isArray(a.coverage) ? a.coverage : [])])],
+               addressRegion: t.wilaya(a.wilaya), addressCountry: 'DZ' },
+    areaServed: [...new Set([a.wilaya, ...(Array.isArray(a.coverage) ? a.coverage : [])])].map(t.wilaya),
     sameAs: [a.website, a.facebook, a.instagram].filter(Boolean),
     aggregateRating: a.review_count ? { '@type': 'AggregateRating', ratingValue: a.rating, reviewCount: a.review_count, bestRating: 5 } : undefined,
   };
-  return { title: `${truncate(a.name, 50)} — ${label} à ${a.wilaya} | DzImmo`, description, canonical, image, jsonLd };
+  return { lang, title: t.agencyTitle(truncate(a.name, 50), label, t.wilaya(a.wilaya)), description, canonical, image, jsonLd,
+           alternates: versions(base, agencyPath(a)) };
 }
 
-const PROJECT_STATUS = { sur_plan: 'Sur plan', en_construction: 'En construction', livre: 'Livré' };
-
-function projectMeta(j, base) {
-  const delivery = j.delivery_year
-    ? (j.status === 'livre' ? `livré en ${j.delivery_year}` : `livraison ${j.delivery_quarter ? 'T' + j.delivery_quarter + ' ' : ''}${j.delivery_year}`) : '';
-  const facts = [`Programme neuf à ${[j.commune, j.wilaya].filter(Boolean).join(', ')}`, PROJECT_STATUS[j.status], delivery,
-    j.price_from != null && `à partir de ${fmtPrice(j.price_from)} DZD`, `par ${j.agency_name}`].filter(Boolean).join(' · ');
+function projectMeta(j, base, lang = 'fr') {
+  const t = textOf(lang);
+  const place = [j.commune, t.wilaya(j.wilaya)].filter(Boolean).join(t.sep);
+  const facts = t.projectFacts(j, place, t.projectStatus[j.status], t.projectDelivery(j));
   const photos = (Array.isArray(j.photos) && j.photos.length ? j.photos : [j.image]).filter(Boolean).slice(0, 5).map(u => absolute(base, u));
-  const canonical = base + projectPath(j);
+  const canonical = base + localized(lang, projectPath(j));
   const jsonLd = {
     '@context': 'https://schema.org', '@type': 'ApartmentComplex',
-    name: j.name, description: truncate(j.description || facts, 300), url: canonical,
+    name: j.name, description: truncate(j.description || facts, 300), url: canonical, inLanguage: lang,
     image: photos.length ? photos : undefined,
     address: { '@type': 'PostalAddress', streetAddress: j.address || undefined, addressLocality: j.commune || undefined,
-               addressRegion: j.wilaya, addressCountry: 'DZ' },
+               addressRegion: t.wilaya(j.wilaya), addressCountry: 'DZ' },
     numberOfAccommodationUnits: j.total_units || undefined,
     numberOfAvailableAccommodationUnits: Number(j.available_count),
   };
-  return { title: `${truncate(j.name, 55)} — Programme neuf à ${j.wilaya} | DzImmo`,
-           description: truncate(j.description ? `${facts} — ${j.description}` : facts, 160), canonical, image: photos[0] || null, jsonLd };
+  return { lang, title: t.projectTitle(truncate(j.name, 55), t.wilaya(j.wilaya)),
+           description: truncate(j.description ? `${facts} — ${j.description}` : facts, 160), canonical, image: photos[0] || null, jsonLd,
+           alternates: versions(base, projectPath(j)) };
 }
 
 // ── Facettes : combinaisons mode / type / wilaya ayant au moins une annonce ──
@@ -263,49 +292,79 @@ async function getFacets() {
 const kind = f => (f.type && f.wilaya ? 'tw' : f.type ? 't' : f.wilaya ? 'w' : 'm');
 const dataAttrs = f =>
   `data-seo-m="${f.mode}"${f.type ? ` data-seo-t="${f.type}"` : ''}${f.wilaya ? ` data-seo-w="${escHtml(f.wilaya)}"` : ''}`;
-const link = (f, withCount) =>
-  `<a href="${escHtml(landingPath(f))}" ${dataAttrs(f)}${withCount ? ` data-seo-c="${f.c}"` : ''}>` +
-  `${escHtml(landingLabel(f))}${withCount ? ` (${f.c})` : ''}</a>`;
+const link = (f, withCount, lang = 'fr') =>
+  `<a href="${escHtml(localized(lang, landingPath(f)))}" ${dataAttrs(f)}${withCount ? ` data-seo-c="${f.c}"` : ''}>` +
+  `${escHtml(landingLabel(f, lang))}${withCount ? ` (${f.c})` : ''}</a>`;
 
 // Colonne « Explorer » du pied de page : liens crawlables vers les pages de recherche
-function navHtml(facets) {
+function navHtml(facets, lang = 'fr') {
   const top = (k, n) => facets.filter(f => kind(f) === k).sort((a, b) => b.c - a.c).slice(0, n);
   const links = [...top('t', 4), ...top('w', 4)];
   if (!links.length) return '';
-  return `<div class="footer-col"><h4 data-i18n="ft_explore">Explorer</h4>${links.map(f => link(f)).join('')}</div>`;
+  return `<div class="footer-col"><h4 data-i18n="ft_explore">${lang === 'ar' ? 'استكشف' : 'Explorer'}</h4>${links.map(f => link(f, false, lang)).join('')}</div>`;
 }
 
-// ── Sitemap (cache 10 min) ───────────────────────────────────────────────────
-let sitemapCache = { at: 0, base: '', xml: '' };
+// ── Sitemaps (cache 10 min) ──────────────────────────────────────────────────
+// /sitemap.xml est un index : /sitemap-pages.xml (accueil, annuaires, vitrines, programmes, pages de recherche) et
+// /sitemap-annonces-<n>.xml (les annonces, par tranches). Chaque page figure dans ses deux langues, avec ses alternates hreflang ;
+// un fichier de sitemap ne dépasse jamais 50 000 adresses (limite du protocole) : d'où les tranches de SITEMAP_PROPERTIES annonces × 2 langues.
+const SITEMAP_PROPERTIES = 20000;
+const sitemapCache = new Map();   // "base|fichier" -> { at, xml }
+const cachedSitemap = async (base, file, build) => {
+  const key = `${base}|${file}`, known = sitemapCache.get(key);
+  if (known && Date.now() - known.at < TEN_MIN) return known.xml;
+  const xml = await build();
+  sitemapCache.set(key, { at: Date.now(), xml });
+  return xml;
+};
 
-async function buildSitemap(base) {
-  const r = await db.pool.query(
-    `SELECT id, title, type_bien, mode, wilaya, created_at
-       FROM properties WHERE status = 'active' ORDER BY id DESC LIMIT 50000`);
+const XML_HEAD = '<?xml version="1.0" encoding="UTF-8"?>\n';
+const urlset = urls => `${XML_HEAD}<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls.join('\n')}\n</urlset>\n`;
+
+// Une page = deux <url> (français, arabe), chacun listant les deux versions et x-default
+function sitemapEntries(base, p, lastmod) {
+  const v = versions(base, p);
+  const alt = [['fr', v.fr], ['ar', v.ar], ['x-default', v.fr]]
+    .map(([l, href]) => `<xhtml:link rel="alternate" hreflang="${l}" href="${escHtml(href)}"/>`).join('');
+  return ['fr', 'ar'].map(l => `<url><loc>${escHtml(v[l])}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}${alt}</url>`);
+}
+
+async function buildPagesSitemap(base) {
   const facets = await getFacets();
   const pros  = (await agencyData.directory({ per_page: 100, sort: 'recent' })).items;   // 100 : plafond de la pagination
   const progs = (await projectData.list({ per_page: 100 })).items;
-  const urls = [`<url><loc>${escHtml(base)}/</loc></url>`,
-                ...['/agences', '/promoteurs', '/programmes'].map(u => `<url><loc>${escHtml(base + u)}</loc></url>`),
-                ...pros.map(a => `<url><loc>${escHtml(base + agencyPath(a))}</loc></url>`),
-                ...progs.map(j => `<url><loc>${escHtml(base + projectPath(j))}</loc></url>`)]
-    .concat(facets.map(f => `<url><loc>${escHtml(base + landingPath(f))}</loc></url>`))
-    .concat(r.rows.map(p =>
-      `<url><loc>${escHtml(base + propertyPath(p))}</loc>` +
-      (p.created_at ? `<lastmod>${new Date(p.created_at).toISOString().slice(0, 10)}</lastmod>` : '') + '</url>'));
-  return '<?xml version="1.0" encoding="UTF-8"?>\n' +
-    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls.join('\n') + '\n</urlset>\n';
+  const pages = ['/', '/agences', '/promoteurs', '/programmes',
+                 ...pros.map(agencyPath), ...progs.map(projectPath), ...facets.map(landingPath)];
+  return urlset(pages.flatMap(p => sitemapEntries(base, p)));
+}
+
+async function buildPropertiesSitemap(base, n) {
+  const r = await db.pool.query(
+    `SELECT id, title, type_bien, mode, wilaya, created_at
+       FROM properties WHERE status = 'active' ORDER BY id DESC LIMIT $1 OFFSET $2`, [SITEMAP_PROPERTIES, (n - 1) * SITEMAP_PROPERTIES]);
+  return urlset(r.rows.flatMap(p =>
+    sitemapEntries(base, propertyPath(p), p.created_at ? new Date(p.created_at).toISOString().slice(0, 10) : null)));
+}
+
+async function buildSitemapIndex(base) {
+  const c = (await db.pool.query(`SELECT COUNT(*)::int AS c FROM properties WHERE status = 'active'`)).rows[0].c;
+  const files = ['sitemap-pages.xml', ...Array.from({ length: Math.ceil(c / SITEMAP_PROPERTIES) }, (_, i) => `sitemap-annonces-${i + 1}.xml`)];
+  return `${XML_HEAD}<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    files.map(f => `<sitemap><loc>${escHtml(`${base}/${f}`)}</loc></sitemap>`).join('\n') + '\n</sitemapindex>\n';
 }
 
 // Envoi d'une page : ajoute les liens du pied de page (facettes) puis rend le gabarit
 async function send(res, opts, status = 200) {
+  const lang = opts.lang || 'fr';
   const facets = await getFacets();
   // no-cache = à valider à chaque visite : l'ETag d'Express répond « 304 » tant que la page n'a pas changé, sans jamais servir une page périmée
-  res.status(status).type('html').set('Cache-Control', 'no-cache').send(render({ ...opts, nav: navHtml(facets) }));
+  res.status(status).type('html').set('Cache-Control', 'no-cache').set('Content-Language', lang)
+    .send(render({ ...opts, lang, nav: navHtml(facets, lang) }));
 }
 
 // ── Page de recherche : /vente/appartements/oran ─────────────────────────────
-async function landingPage(req, res, f, base) {
+async function landingPage(req, res, f, base, lang) {
+  const t = textOf(lang);
   const where = ['status = \'active\'', 'mode = $1'];
   const args = [f.mode];
   if (f.type)   { args.push(f.type);   where.push(`type_bien = $${args.length}`); }
@@ -321,28 +380,24 @@ async function landingPage(req, res, f, base) {
   ]);
   const items = list.rows;
   const count = agg.rows[0].c;
-  const label = landingLabel(f);
-  const perMonth = f.mode === 'vente' ? '' : '/mois';
-  const canonical = base + landingPath(f);
+  const label = landingLabel(f, lang);
+  const canonical = base + localized(lang, landingPath(f));
 
-  const title = count ? `${label} — ${count} annonce${count > 1 ? 's' : ''} | DzImmo` : `${label} | DzImmo`;
-  const description = count
-    ? `${count} annonce${count > 1 ? 's' : ''} : ${label} sur DzImmo, à partir de ${fmtPrice(agg.rows[0].minp)} DZD${perMonth}. Photos, prix et contact direct avec le propriétaire ou l'agence.`
-    : `Aucune annonce pour le moment : ${label}. Créez une alerte ou publiez votre bien sur DzImmo.`;
+  const title = t.landingTitle(label, count);
+  const description = t.landingDesc(label, count, agg.rows[0].minp, f.mode);
 
   // Fil d'Ariane : Accueil > mode > type > wilaya
-  const crumbs = [{ name: 'Accueil', path: '/' }, { name: landingLabel({ mode: f.mode }), path: landingPath({ mode: f.mode }) }];
-  if (f.type)   crumbs.push({ name: landingLabel({ mode: f.mode, type: f.type }), path: landingPath({ mode: f.mode, type: f.type }) });
+  const crumbs = [{ name: t.home, path: '/' }, { name: landingLabel({ mode: f.mode }, lang), path: landingPath({ mode: f.mode }) }];
+  if (f.type)   crumbs.push({ name: landingLabel({ mode: f.mode, type: f.type }, lang), path: landingPath({ mode: f.mode, type: f.type }) });
   if (f.wilaya) crumbs.push({ name: label, path: landingPath(f) });
 
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
-      { '@type': 'CollectionPage', name: label, url: canonical, description },
+      { '@type': 'CollectionPage', name: label, url: canonical, description, inLanguage: lang },
       { '@type': 'ItemList', numberOfItems: count,
-        itemListElement: items.map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: base + propertyPath(p) })) },
-      { '@type': 'BreadcrumbList',
-        itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: base + c.path })) },
+        itemListElement: items.map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: base + localized(lang, propertyPath(p)) })) },
+      breadcrumb(base, lang, crumbs),
     ],
   };
 
@@ -361,14 +416,15 @@ async function landingPage(req, res, f, base) {
     `<h1 ${dataAttrs(f)} style="font-size:1.3rem;font-weight:800;margin-bottom:.5rem">${escHtml(label)}</h1>` +
     `<p style="color:var(--text-muted)">${escHtml(description)}</p>` +
     (items.length ? `<ul style="padding-inline-start:1.2rem">${items.map(p =>
-      `<li><a href="${escHtml(propertyPath(p))}">${escHtml(p.title)}</a> — ${escHtml(fmtPrice(p.price))} DZD${perMonth}` +
-      `${p.commune || p.wilaya ? ' — ' + escHtml([p.commune, p.wilaya].filter(Boolean).join(', ')) : ''}</li>`).join('')}</ul>` : '') +
-    (seeAlso.length ? `<nav aria-label="Voir aussi" style="display:flex;flex-wrap:wrap;gap:.4rem 1rem">${seeAlso.map(x => link(x, true)).join('')}</nav>` : '') +
+      `<li><a href="${escHtml(localized(lang, propertyPath(p)))}">${escHtml(p.title)}</a> — ${escHtml(t.price(p.price, f.mode))}` +
+      `${p.commune || p.wilaya ? ' — ' + escHtml([p.commune, t.wilaya(p.wilaya)].filter(Boolean).join(t.sep)) : ''}</li>`).join('')}</ul>` : '') +
+    (seeAlso.length ? `<nav aria-label="${escHtml(t.seeAlso)}" style="display:flex;flex-wrap:wrap;gap:.4rem 1rem">${seeAlso.map(x => link(x, true, lang)).join('')}</nav>` : '') +
     `</section>`;
 
   await send(res, {
-    title, description, canonical, jsonLd, landing,
+    lang, title, description, canonical, jsonLd, landing,
     image: items[0] ? absolute(base, items[0].image) : null,
+    alternates: count ? versions(base, landingPath(f)) : undefined,
     robots: count ? null : 'noindex,follow',   // page vide : pas d'indexation
   });
 }
@@ -377,123 +433,128 @@ async function landingPage(req, res, f, base) {
 function mount(app) {
   app.get('/robots.txt', (req, res) => {
     res.type('text/plain').send(
-      `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /newsletter/\n\nSitemap: ${baseUrl(req)}/sitemap.xml\n`);
+      `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /newsletter/\nDisallow: /ar/newsletter/\n\nSitemap: ${baseUrl(req)}/sitemap.xml\n`);
   });
 
+  const sendXml = (res, xml) => res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(xml);
   app.get('/sitemap.xml', async (req, res) => {
     const base = baseUrl(req);
-    if (sitemapCache.base !== base || Date.now() - sitemapCache.at > 10 * 60 * 1000) {
-      sitemapCache = { at: Date.now(), base, xml: await buildSitemap(base) };
-    }
-    res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(sitemapCache.xml);
+    sendXml(res, await cachedSitemap(base, 'index', () => buildSitemapIndex(base)));
+  });
+  app.get('/sitemap-pages.xml', async (req, res) => {
+    const base = baseUrl(req);
+    sendXml(res, await cachedSitemap(base, 'pages', () => buildPagesSitemap(base)));
+  });
+  app.get('/sitemap-annonces-:n.xml', async (req, res, next) => {
+    const base = baseUrl(req), n = /^[1-9]\d{0,3}$/.test(req.params.n) ? Number(req.params.n) : 0;
+    if (!n) return next();
+    const xml = await cachedSitemap(base, `annonces-${n}`, () => buildPropertiesSitemap(base, n));
+    if (n > 1 && !xml.includes('<url>')) return next();      // tranche vide : le fichier n'existe pas
+    sendXml(res, xml);
   });
 
   // Accueil (+ redirection des anciens liens /?p=12 vers l'URL propre)
-  app.get(['/', '/index.html'], async (req, res) => {
-    const base = baseUrl(req);
+  app.get(['/', '/index.html', '/ar'], async (req, res) => {
+    const base = baseUrl(req), lang = langOfReq(req), t = textOf(lang);
     const legacyId = /^\d+$/.test(String(req.query.p || '')) ? Number(req.query.p) : null;
     if (legacyId && !req.query.page) {
       const p = await getProperty(legacyId);
-      if (p && !NOT_PUBLIC.includes(p.status)) return res.redirect(301, propertyPath(p));
+      if (p && !NOT_PUBLIC.includes(p.status)) return res.redirect(301, localized(lang, propertyPath(p)));
     }
+    const home = base + localized(lang, '/');
     await send(res, {
-      title: DEFAULT_TITLE, description: DEFAULT_DESC, canonical: base + '/',
-      jsonLd: { '@context': 'https://schema.org', '@type': 'WebSite', name: 'DzImmo', url: base + '/' },
+      lang, title: t.homeTitle, description: t.homeDesc, canonical: home, alternates: versions(base, '/'),
+      jsonLd: { '@context': 'https://schema.org', '@graph': [
+        { '@type': 'WebSite', name: 'DzImmo', url: home, inLanguage: lang },
+        { '@type': 'Organization', name: 'DzImmo', url: base + '/', logo: base + '/apple-touch-icon.png' },
+      ] },
     });
   });
 
   // Page d'une annonce : /annonce/12-appartement-f4-vue-mer-a-alger
-  app.get('/annonce/:slug', async (req, res) => {
-    const base = baseUrl(req);
+  app.get(bothLangs(['/annonce/:slug']), async (req, res) => {
+    const base = baseUrl(req), lang = langOfReq(req);
     const m = /^(\d+)(?:-.*)?$/.exec(req.params.slug);
     const p = m ? await getProperty(Number(m[1])) : null;
 
     if (!p || NOT_PUBLIC.includes(p.status)) {
       // La SPA affiche l'erreur ; les moteurs ne doivent pas indexer ce statut 404
       return send(res, {
-        title: 'Annonce introuvable | DzImmo', description: DEFAULT_DESC,
-        canonical: base + '/', robots: 'noindex,follow',
+        lang, title: textOf(lang).listingNotFound, description: textOf(lang).homeDesc,
+        canonical: base + localized(lang, '/'), robots: 'noindex,follow',
       }, 404);
     }
-    const canonicalPath = propertyPath(p);
+    const canonicalPath = localized(lang, propertyPath(p));
     if (decodeURIComponent(req.path) !== canonicalPath) return res.redirect(301, canonicalPath);
-    await send(res, propertyMeta(p, base));
+    await send(res, propertyMeta(p, base, lang));
   });
 
   // Annuaires : le contenu est rendu par la SPA, le serveur fournit titre, description et adresse canonique
-  const directories = {
-    '/agences':    ['Agences immobilières en Algérie | DzImmo', 'Annuaire des agences immobilières en Algérie : annonces, avis et coordonnées, par wilaya.'],
-    '/promoteurs': ['Promoteurs immobiliers en Algérie | DzImmo', 'Promoteurs immobiliers vérifiés en Algérie et leurs programmes neufs : appartements sur plan, en construction ou livrés.'],
-    '/programmes': ['Programmes immobiliers neufs en Algérie | DzImmo', 'Programmes neufs en Algérie : résidences sur plan, en construction ou livrées, avec prix à partir de et lots disponibles.'],
-  };
-  for (const [route, [title, description]] of Object.entries(directories))
-    app.get(route, (req, res) => send(res, { title, description, canonical: baseUrl(req) + route }));
+  for (const route of ['/agences', '/promoteurs', '/programmes'])
+    app.get(bothLangs([route]), (req, res) => {
+      const lang = langOfReq(req), base = baseUrl(req), [title, description] = textOf(lang).directories[route];
+      return send(res, { lang, title, description, canonical: base + localized(lang, route), alternates: versions(base, route) });
+    });
 
   // Liens des emails de la newsletter (confirmation, désinscription) : la SPA lit ?e= et ?t= puis appelle l'API. Jamais indexés, et
   // le jeton ne part dans aucun en-tête Referer. La page ne fait rien à l'ouverture pour une désinscription (un robot qui suit le lien
   // ne désabonne personne) : c'est le bouton de la page qui appelle l'API.
-  const newsletterPages = {
-    '/newsletter/confirmation':   'Confirmation de l’inscription à la newsletter | DzImmo',
-    '/newsletter/desinscription': 'Désinscription de la newsletter | DzImmo',
-  };
-  for (const [route, title] of Object.entries(newsletterPages))
-    app.get(route, (req, res) => {
+  const newsletterPages = { '/newsletter/confirmation': 'newsletterConfirm', '/newsletter/desinscription': 'newsletterUnsub' };
+  for (const [route, key] of Object.entries(newsletterPages))
+    app.get(bothLangs([route]), (req, res) => {
+      const lang = langOfReq(req), t = textOf(lang);
       res.set('Referrer-Policy', 'no-referrer');
-      return send(res, { title, description: DEFAULT_DESC, canonical: baseUrl(req) + '/', robots: 'noindex,nofollow' });
+      return send(res, { lang, title: t[key], description: t.homeDesc, canonical: baseUrl(req) + localized(lang, '/'), robots: 'noindex,nofollow' });
     });
 
-  const notFound = (req, res) => send(res, {
-    title: 'Page introuvable | DzImmo', description: DEFAULT_DESC, canonical: baseUrl(req) + '/', robots: 'noindex,follow',
-  }, 404);
+  const notFound = (req, res) => {
+    const lang = langOfReq(req);
+    return send(res, { lang, title: textOf(lang).notFound, description: textOf(lang).homeDesc,
+                       canonical: baseUrl(req) + localized(lang, '/'), robots: 'noindex,follow' }, 404);
+  };
 
   // Vitrine d'un professionnel : /agence/12-nom ou /promoteur/12-nom (le type doit correspondre, sinon redirection canonique)
-  app.get(['/agence/:slug', '/promoteur/:slug'], async (req, res) => {
+  app.get(bothLangs(['/agence/:slug', '/promoteur/:slug']), async (req, res) => {
+    const lang = langOfReq(req);
     const m = /^(\d+)(?:-.*)?$/.exec(req.params.slug);
     const a = m ? await agencyData.profile(Number(m[1])) : null;
     if (!a) return notFound(req, res);
-    const canonicalPath = agencyPath(a);
+    const canonicalPath = localized(lang, agencyPath(a));
     if (decodeURIComponent(req.path) !== canonicalPath) return res.redirect(301, canonicalPath);
-    await send(res, agencyMeta(a, baseUrl(req)));
+    await send(res, agencyMeta(a, baseUrl(req), lang));
   });
 
   // Programme neuf : /programme/5-residence-les-jasmins (masqué tant que le promoteur n'est pas vérifié)
-  app.get('/programme/:slug', async (req, res) => {
+  app.get(bothLangs(['/programme/:slug']), async (req, res) => {
+    const lang = langOfReq(req);
     const m = /^(\d+)(?:-.*)?$/.exec(req.params.slug);
     const j = m ? await projectData.get(Number(m[1])) : null;
     if (!j) return notFound(req, res);
-    const canonicalPath = projectPath(j);
+    const canonicalPath = localized(lang, projectPath(j));
     if (decodeURIComponent(req.path) !== canonicalPath) return res.redirect(301, canonicalPath);
-    await send(res, projectMeta(j, baseUrl(req)));
+    await send(res, projectMeta(j, baseUrl(req), lang));
   });
 
-  // Pages de recherche : /vente, /location/alger, /vente/appartements/oran…
+  // Pages de recherche : /vente, /location/alger, /vente/appartements/oran… (et /ar/vente…)
   // Chemins écrits un par un : Express 5 n'accepte plus ni expression régulière ni « ? » dans un motif de route.
   const MODE_ROOTS = [...SLUG_MODE.keys()].map(m => '/' + m);
-  const modeOf = req => req.path.split('/')[1].toLowerCase();
-  app.get(MODE_ROOTS.flatMap(r => [r, r + '/:a', r + '/:a/:b']), async (req, res) => {
-    const base = baseUrl(req);
+  const modeOf = req => plainPath(req).split('/')[1].toLowerCase();
+  app.get(bothLangs(MODE_ROOTS.flatMap(r => [r, r + '/:a', r + '/:a/:b'])), async (req, res) => {
+    const base = baseUrl(req), lang = langOfReq(req);
     const f = { mode: SLUG_MODE.get(modeOf(req)), type: null, wilaya: null };
     for (const seg of [req.params.a, req.params.b].filter(Boolean).map(x => x.toLowerCase())) {   // /VENTE/Oran → 301 vers la forme canonique
       if (SLUG_TYPE.has(seg) && !f.type)            f.type = SLUG_TYPE.get(seg);
       else if (SLUG_WILAYA.has(seg) && !f.wilaya)   f.wilaya = SLUG_WILAYA.get(seg);
-      else {
-        return send(res, {
-          title: 'Page introuvable | DzImmo', description: DEFAULT_DESC,
-          canonical: base + '/', robots: 'noindex,follow',
-        }, 404);
-      }
+      else return notFound(req, res);
     }
     // Ordre canonique mode/type/wilaya, sans slash final
-    const canonicalPath = landingPath(f);
+    const canonicalPath = localized(lang, landingPath(f));
     if (decodeURIComponent(req.path) !== canonicalPath) return res.redirect(301, canonicalPath);
-    await landingPage(req, res, f, base);
+    await landingPage(req, res, f, base, lang);
   });
 
   // Chemin trop profond sous /vente, /location… : vraie 404 plutôt que la SPA en 200
-  app.get(MODE_ROOTS.map(r => r + '/:a/:b/*rest'), (req, res) => send(res, {
-    title: 'Page introuvable | DzImmo', description: DEFAULT_DESC,
-    canonical: baseUrl(req) + '/', robots: 'noindex,follow',
-  }, 404));
+  app.get(bothLangs(MODE_ROOTS.map(r => r + '/:a/:b/*rest')), notFound);
 }
 
-module.exports = { mount, propertyPath, agencyPath, projectPath, slugify, landingPath };
+module.exports = { mount, propertyPath, agencyPath, projectPath, slugify, landingPath, landingLabel, localized, SITEMAP_PROPERTIES };

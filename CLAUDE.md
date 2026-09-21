@@ -18,7 +18,7 @@ Fork de LocaVac. Package npm `dzimmo`. Domaine cible : dzimmo.dz.
 ```bash
 npm run dev      # nodemon
 npm start        # node server/index.js
-npm run make-admin -- <email>   # promeut un compte existant administrateur (--retirer pour l'inverse)
+npm run make-admin -- <email>   # promeut un compte existant administrateur (--retirer pour l'inverse, --reset-2fa si son téléphone est perdu)
 npm test         # tests automatiques (node --test)
 ```
 
@@ -161,6 +161,21 @@ Windows : `demarrer.bat`
   `public/pro.js`, chargé **avant** le script principal (un lien direct appelle `showPage` dès `init`).
 - **Front** : toute donnée affichée passe par `esc()` ; aucune donnée de la page dans un attribut `onclick` (utiliser `data-*` et `this.dataset`,
   test `tests/unit/pro-front.test.js`). Les onglets du tableau de bord sont repérés par position : ajouter un bouton = ajouter sa clé dans `dashTab`.
+
+## SEO bilingue
+
+- **Deux adresses par page** : la version arabe est le chemin français précédé de `/ar` (`/ar`, `/ar/vente/villas/oran`, `/ar/annonce/12-villa-…`, `/ar/agences`…) ;
+  les slugs restent latins. `server/seo.js` sert les deux (`bothLangs(routes)` : **toute nouvelle page servie déclare sa route par `bothLangs`**, sinon
+  sa version arabe tombe en 404), rend `<html lang dir>`, `og:locale` (`fr_DZ` / `ar_DZ`), `Content-Language`, le titre, la description, le JSON-LD
+  (`inLanguage`) et la liste crawlable dans la langue de l'adresse. Les textes des deux langues sont dans `server/seo-text.js` (`textOf(lang)`) ;
+  types, modes, « à » et « tous » doivent rester identiques à `TRANSLATIONS` de `public/app.js` (test `tests/unit/seo-i18n.test.js`).
+- **hreflang** (`fr`, `ar`, `x-default` = français) et un `canonical` par langue, **seulement sur les pages indexables** ; page de recherche vide,
+  annonce non active et 404 : `noindex`, sans hreflang. Les redirections 301 canoniques (casse, ordre, slash final, slug erroné) existent aussi en `/ar`.
+- **Sitemap** : `/sitemap.xml` est un **index** (`sitemap-pages.xml` + `sitemap-annonces-N.xml`, tranches de 20 000 annonces, tranche inexistante = 404) ;
+  chaque page y figure deux fois (français, arabe) avec ses `xhtml:link`. Les tests lisent le tout par `fullSitemap(s)` (`tests/helpers/sitemap.js`).
+- **Front** : l'adresse `/ar…` impose l'arabe (sinon `dz_lang`) ; `routePath()` donne le chemin sans `/ar` (à utiliser à la place de `location.pathname`
+  pour router), `langPath(p)` ajoute le préfixe selon la langue affichée (tout lien ou `replaceState` de page passe par lui), et `applyLang` appelle
+  `syncLangUrl()` pour que l'adresse suive la langue choisie (sauf `/newsletter/…`, dont les liens gardent la leur).
 
 ## Vitesse des pages
 
