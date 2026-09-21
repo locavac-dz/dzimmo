@@ -69,6 +69,28 @@ async function notifyOwnerDecision(property, approved, reason) {
   }).catch(() => {});
 }
 
+// Décision d'un administrateur (approbation ou refus avec motif) : commune à la file de modération et aux signalements.
+// Les signalements encore en attente sur l'annonce sont classés du même coup : sans suite si elle est approuvée, fondés si elle est refusée.
+async function decide(property, approve, motif, adminId) {
+  const status = approve ? 'active' : 'rejected';
+  await db.pool.query(
+    `UPDATE properties
+        SET status = $1,
+            published_at = CASE WHEN $1 = 'active' THEN COALESCE(published_at, NOW()) ELSE published_at END,
+            last_confirmed_at = CASE WHEN $1 = 'active' THEN NOW() ELSE last_confirmed_at END,
+            expiry_notified_at = CASE WHEN $1 = 'active' THEN NULL ELSE expiry_notified_at END,
+            moderation_reason = $2, moderated_at = NOW(), moderated_by = $3
+      WHERE id = $4`,
+    [status, approve ? null : String(motif).slice(0, 500), adminId, property.id]);
+  await db.pool.query(
+    `UPDATE signalements SET status = $1, resolved_at = NOW(), resolved_by = $2
+      WHERE property_id = $3 AND status = 'pending'`,
+    [approve ? 'dismissed' : 'resolved', adminId, property.id]);
+  // Le propriétaire n'est prévenu que si l'annonce change d'état
+  if (property.status !== status) notifyOwnerDecision(property, approve, motif).catch(() => {});
+  return status;
+}
+
 module.exports = {
-  enabled, isTrusted, contentChanged, notifyAdminsPending, notifyOwnerDecision, HIDDEN_STATUSES,
+  enabled, isTrusted, contentChanged, notifyAdminsPending, notifyOwnerDecision, decide, HIDDEN_STATUSES,
 };

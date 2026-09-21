@@ -159,6 +159,10 @@ const AR = {
   'Trop de fichiers (10 maximum).': 'عدد الملفات كبير جداً (10 كحد أقصى).',
   'Fichier inattendu.': 'ملف غير متوقع.',
 
+  // Signalements d'annonces
+  'Vous ne pouvez pas signaler votre propre annonce.': 'لا يمكنك الإبلاغ عن إعلانك الخاص.',
+  'Trop de signalements aujourd’hui. Réessayez demain.': 'بلاغات كثيرة اليوم. أعد المحاولة غداً.',
+
   // Newsletter
   'Trop de demandes. Réessayez dans 1 heure.': 'طلبات كثيرة جداً. أعد المحاولة بعد ساعة.',
   'Inscription momentanément indisponible. Réessayez plus tard.': 'الاشتراك غير متاح مؤقتاً. أعد المحاولة لاحقاً.',

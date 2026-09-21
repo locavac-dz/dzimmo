@@ -3,6 +3,7 @@ const db     = require('../db');
 const auth   = require('../middleware/auth');
 const optionalAuth = require('../middleware/optionalAuth');
 const moderation   = require('../moderation');
+const reports = require('../reports');
 const search = require('../search');
 const quality = require('../quality');
 const expiry  = require('../expiry');
@@ -607,10 +608,10 @@ router.post('/:id/signaler', auth, async (req, res) => {
   if (!prop || (moderation.HIDDEN_STATUSES.includes(prop.status)
       && !(req.user.is_admin || req.user.id === prop.owner_id)))
     return res.status(404).json({ error: 'Annonce introuvable.' });
-  await db.pool.query(
-    'INSERT INTO signalements (property_id, user_id, motif, message) VALUES ($1,$2,$3,$4)',
-    [prop.id, req.user.id, motif.slice(0, 200), typeof message === 'string' ? message.slice(0, 2000) || null : null]
-  );
+  // Dépôt, plafond quotidien, retrait automatique au seuil : voir server/reports.js
+  const r = await reports.file(req.user, prop, motif.slice(0, 200), typeof message === 'string' ? message.slice(0, 2000) || null : null);
+  if (r.result === 'own') return res.status(400).json({ error: 'Vous ne pouvez pas signaler votre propre annonce.' });
+  if (r.result === 'limit') return res.status(429).json({ error: 'Trop de signalements aujourd’hui. Réessayez demain.' });
   res.json({ ok: true });
 });
 

@@ -1067,6 +1067,19 @@
   </div>
 </div>
 
+<!-- Signalement d'une annonce -->
+<div class="modal-overlay hidden" id="modal-report">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('report')">×</button>
+    <h2 data-i18n="rp_title">Signaler cette annonce</h2>
+    <p style="font-size:.9rem;color:var(--text-muted);margin-bottom:1rem" data-i18n="rp_intro">Un problème avec cette annonce ? Dites-nous lequel : un modérateur examinera votre signalement.</p>
+    <div id="report-msg" class="hidden"></div>
+    <div class="form-row"><label data-i18n="rp_motif">Motif</label><select id="report-motif"></select></div>
+    <div class="form-row"><label data-i18n="rp_message">Précisions (facultatif)</label><textarea id="report-message" maxlength="500" rows="3"></textarea></div>
+    <button class="btn btn-primary" style="width:100%;padding:.75rem;margin-top:.5rem" onclick="submitReport()" data-i18n="rp_send">Envoyer le signalement</button>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast"></div>
 

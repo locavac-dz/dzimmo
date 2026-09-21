@@ -15,6 +15,9 @@ const NOTIFS = {
     verif_pending:     { title: 'Vérification à traiter',      body: '{name} a envoyé un justificatif à examiner.' },
     verif_approved:    { title: 'Compte vérifié',              body: "{name}, votre compte est vérifié : le badge apparaît sur vos annonces." },
     verif_rejected:    { title: 'Vérification refusée',        body: "{name}, votre demande de vérification a été refusée : {reason}" },
+    report_new:        { title: 'Annonce signalée',            body: '« {title} » a reçu un signalement.' },
+    report_hidden:     { title: 'Annonce retirée après signalements', body: '« {title} » est repassée en modération.' },
+    report_owner:      { title: 'Annonce en cours de vérification',   body: '« {title} » a été signalée et retirée le temps d’une vérification.' },
   },
   ar: {
     contact_new:       { title: 'طلب تواصل جديد',              body: 'أرسل {name} طلباً بخصوص « {title} »' },
@@ -28,6 +31,9 @@ const NOTIFS = {
     verif_pending:     { title: 'طلب توثيق للمراجعة',           body: 'أرسل {name} وثيقة للمراجعة.' },
     verif_approved:    { title: 'تم توثيق الحساب',              body: '{name}، تم توثيق حسابك: ستظهر الشارة على إعلاناتك.' },
     verif_rejected:    { title: 'تم رفض طلب التوثيق',           body: '{name}، تم رفض طلب التوثيق: {reason}' },
+    report_new:        { title: 'إعلان تم الإبلاغ عنه',         body: 'تلقّى الإعلان « {title} » بلاغاً.' },
+    report_hidden:     { title: 'إعلان سُحب بعد بلاغات',        body: 'عاد الإعلان « {title} » إلى قائمة المراجعة.' },
+    report_owner:      { title: 'إعلان قيد المراجعة',           body: 'تم الإبلاغ عن الإعلان « {title} » وسحبه إلى حين مراجعته.' },
   },
 };
 
@@ -39,6 +45,8 @@ const REASONS_AR = {
   'Prix incohérent avec le bien': 'السعر غير منطقي بالنسبة للعقار',
   'Coordonnées personnelles dans le texte ou les photos': 'معلومات اتصال شخصية في النص أو الصور',
   'Annonce en double': 'إعلان مكرَّر',
+  'Annonce signalée par plusieurs membres': 'إعلان تم الإبلاغ عنه من طرف عدة أعضاء',
+  'Signalement confirmé après vérification': 'تم تأكيد البلاغ بعد المراجعة',
   'Contenu non conforme aux CGU': 'محتوى مخالف لشروط الاستخدام',
   'Justificatif illisible ou incomplet': 'الوثيقة غير مقروءة أو غير مكتملة',
   'Document expiré': 'الوثيقة منتهية الصلاحية',

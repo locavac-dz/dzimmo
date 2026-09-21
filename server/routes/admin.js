@@ -86,19 +86,7 @@ router.put('/properties/:id/moderate', admin, async (req, res) => {
   const property = await db.properties.findById(req.params.id);
   if (!property) return res.status(404).json({ error: 'Annonce introuvable.' });
 
-  const status = approve ? 'active' : 'rejected';
-  await pool.query(
-    `UPDATE properties
-        SET status = $1,
-            published_at = CASE WHEN $1 = 'active' THEN COALESCE(published_at, NOW()) ELSE published_at END,
-            last_confirmed_at = CASE WHEN $1 = 'active' THEN NOW() ELSE last_confirmed_at END,
-            expiry_notified_at = CASE WHEN $1 = 'active' THEN NULL ELSE expiry_notified_at END,
-            moderation_reason = $2, moderated_at = NOW(), moderated_by = $3
-      WHERE id = $4`,
-    [status, approve ? null : motif.slice(0, 500), req.user.id, property.id]);
-
-  // Notifier le propriétaire, sauf si l'annonce était déjà dans l'état demandé
-  if (property.status !== status) moderation.notifyOwnerDecision(property, approve, motif).catch(() => {});
+  const status = await moderation.decide(property, approve, motif, req.user.id);
   res.json({ ok: true, status });
 });
 
@@ -145,11 +133,13 @@ router.put('/agencies/:id/verify', admin, async (req, res) => {
 });
 
 // GET /api/admin/signalements?status=pending|resolved|dismissed — `pending` = nombre en attente, tous filtres confondus
+// Chaque ligne porte l'état de l'annonce et le nombre de signalements encore en attente sur elle (une annonce très signalée saute aux yeux).
 router.get('/signalements', admin, async (req, res) => {
   const filtre = ['pending', 'resolved', 'dismissed'].includes(req.query.status) ? req.query.status : null;
   const [list, pending] = await Promise.all([
     paginate(pool, {
-      columns: 's.*, p.title AS property_title, u.name AS reporter_name',
+      columns: `s.*, p.title AS property_title, p.status AS property_status, u.name AS reporter_name,
+        (SELECT COUNT(*)::int FROM signalements x WHERE x.property_id = s.property_id AND x.status = 'pending') AS property_pending`,
       from: `signalements s
         LEFT JOIN properties p ON p.id = s.property_id
         LEFT JOIN users u ON u.id = s.user_id`,
@@ -161,16 +151,27 @@ router.get('/signalements', admin, async (req, res) => {
   res.json({ ...list, pending: pending.rows[0].n });
 });
 
-// PUT /api/admin/signalements/:id/resolve
+// PUT /api/admin/signalements/:id/resolve { status: 'resolved' | 'dismissed', action?: 'reject', reason? }
+// `action: 'reject'` refuse aussi l'annonce (motif obligatoire, 5 caractères au moins) : le propriétaire est prévenu et tous les
+// signalements en attente sur cette annonce sont classés comme fondés (moderation.decide).
 router.put('/signalements/:id/resolve', admin, async (req, res) => {
-  const { status } = req.body;
+  const { status, action, reason } = req.body;
   const VALIDES = ['resolved', 'dismissed'];
   if (!VALIDES.includes(status)) return res.status(400).json({ error: 'Statut invalide.' });
-  const r = await pool.query(
-    'UPDATE signalements SET status = $1 WHERE id = $2 RETURNING id',
-    [status, toId(req.params.id) ?? 0]
-  );
-  if (!r.rowCount) return res.status(404).json({ error: 'Signalement introuvable.' });
+  const sid = toId(req.params.id) ?? 0;
+  const sig = (await pool.query('SELECT id, property_id FROM signalements WHERE id = $1', [sid])).rows[0];
+  if (!sig) return res.status(404).json({ error: 'Signalement introuvable.' });
+  if (action === 'reject') {
+    if (status !== 'resolved') return res.status(400).json({ error: 'Statut invalide.' });
+    const motif = String(reason || '').trim();
+    if (motif.length < 5) return res.status(400).json({ error: 'Un motif de refus (5 caractères minimum) est obligatoire.' });
+    const property = await db.properties.findById(sig.property_id);
+    if (!property) return res.status(404).json({ error: 'Annonce introuvable.' });
+    await moderation.decide(property, false, motif, req.user.id);
+  }
+  await pool.query(
+    `UPDATE signalements SET status = $1, resolved_at = COALESCE(resolved_at, NOW()), resolved_by = COALESCE(resolved_by, $2)
+      WHERE id = $3 AND status = 'pending'`, [status, req.user.id, sid]);
   res.json({ ok: true });
 });
 

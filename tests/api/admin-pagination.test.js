@@ -28,8 +28,10 @@ test.before(async () => {
              FROM generate_series(1, 45) g`, [admin.id]);
   await q(`INSERT INTO agencies (owner_id, name, wilaya)
            SELECT $1, 'Agence ' || g, 'Oran' FROM generate_series(1, 30) g`, [admin.id]);
+  // Un membre ne signale qu'une fois une annonce en attente (index unique) : 33 membres différents sur la même annonce
   await q(`INSERT INTO signalements (property_id, user_id, motif, status)
-           SELECT (SELECT MIN(id) FROM properties), $1, 'faux', CASE WHEN g % 3 = 0 THEN 'resolved' ELSE 'pending' END FROM generate_series(1, 33) g`, [admin.id]);
+           SELECT (SELECT MIN(id) FROM properties), u.id, 'faux', CASE WHEN u.n % 3 = 0 THEN 'resolved' ELSE 'pending' END
+             FROM (SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS n FROM users WHERE name LIKE 'Membre %' LIMIT 33) u`);
   await q(`INSERT INTO newsletter_subscribers (email) SELECT 'abonne' || g || '@test.dz' FROM generate_series(1, 27) g`);
 });
 test.after(async () => { await s.stop(); });

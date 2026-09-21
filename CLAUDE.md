@@ -109,6 +109,15 @@ Windows : `demarrer.bat`
 - **Clics Appeler / WhatsApp** (`server/clicks.js`, table `contact_clicks`) : compteurs par annonce, jour et canal, **sans adresse IP
   ni identifiant de visiteur** (le dédoublonnage de 10 min garde un HMAC éphémère dans `rate_limits`, commun aux workers) ; visibles de l'annonceur seul ; `POST /:id/click` répond
   toujours 204 (ne révèle rien sur l'annonce).
+- **Signalements** (`server/reports.js`, table `signalements`, migration 018) : bouton « Signaler cette annonce » de la fiche (connexion requise, modale
+  `modal-report`), `POST /api/properties/:id/signaler` (motifs `MOTIFS`, jamais son propre bien, 10 dépôts par membre et par 24 h). Un membre ne
+  signale qu'une fois une annonce en attente (index unique partiel : dépôt répété = succès sans doublon). **Retrait automatique** : à
+  `REPORT_AUTO_HIDE` (3) membres **fiables** (email confirmé, non suspendu, compte de plus de 24 h) l'annonce passe de `active` à `pending`
+  (UPDATE atomique en SQL, motif `HIDE_REASON`), le propriétaire et les admins sont prévenus (email + notification, FR/AR) ; seuls comptent les signalements
+  postérieurs à la dernière décision de modération, et les annonces des admins, annonceurs vérifiés et agences vérifiées ne sont jamais retirées
+  seules (les admins sont seulement prévenus). `0` désactive le retrait. Côté admin (Signalements) : « Ignorer » / « Résoudre » / « Retirer l'annonce »
+  (`PUT /api/admin/signalements/:id/resolve` avec `action: 'reject'`) ; toute décision de modération (`moderation.decide`) classe les signalements en attente
+  de l'annonce (fondés si refusée, ignorés si approuvée).
 
 ## Vitrine des agences et des promoteurs
 

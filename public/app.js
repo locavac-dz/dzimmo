@@ -56,6 +56,12 @@ const TRANSLATIONS = {
     det_msg:'Message', det_msg_ph:'Votre message…', det_send_req:'Envoyer la demande', det_send_msg:'💬 Envoyer un message',
     det_call:'Appeler', det_whatsapp:'WhatsApp', det_wa_msg:"Bonjour, votre annonce « {title} » sur DzImmo m'intéresse : {url}",
     det_login_hint:'Connectez-vous pour contacter le vendeur', det_login:'Se connecter',
+    rp_btn:'Signaler cette annonce', rp_login:'Connectez-vous pour signaler une annonce.', rp_title:'Signaler cette annonce',
+    rp_intro:'Un problème avec cette annonce ? Dites-nous lequel : un modérateur examinera votre signalement.',
+    rp_choose:'— Choisir un motif —', rp_motif:'Motif', rp_message:'Précisions (facultatif)', rp_send:'Envoyer le signalement',
+    rp_need_motif:'Choisissez un motif.', rp_thanks:'Merci, votre signalement a été transmis.',
+    rp_m_arnaque:'Arnaque ou fausse annonce', rp_m_indisponible:'Bien déjà vendu ou loué', rp_m_faux:'Informations trompeuses (prix, surface…)',
+    rp_m_photos:'Photos qui ne correspondent pas', rp_m_doublon:'Annonce en double', rp_m_interdit:'Contenu interdit ou choquant', rp_m_autre:'Autre',
     det_published:'Publié le', det_copy:'🔗 Copier', det_sent:'✅ Demande envoyée au vendeur !',
     det_price_hist:'📈 Historique des prix', det_stable:'stable', det_similar:'Biens similaires',
     cmp_max:'Vous pouvez comparer 3 biens maximum.', cmp_min:'Sélectionnez au moins 2 biens à comparer.',
@@ -407,6 +413,12 @@ const TRANSLATIONS = {
     det_msg:'الرسالة', det_msg_ph:'رسالتك…', det_send_req:'إرسال الطلب', det_call:'اتصال', det_whatsapp:'واتساب', det_wa_msg:'السلام عليكم، أنا مهتم بإعلانكم «{title}» على DzImmo: {url}',
     det_send_msg:'💬 إرسال رسالة',
     det_login_hint:'سجّل الدخول للتواصل مع البائع', det_login:'تسجيل الدخول',
+    rp_btn:'الإبلاغ عن هذا الإعلان', rp_login:'سجّل الدخول للإبلاغ عن إعلان.', rp_title:'الإبلاغ عن هذا الإعلان',
+    rp_intro:'هل تلاحظ مشكلة في هذا الإعلان؟ أخبرنا بها وسيراجع مشرف بلاغك.',
+    rp_choose:'— اختر السبب —', rp_motif:'السبب', rp_message:'تفاصيل (اختياري)', rp_send:'إرسال البلاغ',
+    rp_need_motif:'اختر سببًا.', rp_thanks:'شكرًا، تم إرسال بلاغك.',
+    rp_m_arnaque:'احتيال أو إعلان مزيف', rp_m_indisponible:'عقار بيع أو أُجّر بالفعل', rp_m_faux:'معلومات مضللة (السعر، المساحة…)',
+    rp_m_photos:'صور غير مطابقة', rp_m_doublon:'إعلان مكرر', rp_m_interdit:'محتوى ممنوع أو صادم', rp_m_autre:'أخرى',
     det_published:'نُشر في', det_copy:'🔗 نسخ', det_sent:'✅ تم إرسال الطلب إلى البائع!',
     det_price_hist:'📈 تطور السعر', det_stable:'مستقر', det_similar:'عقارات مشابهة',
     cmp_max:'يمكنك مقارنة 3 عقارات كحد أقصى.', cmp_min:'اختر عقارين على الأقل للمقارنة.',
@@ -1542,6 +1554,8 @@ function renderDetail(p) {
               </button>
               <button class="btn btn-outline btn-sm" style="flex:1" onclick="copyPropertyLink(${p.id})">${T('det_copy')}</button>
             </div>
+            ${p.status === 'active' && !(currentUser && currentUser.id === p.owner_id) ? `
+            <button class="btn btn-outline btn-sm" style="width:100%;margin-top:.5rem;border-style:dashed;color:var(--text-muted)" data-id="${Number(p.id) || 0}" onclick="openReport(this.dataset.id)">🚩 ${T('rp_btn')}</button>` : ''}
           </div>
         </div>
       </div>`;
@@ -2283,6 +2297,8 @@ const MOD_REASONS_AR = {
   'Prix incohérent avec le bien': 'السعر غير منطقي بالنسبة للعقار',
   'Coordonnées personnelles dans le texte ou les photos': 'معلومات اتصال شخصية في النص أو الصور',
   'Annonce en double': 'إعلان مكرَّر',
+  'Annonce signalée par plusieurs membres': 'إعلان تم الإبلاغ عنه من طرف عدة أعضاء',
+  'Signalement confirmé après vérification': 'تم تأكيد البلاغ بعد المراجعة',
   'Contenu non conforme aux CGU': 'محتوى مخالف لشروط الاستخدام',
   'Justificatif illisible ou incomplet': 'الوثيقة غير مقروءة أو غير مكتملة',
   'Document expiré': 'الوثيقة منتهية الصلاحية',
@@ -2696,7 +2712,8 @@ async function adminLoadSignalements(page = 1) {
       c.innerHTML = '<div class="empty-state"><div class="icon">✅</div><h3>Aucun signalement</h3><p>Tout est propre !</p></div>';
       return;
     }
-    const MOTIFS = { faux:'Faux', doublon:'Doublon', interdit:'Interdit', autre:'Autre' };
+    const MOTIFS = { arnaque:'Arnaque', indisponible:'Indisponible', faux:'Faux', photos:'Photos', doublon:'Doublon', interdit:'Interdit', autre:'Autre' };
+    const PROP_ST = { active:'Publiée', pending:'En modération', rejected:'Refusée', sold:'Vendue', rented:'Louée', archived:'Archivée' };
     const ST_COLOR = { pending:'#f59e0b', resolved:'#22c55e', dismissed:'#94a3b8' };
     const ST_LBL   = { pending:'En attente', resolved:'Résolu', dismissed:'Ignoré' };
     c.innerHTML = `
@@ -2716,7 +2733,8 @@ async function adminLoadSignalements(page = 1) {
           <tbody>${sigs.map(s => `
             <tr style="${s.status !== 'pending' ? 'opacity:.55' : ''}">
               <td style="color:var(--text-muted)">#${s.id}</td>
-              <td><a href="#" onclick="showPage('detail',${s.property_id});return false" style="color:var(--primary)">${esc(s.property_title || '#' + s.property_id)}</a></td>
+              <td><a href="#" onclick="showPage('detail',${s.property_id});return false" style="color:var(--primary)">${esc(s.property_title || '#' + s.property_id)}</a>
+                <div style="font-size:.75rem;color:var(--text-muted)">${esc(PROP_ST[s.property_status] || s.property_status || '')}${s.property_pending > 1 ? ` · <strong style="color:#dc2626">${Number(s.property_pending)} signalements en attente</strong>` : ''}</div></td>
               <td><span style="background:#fef3c7;color:#92400e;padding:.15rem .45rem;border-radius:20px;font-size:.78rem;font-weight:700">${esc(MOTIFS[s.motif] || s.motif)}</span></td>
               <td>${esc(s.reporter_name || 'Anonyme')}</td>
               <td style="max-width:180px;color:var(--text-muted);font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(s.message || '')}">${esc(s.message || '—')}</td>
@@ -2725,7 +2743,8 @@ async function adminLoadSignalements(page = 1) {
               <td style="display:flex;gap:.3rem">
                 ${s.status === 'pending' ? `
                 <button class="btn btn-outline btn-sm" style="border-color:#22c55e;color:#22c55e;padding:.25rem .45rem;font-size:.78rem;white-space:nowrap" onclick="adminResolveSignalement(${s.id},'resolved')">✔ Résoudre</button>
-                <button class="btn btn-outline btn-sm" style="padding:.25rem .45rem;font-size:.78rem;white-space:nowrap" onclick="adminResolveSignalement(${s.id},'dismissed')">Ignorer</button>` : '—'}
+                <button class="btn btn-outline btn-sm" style="padding:.25rem .45rem;font-size:.78rem;white-space:nowrap" onclick="adminResolveSignalement(${s.id},'dismissed')">Ignorer</button>
+                ${['active', 'pending'].includes(s.property_status) ? `<button class="btn btn-outline btn-sm" style="border-color:#dc2626;color:#dc2626;padding:.25rem .45rem;font-size:.78rem;white-space:nowrap" onclick="adminRejectFromSignalement(${s.id})">🚫 Retirer l'annonce</button>` : ''}` : '—'}
               </td>
             </tr>`).join('')}
           </tbody>
@@ -2734,6 +2753,17 @@ async function adminLoadSignalements(page = 1) {
       ${sigs.length ? '' : adminNoResult}
       ${adminPager(r, n => `adminLoadSignalements(${n})`)}`;
   } catch (e) { c.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
+}
+
+// Signalement fondé : l'annonce est refusée (le propriétaire est prévenu) et les autres signalements en attente sont classés fondés
+async function adminRejectFromSignalement(id) {
+  const reason = prompt('Motif du retrait (communiqué au propriétaire) :', 'Signalement confirmé après vérification');
+  if (reason === null) return;
+  try {
+    await api('/admin/signalements/' + id + '/resolve', 'PUT', { status: 'resolved', action: 'reject', reason: reason.trim() });
+    toast('🚫 Annonce retirée.');
+    adminLoadSignalements(_adminPage.signalements);
+  } catch (e) { toast('❌ ' + e.message); }
 }
 
 async function adminResolveSignalement(id, status) {
@@ -3703,6 +3733,33 @@ async function loadUnreadCount() {
 }
 
 // ── Modals ─────────────────────────────────────────
+// ── Signalement d'une annonce ─────────────────────────────────────────────────────
+// Connexion requise. Le serveur borne les dépôts (un par membre et par annonce, 10 par jour) et retire seul l'annonce
+// à partir de REPORT_AUTO_HIDE membres fiables : ici on ne fait que recueillir le motif.
+const REPORT_MOTIFS = ['arnaque', 'indisponible', 'faux', 'photos', 'doublon', 'interdit', 'autre'];
+let _reportId = 0;
+
+function openReport(id) {
+  if (!currentUser) { toast(T('rp_login')); openModal('login'); return; }
+  _reportId = Number(id) || 0;
+  document.getElementById('report-motif').innerHTML = `<option value="">${T('rp_choose')}</option>` +
+    REPORT_MOTIFS.map(m => `<option value="${m}">${T('rp_m_' + m)}</option>`).join('');
+  document.getElementById('report-message').value = '';
+  const msg = document.getElementById('report-msg'); msg.className = 'hidden'; msg.textContent = '';
+  openModal('report');
+}
+
+async function submitReport() {
+  const motif = document.getElementById('report-motif').value;
+  const msg = document.getElementById('report-msg');
+  if (!motif) { msg.className = 'error-msg'; msg.textContent = T('rp_need_motif'); return; }
+  try {
+    await api('/properties/' + _reportId + '/signaler', 'POST', { motif, message: document.getElementById('report-message').value.trim() });
+    closeModal('report');
+    toast('✅ ' + T('rp_thanks'), 4500);
+  } catch (e) { msg.className = 'error-msg'; msg.textContent = e.message; }
+}
+
 function openModal(name) {
   document.getElementById('modal-' + name)?.classList.remove('hidden');
   if (name === 'login' || name === 'register') renderGoogleButtons();   // largeur mesurable seulement une fois la fenêtre affichée

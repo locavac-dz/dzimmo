@@ -28,6 +28,8 @@ const SAMPLES = {
   buildExpiryReminder:            { name: 'Karim', propertyTitle: 'Villa X', days: 30, graceDays: 14, confirmUrl: 'https://dzimmo.dz/annonce/1-villa?renew=abc' },
   buildListingExpired:            { name: 'Karim', propertyTitle: 'Villa X', renewUrl: 'https://dzimmo.dz/annonce/1-villa?renew=abc' },
   buildSiteContact:               { name: 'Sara', email: 'sara@exemple.dz', subject: 'partenariat', message: 'Hello there' },
+  buildListingReported:           { name: 'Karim', propertyTitle: 'Villa X', url: 'https://dzimmo.dz/annonce/1-villa' },
+  buildAdminReported:             { propertyTitle: 'Villa X', count: 3, url: 'https://dzimmo.dz/' },
   buildNewsletterConfirm:         { confirmUrl: 'https://dzimmo.dz/newsletter/confirmation?e=1&t=abc' },
   buildNewsletter:                { subject: 'عرض جديد', body: 'مرحبا\n\nنص الرسالة', unsubscribeUrl: 'https://dzimmo.dz/newsletter/desinscription?e=1&t=abc' },
 };

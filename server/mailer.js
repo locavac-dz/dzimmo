@@ -437,6 +437,43 @@ const mailWelcome = d => send(d.email, buildWelcome(d.lang, d));
 const mailVerifyEmail = d => send(d.email, buildVerifyEmail(d.lang, d));
 const mailPasswordReset = d => send(d.email, buildPasswordReset(d.lang, d));
 const mailContactRequest = d => send(d.ownerEmail, buildContactRequest(d.lang, d));
+// Annonce remise en modération après plusieurs signalements : le propriétaire est prévenu, sans savoir qui a signalé
+function buildListingReported(lang, { name, propertyTitle, url }) {
+  return {
+    subject: pick(lang, `⚠️ Votre annonce est en cours de vérification — ${propertyTitle}`, `⚠️ إعلانك قيد المراجعة — ${propertyTitle}`),
+    html: wrap(`
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Votre annonce est en cours de vérification ⚠️', 'إعلانك قيد المراجعة ⚠️')}</h2>
+      <p>${ui(lang).hello} <strong>${esc(name)}</strong>${pick(lang, ',', '،')}</p>
+      <p>${pick(lang,
+        `Plusieurs membres ont signalé votre annonce <strong>${esc(propertyTitle)}</strong>. Elle a été retirée du site le temps que notre équipe la vérifie.`,
+        `قام عدة أعضاء بالإبلاغ عن إعلانك <strong>${esc(propertyTitle)}</strong>. تم سحبه من الموقع إلى حين مراجعته من طرف فريقنا.`)}</p>
+      <p>${pick(lang,
+        'Si elle est conforme, elle sera remise en ligne. Vous serez prévenu de la décision. Vérifiez en attendant que le prix, les photos et la disponibilité sont exacts.',
+        'إذا كان الإعلان مطابقاً فسيُعاد نشره وسيتم إعلامك بالقرار. تأكد في الأثناء من صحة السعر والصور والتوفر.')}</p>
+      ${button(url, pick(lang, 'Voir mon annonce', 'عرض إعلاني'), lang)}
+    `, lang),
+  };
+}
+
+// Les administrateurs sont prévenus qu'une annonce a été retirée automatiquement
+function buildAdminReported(lang, { propertyTitle, count, url }) {
+  return {
+    subject: pick(lang, `🚩 Annonce signalée et retirée — ${propertyTitle}`, `🚩 إعلان تم الإبلاغ عنه وسحبه — ${propertyTitle}`),
+    html: wrap(`
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Une annonce a été retirée après signalements 🚩', 'تم سحب إعلان بعد بلاغات 🚩')}</h2>
+      <p>${pick(lang,
+        `<strong>${esc(propertyTitle)}</strong> a été signalée par ${Number(count)} membres différents. Elle est repassée en modération.`,
+        `تم الإبلاغ عن <strong>${esc(propertyTitle)}</strong> من طرف ${Number(count)} أعضاء مختلفين. وعاد الإعلان إلى قائمة المراجعة.`)}</p>
+      <p>${pick(lang,
+        'Examinez les signalements (Administration → Signalements), puis approuvez ou refusez l\'annonce (Administration → Modération).',
+        'راجع البلاغات (الإدارة ← البلاغات) ثم وافق على الإعلان أو ارفضه (الإدارة ← الإشراف).')}</p>
+      ${button(url, pick(lang, 'Ouvrir DzImmo', 'فتح DzImmo'), lang)}
+    `, lang),
+  };
+}
+
+const mailListingReported = d => send(d.to, buildListingReported(d.lang, d));
+const mailAdminReported = d => send(d.to, buildAdminReported(d.lang, d));
 const mailNewMessage = d => send(d.to, buildNewMessage(d.lang, d));
 const mailSearchAlert = d => send(d.email, buildSearchAlert(d.lang, d));
 const mailModerationDecision = d => send(d.to, buildModerationDecision(d.lang, d));
@@ -456,9 +493,10 @@ module.exports = {
   mailWelcome, mailVerifyEmail, mailPasswordReset,
   mailContactRequest, mailNewMessage, mailSearchAlert,
   mailModerationDecision, mailAdminPending, mailVerificationDecision, mailAdminVerificationPending,
-  mailExpiryReminder, mailListingExpired, mailSiteContact, mailNewsletterConfirm, mailNewsletter, CONTACT_SUBJECTS,
+  mailExpiryReminder, mailListingExpired, mailListingReported, mailAdminReported, mailSiteContact, mailNewsletterConfirm, mailNewsletter, CONTACT_SUBJECTS,
   // gabarits purs (tests)
   build: { buildWelcome, buildVerifyEmail, buildPasswordReset, buildContactRequest, buildNewMessage,
            buildSearchAlert, buildModerationDecision, buildAdminPending,
-           buildVerificationDecision, buildAdminVerificationPending, buildExpiryReminder, buildListingExpired, buildSiteContact, buildNewsletterConfirm, buildNewsletter },
+           buildVerificationDecision, buildAdminVerificationPending, buildExpiryReminder, buildListingExpired, buildSiteContact, buildNewsletterConfirm, buildNewsletter,
+           buildListingReported, buildAdminReported },
 };
