@@ -159,6 +159,20 @@ Windows : `demarrer.bat`
 - Front : champs `#pub-video` / `#pub-tour` du formulaire de publication (pas d'écran de modification d'annonce dans l'interface : le `PUT` de l'API les accepte), section de fiche `mediaHTML`,
   pastille `.media-badge` des cartes. Tests : `tests/unit/videos.test.js`, `tests/unit/media-front.test.js`, `tests/api/video-visite.test.js`.
 
+## Statistiques et conseils de l'annonceur
+
+- **`GET /api/properties/:id/stats`** (propriétaire ou admin) : `days` (les 30 dates, la dernière = aujourd'hui côté base, aucun calcul de date dans le
+  navigateur), `views` / `favorites` / `clicks` (jours non nuls seulement, `clicks` garde le canal `call` | `whatsapp`), `totals` (`views_30d`, `views_7d`,
+  `favorites_30d`, `favorites_total`, `calls_30d`, `whatsapps_30d`, `contacts_30d`) et `advice`. Les favoris ne sont **que comptés** par jour depuis
+  `favorites.created_at` (index `idx_favorites_property`, migration 023) : la réponse ne contient jamais un membre. Un favori retiré disparaît du compte.
+- **Conseils** (`server/advice.js`) : fonction **pure** qui renvoie des codes `{ code, level: warn | tip | good, params }` (nombres seulement) ; 4 au plus, dans l'ordre
+  de `CODES` (prix élevé, photos, téléphone, vues sans réaction, baisse des vues, faible visibilité, description, position, vidéo, équipements) ; annonces `active`
+  seulement ; `all_good` s'il n'y a rien à reprocher et déjà des vues. Le prix vient du signal `price_high` de `listing_quality` (jamais une autre annonce). Le texte est
+  au front, clés `adv_<code>` FR **et** AR (test `stats-front.test.js` : un code du serveur sans traduction fait échouer). **Nouveau conseil = entrée dans `CODES`,
+  sa règle dans `advise`, ses deux textes, ses tests.**
+- **Front** : `statsPanelHTML(stats)` (public/app.js) est pure (données → chaîne, tout par `esc()`, paramètres forcés en nombres, code inconnu ignoré) ; `showPropertyStats`
+  l'affiche sous la carte de l'annonce (bouton 📈 30j du tableau de bord) : totaux, trois courbes (vues, favoris, clics) et conseils.
+
 ## Vitrine des agences et des promoteurs
 
 - **Profil** (`server/agency.js`, table `agencies`) : `kind` (`agence` | `promoteur`), logo, couverture, slogan, services, zones, horaires,

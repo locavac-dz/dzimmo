@@ -389,7 +389,20 @@ const TRANSLATIONS = {
     map_draw_min:'Posez au moins 3 points pour délimiter une zone.', map_draw_max:'Zone trop détaillée : 60 points au plus.',
     map_zone_results_poly:'{n} bien(s) dans la zone dessinée', map_truncated:'Zone très dense : seuls {n} biens sont affichés, resserrez la recherche.',
     map_me_btn:'🎯 Autour de moi', map_me_locating:'⏳ Localisation…', map_me_denied:"Impossible d'accéder à votre position.", map_me_here:'Vous êtes ici (position approximative)',
-    dash_stats_btn:'📈 30j', dash_stats_title:'Vues · 30 derniers jours',
+    dash_stats_btn:'📈 30j', dash_stats_title:'Statistiques · 30 derniers jours',
+    st_views:'Vues', st_favs:'Favoris', st_clicks:'Clics', st_calls:'Appels', st_wa:'WhatsApp', st_contacts:'Demandes',
+    st_favs_total:'{n} au total', st_no_data:"Pas encore de visite sur cette période.", st_advice:'Conseils', st_advice_tip:"Conseils calculés d'après les statistiques de cette annonce.",
+    adv_price_high:"Votre prix au m² est environ {pct} % au-dessus de la médiane des annonces comparables : le revoir peut relancer les visites.",
+    adv_few_photos:"Votre annonce n'a que {n} photo(s) : visez au moins {min}. Les annonces bien illustrées reçoivent plus de contacts.",
+    adv_no_phone:"Aucun numéro de téléphone n'est renseigné : les boutons Appeler et WhatsApp ne s'affichent pas sur votre annonce. Ajoutez-le dans votre profil.",
+    adv_no_engagement:"{views} vues en 30 jours mais aucun favori, clic ni demande : vérifiez le prix, la première photo et la description.",
+    adv_views_drop:"Les vues ont baissé d'environ {pct} % par rapport à la semaine précédente : actualisez l'annonce (photos, prix) ou confirmez-la « toujours disponible ».",
+    adv_low_visibility:"Seulement {n} vue(s) ces 7 derniers jours : soignez le titre (type de bien, quartier) et la première photo.",
+    adv_short_description:"Votre description ne compte que {n} caractères : détaillez l'état du bien, l'environnement et les commodités (au moins {min}).",
+    adv_no_location:"Aucune position sur la carte : indiquez l'adresse pour que le bien apparaisse dans la recherche sur la carte.",
+    adv_no_media:"Ajoutez une vidéo ou une visite virtuelle (YouTube, Vimeo, Matterport, Kuula) : elles rassurent les visiteurs.",
+    adv_no_features:"Aucun équipement n'est indiqué (parking, ascenseur, balcon…) : cochez ceux de votre bien, ils servent aux filtres.",
+    adv_all_good:"Votre annonce est complète et suscite de l'intérêt. Confirmez-la régulièrement pour qu'elle reste bien placée.",
   },
   ar: {
     nav_home:'الرئيسية', nav_annonces:'الإعلانات', nav_agences:'الوكالات', nav_carte:'الخريطة', menu_label:'القائمة',
@@ -759,7 +772,20 @@ const TRANSLATIONS = {
     map_draw_min:'ضع 3 نقاط على الأقل لتحديد منطقة.', map_draw_max:'المنطقة معقّدة جدًا: 60 نقطة كحد أقصى.',
     map_zone_results_poly:'{n} عقار في المنطقة المرسومة', map_truncated:'منطقة مزدحمة جدًا: يتم عرض {n} عقار فقط، ضيّق البحث.',
     map_me_btn:'🎯 حولي', map_me_locating:'⏳ جارٍ التحديد…', map_me_denied:'تعذّر الوصول إلى موقعك.', map_me_here:'أنت هنا (موقع تقريبي)',
-    dash_stats_btn:'📈 30ي', dash_stats_title:'المشاهدات · 30 يوماً',
+    dash_stats_btn:'📈 30ي', dash_stats_title:'الإحصائيات · آخر 30 يوماً',
+    st_views:'المشاهدات', st_favs:'المفضّلة', st_clicks:'النقرات', st_calls:'المكالمات', st_wa:'واتساب', st_contacts:'الطلبات',
+    st_favs_total:'{n} في المجموع', st_no_data:'لا توجد زيارات بعد خلال هذه الفترة.', st_advice:'نصائح', st_advice_tip:'نصائح محسوبة انطلاقاً من إحصائيات هذا الإعلان.',
+    adv_price_high:'سعر المتر المربع لديك أعلى بنحو {pct}% من وسيط الإعلانات المماثلة: مراجعته قد تعيد الزيارات.',
+    adv_few_photos:'إعلانك يضم {n} صورة فقط: احرص على {min} صور على الأقل. الإعلانات المصوَّرة جيداً تتلقى طلبات أكثر.',
+    adv_no_phone:'لم يتم إدخال رقم هاتف: لن يظهر زرّا «اتصال» و«واتساب» في إعلانك. أضِفه في ملفك الشخصي.',
+    adv_no_engagement:'{views} مشاهدة خلال 30 يوماً دون أي مفضّلة أو نقرة أو طلب: راجع السعر والصورة الأولى والوصف.',
+    adv_views_drop:'انخفضت المشاهدات بنحو {pct}% مقارنة بالأسبوع السابق: حدّث الإعلان (الصور، السعر) أو أكّد أنه «لا يزال متاحاً».',
+    adv_low_visibility:'{n} مشاهدة فقط خلال آخر 7 أيام: اعتنِ بالعنوان (نوع العقار، الحي) وبالصورة الأولى.',
+    adv_short_description:'وصفك لا يتجاوز {n} حرفاً: فصّل حالة العقار ومحيطه ومرافقه ({min} حرفاً على الأقل).',
+    adv_no_location:'لا يوجد موقع على الخريطة: أدخل العنوان ليظهر العقار في البحث على الخريطة.',
+    adv_no_media:'أضف فيديو أو جولة افتراضية (YouTube أو Vimeo أو Matterport أو Kuula): فهي تطمئن الزوّار.',
+    adv_no_features:'لم تُذكر أي تجهيزات (موقف سيارات، مصعد، شرفة…): حدّد ما يتوفر في عقارك، فهي تُستعمل في التصفية.',
+    adv_all_good:'إعلانك مكتمل ويثير الاهتمام. أكّده بانتظام ليبقى في مرتبة جيدة.',
   }
 };
 
@@ -4401,6 +4427,67 @@ async function loadZoneMarkers(fit = false) {
 }
 
 // ── Stats journalières d'une annonce (tableau de bord annonceur) ──────────────
+const STAT_COLORS = { views: '#0C6E4F', favorites: '#e11d48', clicks: '#f59e0b' };
+const ADVICE_ICON = { warn: '⚠️', tip: '💡', good: '✅' };
+
+// HTML du panneau : totaux, courbes (vues, favoris, clics par jour) et conseils. Fonction pure (données du serveur → chaîne) : tout passe par esc().
+function statsPanelHTML(stats) {
+  const days = stats.days || [];
+  const t = stats.totals || {};
+  const pick = (rows, key) => { const m = {}; (rows || []).forEach(r => { m[r.day] = (m[r.day] || 0) + Number(r[key]); }); return days.map(d => m[d] || 0); };
+  const series = { views: pick(stats.views, 'views'), favorites: pick(stats.favorites, 'n'), clicks: pick(stats.clicks, 'n') };
+  const maxV = Math.max(1, ...series.views, ...series.favorites, ...series.clicks);
+
+  const W = 520, H = 110, pad = { t: 10, b: 18, l: 28, r: 8 };
+  const last = Math.max(days.length - 1, 1);
+  const pw = (W - pad.l - pad.r) / last;
+  const px = i => pad.l + i * pw;
+  const py = v => pad.t + (1 - v / maxV) * (H - pad.t - pad.b);
+  const line = arr => arr.map((v, i) => (i ? 'L' : 'M') + px(i).toFixed(1) + ',' + py(v).toFixed(1)).join(' ');
+  const dots = (arr, color) => arr.map((v, i) => v > 0 ? `<circle cx="${px(i).toFixed(1)}" cy="${py(v).toFixed(1)}" r="2.5" fill="${color}"/>` : '').join('');
+  const locale = currentLang === 'ar' ? 'ar-DZ' : 'fr-DZ';
+  const labels = [0, Math.floor(last / 2), last].filter(i => days[i]).map(i => {
+    const lbl = new Date(days[i] + 'T12:00:00').toLocaleDateString(locale, { day: '2-digit', month: 'short' });
+    const anchor = i === 0 ? 'start' : i === last ? 'end' : 'middle';
+    return `<text x="${px(i).toFixed(1)}" y="${H - 3}" text-anchor="${anchor}" font-size="8" fill="currentColor" opacity=".6">${esc(lbl)}</text>`;
+  }).join('');
+
+  const box = (label, value, color, sub) => `<div style="flex:1;min-width:84px;border:1px solid var(--border);border-radius:8px;padding:.35rem .5rem">
+      <div style="font-size:.72rem;color:${color};font-weight:700">${esc(label)}</div>
+      <div style="font-size:1.05rem;font-weight:800">${Number(value) || 0}</div>${sub ? `<div style="font-size:.68rem;color:var(--text-muted)">${esc(sub)}</div>` : ''}</div>`;
+  const totals = `<div style="display:flex;gap:.45rem;flex-wrap:wrap;margin-bottom:.6rem">
+      ${box(T('st_views'), t.views_30d, STAT_COLORS.views)}
+      ${box(T('st_favs'), t.favorites_30d, STAT_COLORS.favorites, T('st_favs_total').replace('{n}', Number(t.favorites_total) || 0))}
+      ${box('📞 ' + T('st_calls'), t.calls_30d, STAT_COLORS.clicks)}
+      ${box('💬 ' + T('st_wa'), t.whatsapps_30d, STAT_COLORS.clicks)}
+      ${box('📩 ' + T('st_contacts'), t.contacts_30d, 'var(--text-muted)')}
+    </div>`;
+
+  const empty = !series.views.some(Boolean) && !series.favorites.some(Boolean) && !series.clicks.some(Boolean);
+  const chart = empty
+    ? `<div style="font-size:.82rem;color:var(--text-muted);text-align:center;padding:.4rem">${esc(T('st_no_data'))}</div>`
+    : `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;color:var(--text);overflow:visible" direction="ltr">
+        <line x1="${pad.l}" y1="${H - pad.b}" x2="${W - pad.r}" y2="${H - pad.b}" stroke="var(--border)" stroke-width="1"/>
+        ${['views', 'favorites', 'clicks'].map(k => `<path d="${line(series[k])}" fill="none" stroke="${STAT_COLORS[k]}" stroke-width="1.5" stroke-linejoin="round"/>`).join('')}
+        ${['views', 'favorites', 'clicks'].map(k => dots(series[k], STAT_COLORS[k])).join('')}
+        ${labels}
+      </svg>`;
+
+  // Un conseil inconnu du site est ignoré (jamais de clé brute affichée) ; les paramètres sont des nombres
+  const items = (stats.advice || []).filter(a => TRANSLATIONS.fr['adv_' + a.code]).map(a => {
+    let text = T('adv_' + a.code);
+    for (const [k, v] of Object.entries(a.params || {})) text = text.split('{' + k + '}').join(String(Number(v) || 0));
+    return `<li style="display:flex;gap:.45rem;font-size:.82rem;line-height:1.45;margin:.25rem 0"><span aria-hidden="true">${ADVICE_ICON[a.level] || '💡'}</span><span>${esc(text)}</span></li>`;
+  }).join('');
+  const advice = items ? `<div style="margin-top:.7rem;padding-top:.6rem;border-top:1px solid var(--border)" title="${esc(T('st_advice_tip'))}">
+      <div style="font-size:.8rem;font-weight:700;color:var(--text-muted)">${esc(T('st_advice'))}</div><ul style="list-style:none;padding:0;margin:.2rem 0 0">${items}</ul></div>` : '';
+
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;gap:.5rem;flex-wrap:wrap">
+      <span style="font-size:.83rem;font-weight:700;color:var(--text-muted)">${esc(T('dash_stats_title'))}</span>
+      <span style="font-size:.78rem;color:var(--text-muted)"><span style="color:${STAT_COLORS.views}">— ${esc(T('st_views'))}</span> &nbsp; <span style="color:${STAT_COLORS.favorites}">— ${esc(T('st_favs'))}</span> &nbsp; <span style="color:${STAT_COLORS.clicks}">— ${esc(T('st_clicks'))}</span></span>
+    </div>${totals}${chart}${advice}`;
+}
+
 async function showPropertyStats(id, triggerBtn) {
   // Basculer : un deuxième clic ferme le panneau
   const existing = document.getElementById('stats-panel-' + id);
@@ -4418,53 +4505,7 @@ async function showPropertyStats(id, triggerBtn) {
   card.parentElement.insertBefore(panel, card.nextSibling);
 
   try {
-    const stats = await api('/properties/' + id + '/stats');
-    if (!stats.views.length && !stats.clicks.length) {
-      panel.innerHTML = `<div style="font-size:.83rem;color:var(--text-muted);text-align:center;padding:.5rem">${T('dash_stats_title')} — aucune donnée</div>`;
-      return;
-    }
-    // Construire l'ensemble des 30 derniers jours
-    const today = new Date();
-    const days = Array.from({ length: 30 }, (_, i) => {
-      const d = new Date(today); d.setDate(today.getDate() - 29 + i);
-      return d.toISOString().slice(0, 10);
-    });
-    const viewMap = Object.fromEntries(stats.views.map(r => [r.day, Number(r.views)]));
-    const clickMap = {};
-    stats.clicks.forEach(r => { clickMap[r.day] = (clickMap[r.day] || 0) + Number(r.n); });
-
-    const views  = days.map(d => viewMap[d] || 0);
-    const clicks = days.map(d => clickMap[d] || 0);
-    const maxV = Math.max(...views, ...clicks, 1);
-
-    const W = 520, H = 110, pad = { t: 10, b: 18, l: 28, r: 8 };
-    const pw = (W - pad.l - pad.r) / (days.length - 1);
-    const px = i => pad.l + i * pw;
-    const py = v => pad.t + (1 - v / maxV) * (H - pad.t - pad.b);
-
-    const line = (arr, color) => arr.map((v, i) => (i ? 'L' : 'M') + px(i).toFixed(1) + ',' + py(v).toFixed(1)).join(' ');
-    const dots = (arr, color) => arr.filter(v => v > 0).map((v, i) => arr[i] === v ? `<circle cx="${px(i).toFixed(1)}" cy="${py(v).toFixed(1)}" r="2.5" fill="${color}"/>` : '').join('');
-
-    // Labels : premier, dernier, et milieu
-    const lblIdx = [0, 14, 29];
-    const labels = lblIdx.map(i => {
-      const d = new Date(days[i]); const lbl = d.toLocaleDateString('fr-DZ', { day:'2-digit', month:'short' });
-      const anchor = i === 0 ? 'start' : i === 29 ? 'end' : 'middle';
-      return `<text x="${px(i).toFixed(1)}" y="${H - 3}" text-anchor="${anchor}" font-size="8" fill="currentColor" opacity=".6">${lbl}</text>`;
-    });
-
-    panel.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
-        <span style="font-size:.83rem;font-weight:700;color:var(--text-muted)">${T('dash_stats_title')}</span>
-        <span style="font-size:.78rem;color:var(--text-muted)"><span style="color:#0C6E4F">— vues</span> &nbsp; <span style="color:#f59e0b">— clics</span></span>
-      </div>
-      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;color:var(--text);overflow:visible">
-        <line x1="${pad.l}" y1="${H - pad.b}" x2="${W - pad.r}" y2="${H - pad.b}" stroke="var(--border)" stroke-width="1"/>
-        <path d="${line(views, '#0C6E4F')}" fill="none" stroke="#0C6E4F" stroke-width="1.5" stroke-linejoin="round"/>
-        <path d="${line(clicks, '#f59e0b')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linejoin="round"/>
-        ${dots(views, '#0C6E4F')}${dots(clicks, '#f59e0b')}
-        ${labels.join('')}
-      </svg>`;
+    panel.innerHTML = statsPanelHTML(await api('/properties/' + id + '/stats'));
   } catch {
     panel.innerHTML = `<div style="font-size:.83rem;color:#dc2626;padding:.5rem">${T('dash_error')}</div>`;
     if (triggerBtn) triggerBtn.style.opacity = '';

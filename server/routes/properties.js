@@ -10,6 +10,7 @@ const expiry  = require('../expiry');
 const clicks  = require('../clicks');
 const images  = require('../images');
 const videos = require('../videos');
+const advice = require('../advice');
 const geo     = require('../geo');
 
 const MODES_VALIDES    = ['vente', 'location_longue', 'location_courte'];
@@ -547,25 +548,71 @@ router.get('/:id/price-history', optionalAuth, async (req, res) => {
   res.json(r.rows);
 });
 
-// GET /api/properties/:id/stats — vues journalières + clics sur 30 jours (propriétaire / admin uniquement)
+// GET /api/properties/:id/stats — 30 derniers jours d'une annonce : vues, favoris, clics par canal, demandes, et conseils (propriétaire / admin uniquement).
+// `days` = les 30 dates (la dernière est aujourd'hui, jour du serveur) ; `views`, `favorites`, `clicks` ne listent que les jours non nuls.
+// Aucune identité : les favoris sont seulement comptés par jour, jamais rattachés à un membre.
 router.get('/:id/stats', auth, async (req, res) => {
   const prop = await db.properties.findById(req.params.id);
   if (!prop) return res.status(404).json({ error: 'Annonce introuvable.' });
   if (prop.owner_id !== req.user.id && !req.user.is_admin)
     return res.status(403).json({ error: 'Accès refusé.' });
-  const [views, clicks] = await Promise.all([
+  const [days, views, favorites, clicks, favTotal, contacts, qual, phones] = await Promise.all([
+    db.pool.query(`SELECT to_char(d, 'YYYY-MM-DD') AS day FROM generate_series(CURRENT_DATE - 29, CURRENT_DATE, interval '1 day') d ORDER BY d`),
     db.pool.query(
       `SELECT day::text, views FROM property_views_daily
        WHERE property_id = $1 AND day >= CURRENT_DATE - 29
        ORDER BY day`, [prop.id]
     ),
     db.pool.query(
+      `SELECT created_at::date::text AS day, COUNT(*)::int AS n FROM favorites
+       WHERE property_id = $1 AND created_at >= CURRENT_DATE - 29
+       GROUP BY 1 ORDER BY 1`, [prop.id]
+    ),
+    db.pool.query(
       `SELECT day::text, channel, n FROM contact_clicks
        WHERE property_id = $1 AND day >= CURRENT_DATE - 29
        ORDER BY day`, [prop.id]
     ),
+    db.pool.query('SELECT COUNT(*)::int AS n FROM favorites WHERE property_id = $1', [prop.id]),
+    db.pool.query(
+      `SELECT COUNT(*)::int AS n FROM contact_requests WHERE property_id = $1 AND created_at >= CURRENT_DATE - 29`, [prop.id]
+    ),
+    db.pool.query('SELECT flags, details FROM listing_quality WHERE property_id = $1', [prop.id]),
+    db.pool.query(
+      `SELECT u.phone AS owner_phone, a.phone AS agency_phone FROM users u LEFT JOIN agencies a ON a.id = $2 WHERE u.id = $1`,
+      [prop.owner_id, prop.agency_id || null]
+    ),
   ]);
-  res.json({ views: views.rows, clicks: clicks.rows });
+  const list = days.rows.map(r => r.day);
+  const daily = (rows, pick) => {
+    const m = {};
+    rows.forEach(r => { m[r.day] = (m[r.day] || 0) + Number(pick(r)); });
+    return list.map(d => m[d] || 0);
+  };
+  const channel = ch => clicks.rows.filter(r => r.channel === ch);
+  const series = {
+    views:     daily(views.rows, r => r.views),
+    favorites: daily(favorites.rows, r => r.n),
+    clicks:    daily(clicks.rows, r => r.n),
+  };
+  const total = a => a.reduce((t, v) => t + v, 0);
+  const q = qual.rows[0];
+  const ph = phones.rows[0] || {};
+  const totals = {
+    views_30d: total(series.views), views_7d: total(series.views.slice(-7)),
+    favorites_30d: total(series.favorites), favorites_total: favTotal.rows[0].n,
+    calls_30d: total(daily(channel('call'), r => r.n)), whatsapps_30d: total(daily(channel('whatsapp'), r => r.n)),
+    contacts_30d: contacts.rows[0].n,
+  };
+  res.json({
+    days: list,
+    views: views.rows, clicks: clicks.rows, favorites: favorites.rows,
+    totals,
+    advice: advice.advise({
+      property: prop, phone: ph.agency_phone || ph.owner_phone, series, contacts30: totals.contacts_30d,
+      quality: q ? { flags: q.flags, ratio: q.details && q.details.price && q.details.price.ratio } : null,
+    }),
+  });
 });
 
 // DELETE /api/properties/:id
