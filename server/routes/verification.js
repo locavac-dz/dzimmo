@@ -52,6 +52,8 @@ router.post('/', auth, (req, res) => {
     const reference = String(req.body.reference || '').trim();
     const uploads = req.files || [];
     const saved = [];
+    // Les fichiers déjà écrits partent AVANT la réponse d'erreur : le client qui reçoit un refus ne doit jamais voir d'orphelin
+    const cleanBeforeReply = async () => { const names = saved.splice(0); await V.removeFiles(names); };
     try {
       // Tout est validé avant d'écrire le moindre fichier
       if (!Object.hasOwn(V.KINDS, kind)) return res.status(400).json({ error: 'Type de vérification invalide.' });
@@ -80,7 +82,7 @@ router.post('/', auth, (req, res) => {
       V.notifyAdminsPending(user, r.rows[0]).catch(() => {});
       res.status(201).json({ id: r.rows[0].id, status: 'pending' });
     } catch (e) {
-      if (e.code === '23505') return res.status(409).json({ error: 'Une demande de vérification est déjà en cours.' });
+      if (e.code === '23505') { await cleanBeforeReply(); return res.status(409).json({ error: 'Une demande de vérification est déjà en cours.' }); }
       // Hors d'une route asynchrone : une erreur non traitée ici ferait tomber le processus
       console.error('[verification]', e.message);
       if (!res.headersSent) res.status(500).json({ error: 'Erreur interne du serveur.' });
