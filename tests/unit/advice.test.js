@@ -9,7 +9,7 @@ const series = (over = {}) => ({ views: zeros(), favorites: zeros(), clicks: zer
 // Annonce complète, publiée depuis 20 jours
 const good = (over = {}) => ({
   status: 'active', type_bien: 'appartement', description: 'x'.repeat(200), photos: ['a', 'b', 'c', 'd', 'e'], image: 'a',
-  lat: 36.7, lng: 3.05, video_url: 'https://vimeo.com/123456789', tour_url: null, features: ['parking'],
+  lat: 36.7, lng: 3.05, video_url: 'https://vimeo.com/123456789', tour_url: null, features: ['parking'], floor: 2,
   published_at: new Date(NOW - 20 * 86400000).toISOString(), ...over,
 });
 const codes = list => list.map(a => a.code);
@@ -50,6 +50,16 @@ test('description, position, média, équipements et téléphone', () => {
   assert.ok(codes(run({ property: good({ features: [] }) })).includes('no_features'));
   assert.ok(!codes(run({ property: good({ features: [], type_bien: 'terrain' }) })).includes('no_features'), 'un terrain n\'a pas d\'équipements');
   for (const phone of [null, undefined, '', '   ']) assert.ok(codes(run({ phone })).includes('no_phone'), String(phone));
+});
+
+test('étage : conseil uniquement pour appartement et bureau, jamais si 0 (rez-de-chaussée)', () => {
+  assert.ok(codes(run({ property: good({ floor: null }) })).includes('no_floor'), 'appartement sans étage');
+  assert.ok(codes(run({ property: good({ floor: undefined }) })).includes('no_floor'), 'appartement floor undefined');
+  assert.ok(!codes(run({ property: good({ floor: 0 }) })).includes('no_floor'), '0 est le rez-de-chaussée');
+  assert.ok(!codes(run({ property: good({ floor: 3 }) })).includes('no_floor'), 'étage renseigné');
+  assert.ok(codes(run({ property: good({ type_bien: 'bureau', floor: null }) })).includes('no_floor'), 'bureau sans étage');
+  for (const t of ['villa', 'maison', 'terrain', 'local_commercial', 'ferme', 'entrepot'])
+    assert.ok(!codes(run({ property: good({ type_bien: t, floor: null }) })).includes('no_floor'), `${t} pas d'étage attendu`);
 });
 
 test('prix : seul le signal « prix élevé » est rapporté, en pourcentage au-dessus de la médiane', () => {

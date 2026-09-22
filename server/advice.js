@@ -13,7 +13,7 @@ const MAX_ADVICE        = 4;
 
 // Ordre de priorité (le plus important d'abord) : c'est aussi la liste des codes que le site doit savoir traduire
 const CODES = ['price_high', 'few_photos', 'no_phone', 'no_engagement', 'views_drop', 'low_visibility', 'short_description',
-               'no_location', 'no_media', 'no_features', 'all_good'];
+               'no_location', 'no_media', 'no_features', 'no_floor', 'all_good'];
 
 const sum = a => a.reduce((t, v) => t + (Number(v) || 0), 0);
 
@@ -44,6 +44,7 @@ function advise({ property: p, phone, series, quality = null, contacts30 = 0, no
   if (p.lat === null || p.lat === undefined || p.lng === null || p.lng === undefined) add('no_location', 'tip');
   if (!p.video_url && !p.tour_url) add('no_media', 'tip');
   if (p.type_bien !== 'terrain' && !(Array.isArray(p.features) && p.features.length)) add('no_features', 'tip');
+  if (['appartement', 'bureau'].includes(p.type_bien) && p.floor == null) add('no_floor', 'tip');
 
   const list = CODES.filter(c => found.has(c)).map(c => found.get(c)).slice(0, MAX_ADVICE);
   // Rien à reprocher et déjà des visites : on le dit (un encouragement plutôt qu'une liste vide)

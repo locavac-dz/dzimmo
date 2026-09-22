@@ -222,6 +222,11 @@ function propertyMeta(p, base, lang = 'fr') {
       '@type': 'Offer', price: Number(p.price), priceCurrency: 'DZD',
       availability: indexable ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
     },
+    accommodationFloorPlan: (p.rooms || p.surface_m2) ? {
+      '@type': 'FloorPlan',
+      numberOfRooms: p.rooms ? Number(p.rooms) : undefined,
+      floorSize: p.surface_m2 ? { '@type': 'QuantitativeValue', value: Number(p.surface_m2), unitCode: 'MTK' } : undefined,
+    } : undefined,
   };
   return { lang, title, description, canonical, image, jsonLd,
            alternates: indexable ? versions(base, propertyPath(p)) : undefined,

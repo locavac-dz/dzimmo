@@ -413,6 +413,7 @@ const TRANSLATIONS = {
     dash_edit:'✏️ Modifier', pub_edit_heading:"✏️ Modifier l'annonce", pub_edit_submit:'Enregistrer les modifications',
     pub_edit_locked:"Le mode, le type de bien et la wilaya ne se modifient pas : republiez une annonce pour les changer.",
     pub_edit_saved:'Modifications enregistrées.', pub_edit_pending:"Modifications enregistrées. L'annonce repasse en validation avant de reparaître sur le site.",
+    price_drop_badge:'📉 Prix en baisse',
     adv_price_high:"Votre prix au m² est environ {pct} % au-dessus de la médiane des annonces comparables : le revoir peut relancer les visites.",
     adv_few_photos:"Votre annonce n'a que {n} photo(s) : visez au moins {min}. Les annonces bien illustrées reçoivent plus de contacts.",
     adv_no_phone:"Aucun numéro de téléphone n'est renseigné : les boutons Appeler et WhatsApp ne s'affichent pas sur votre annonce. Ajoutez-le dans votre profil.",
@@ -423,6 +424,7 @@ const TRANSLATIONS = {
     adv_no_location:"Aucune position sur la carte : indiquez l'adresse pour que le bien apparaisse dans la recherche sur la carte.",
     adv_no_media:"Ajoutez une vidéo ou une visite virtuelle (YouTube, Vimeo, Matterport, Kuula) : elles rassurent les visiteurs.",
     adv_no_features:"Aucun équipement n'est indiqué (parking, ascenseur, balcon…) : cochez ceux de votre bien, ils servent aux filtres.",
+    adv_no_floor:"L'étage n'est pas renseigné : les acheteurs et locataires filtrent souvent par étage pour un appartement ou un bureau.",
     adv_all_good:"Votre annonce est complète et suscite de l'intérêt. Confirmez-la régulièrement pour qu'elle reste bien placée.",
     prof_export:'Télécharger mes données (RGPD)',
     push_ask:'Activer les notifications push pour ne rien manquer ?', push_yes:'Oui', push_skip:'Plus tard',
@@ -832,6 +834,7 @@ const TRANSLATIONS = {
     dash_edit:'✏️ تعديل', pub_edit_heading:'✏️ تعديل الإعلان', pub_edit_submit:'حفظ التعديلات',
     pub_edit_locked:'لا يمكن تغيير نمط الإعلان ونوع العقار والولاية: انشر إعلاناً جديداً لتغييرها.',
     pub_edit_saved:'تم حفظ التعديلات.', pub_edit_pending:'تم حفظ التعديلات. سيخضع الإعلان للمراجعة من جديد قبل ظهوره على الموقع.',
+    price_drop_badge:'📉 انخفض السعر',
     adv_price_high:'سعر المتر المربع لديك أعلى بنحو {pct}% من وسيط الإعلانات المماثلة: مراجعته قد تعيد الزيارات.',
     adv_few_photos:'إعلانك يضم {n} صورة فقط: احرص على {min} صور على الأقل. الإعلانات المصوَّرة جيداً تتلقى طلبات أكثر.',
     adv_no_phone:'لم يتم إدخال رقم هاتف: لن يظهر زرّا «اتصال» و«واتساب» في إعلانك. أضِفه في ملفك الشخصي.',
@@ -842,6 +845,7 @@ const TRANSLATIONS = {
     adv_no_location:'لا يوجد موقع على الخريطة: أدخل العنوان ليظهر العقار في البحث على الخريطة.',
     adv_no_media:'أضف فيديو أو جولة افتراضية (YouTube أو Vimeo أو Matterport أو Kuula): فهي تطمئن الزوّار.',
     adv_no_features:'لم تُذكر أي تجهيزات (موقف سيارات، مصعد، شرفة…): حدّد ما يتوفر في عقارك، فهي تُستعمل في التصفية.',
+    adv_no_floor:'الطابق غير مُدرج: كثير من المشترين والمستأجرين يبحثون بالطابق في الشقق والمكاتب.',
     adv_all_good:'إعلانك مكتمل ويثير الاهتمام. أكّده بانتظام ليبقى في مرتبة جيدة.',
     prof_export:'تنزيل بياناتي (RGPD)',
     push_ask:'تفعيل الإشعارات الفورية لا تفوّت شيئاً؟', push_yes:'نعم', push_skip:'لاحقاً',
@@ -1842,12 +1846,14 @@ function cardHTML(p) {
   ].filter(Boolean).join(' · ');
   const isCmp = _compareList.some(x => x.id === p.id);
   const isNew = p.created_at && (Date.now() - new Date(p.created_at).getTime()) < 3 * 24 * 60 * 60 * 1000;
+  const isPriceDrop = p.price_drop_notified_at && (Date.now() - new Date(p.price_drop_notified_at).getTime()) < 7 * 24 * 60 * 60 * 1000;
   return `
   <div class="card-wrapper" onclick="showPage('detail', ${p.id})">
     <div class="card">
       <img class="card-img" ${imgAttrs(p.image || 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70', '(max-width: 640px) 100vw, 320px')} alt="${esc(p.title)}" loading="lazy" onerror="this.removeAttribute('srcset');this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70'">
       ${p.verified ? '<span class="verified-badge">' + T('verified_badge') + '</span>' : ''}
       ${isNew ? '<span class="new-badge">' + T('new_badge') + '</span>' : ''}
+      ${isPriceDrop && !isNew ? '<span class="price-drop-badge">' + T('price_drop_badge') + '</span>' : ''}
       ${isFeatured(p) ? '<span class="featured-badge">' + T('featured_badge') + '</span>' : ''}
       ${p.video_url || p.tour_url ? '<span class="media-badge">' + (p.tour_url ? '🧭 ' + T('media_badge_tour') : '🎬 ' + T('media_badge_video')) + '</span>' : ''}
       ${token ? `<button class="card-fav" onclick="event.stopPropagation();toggleFav(${p.id},this)" title="${T('fav_tip')}">🤍</button>` : ''}
