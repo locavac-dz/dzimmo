@@ -31,13 +31,31 @@ describe('GET /api/stats/market', () => {
     assert.ok(Array.isArray(body.wilayas), 'wilayas doit être un tableau');
   });
 
-  it('chaque wilaya a wilaya, count, median_price_m2', async () => {
+  it('chaque wilaya a wilaya, count, median_price_m2, trend_pct', async () => {
     const { body } = await s.request('GET', '/api/stats/market');
     if (!body.wilayas.length) return; // pas de données en environnement vide
     const row = body.wilayas[0];
-    assert.ok(typeof row.wilaya         === 'string', 'wilaya manquant');
-    assert.ok(typeof row.count          === 'number', 'count manquant');
+    assert.ok(typeof row.wilaya          === 'string', 'wilaya manquant');
+    assert.ok(typeof row.count           === 'number', 'count manquant');
     assert.ok(typeof row.median_price_m2 === 'number', 'median_price_m2 manquant');
+    assert.ok('trend_pct' in row, 'trend_pct absent de la réponse');
+    // trend_pct est null si pas d'historique, sinon un entier
+    assert.ok(row.trend_pct === null || typeof row.trend_pct === 'number', 'trend_pct doit être null ou number');
+  });
+
+  it('trend_pct positif si le prix a augmenté depuis 30-60 j', async () => {
+    // Insérer un historique à prix plus bas (il y a 45 jours) pour Oran
+    const { rows } = await q(`SELECT id FROM properties WHERE wilaya = 'Oran' AND status = 'active' LIMIT 1`);
+    if (!rows.length) return;
+    await q(
+      `INSERT INTO price_history (property_id, price, changed_at) VALUES ($1, $2, NOW() - INTERVAL '45 days')`,
+      [rows[0].id, 5_000_000], // prix historique bas : 5M pour surface 100 → 50 000/m²
+    );
+    const { body } = await s.request('GET', '/api/stats/market');
+    const oran = body.wilayas.find(r => r.wilaya === 'Oran');
+    assert.ok(oran, 'Oran absent');
+    // prix actuel 100 000/m², historique 50 000/m² → tendance positive
+    assert.ok(typeof oran.trend_pct === 'number' && oran.trend_pct > 0, 'trend_pct devrait être positif');
   });
 
   it('exclut les wilayas avec moins de 3 annonces actives', async () => {

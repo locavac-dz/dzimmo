@@ -294,6 +294,7 @@ const TRANSLATIONS = {
     recently_viewed:'Récemment vus',
     market_title:'Tendances du marché', market_sub:'Prix médian au m² par wilaya (annonces actives)',
     market_no_data:'Pas encore assez de données disponibles.',
+    trend_up:'↑ {n}%', trend_down:'↓ {n}%', trend_stable:'→ stable',
     share_search:'🔗 Partager', link_copied:'Lien copié !',
     cgu_sub:'Dernière mise à jour : 1er janvier 2026',
     cgu_h1:'1. Objet', cgu_h2:"2. Accès et inscription", cgu_h3:"3. Publication d'annonces",
@@ -712,6 +713,7 @@ const TRANSLATIONS = {
     recently_viewed:'شوهدت مؤخراً',
     market_title:'توجهات السوق', market_sub:'متوسط السعر بالم² لكل ولاية (الإعلانات النشطة)',
     market_no_data:'لا توجد بيانات كافية.',
+    trend_up:'↑ {n}%', trend_down:'↓ {n}%', trend_stable:'→ مستقر',
     share_search:'🔗 مشاركة', link_copied:'تم نسخ الرابط !',
     cgu_sub:'آخر تحديث: 1 يناير 2026',
     cgu_h1:'1. الموضوع', cgu_h2:'2. الوصول والتسجيل', cgu_h3:'3. نشر الإعلانات',
@@ -1518,6 +1520,13 @@ async function loadMarket() {
     el.innerHTML = marketHTML(data);
   } catch (e) { el.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message)}</p>`; }
 }
+function marketTrend(t) {
+  const n = Number(t);
+  if (!Number.isFinite(n) || t === null || t === undefined) return '';
+  if (Math.abs(n) < 1) return `<span style="color:var(--text-muted)">${esc(T('trend_stable'))}</span>`;
+  if (n > 0) return `<span style="color:var(--primary-text)">${esc(T('trend_up').replace('{n}', n))}</span>`;
+  return `<span style="color:#b91c1c">${esc(T('trend_down').replace('{n}', Math.abs(n)))}</span>`;
+}
 function marketHTML(data) {
   const rows = data.wilayas;
   if (!rows || !rows.length) return `<p style="padding:2rem;color:var(--text-muted)">${esc(T('market_no_data'))}</p>`;
@@ -1525,7 +1534,7 @@ function marketHTML(data) {
   const bars = rows.map(r => {
     const pct    = max > 0 ? Math.round((r.median_price_m2 / max) * 100) : 0;
     const label  = esc(wilayaName(r.wilaya) || r.wilaya);
-    const price  = Number(r.median_price_m2).toLocaleString('fr-DZ') + ' ' + T('u_dzd') + '/m²';
+    const price  = Number(r.median_price_m2).toLocaleString('fr-DZ') + ' ' + T('u_dzd') + '/m²';
     return `<tr>
       <td style="white-space:nowrap;padding:.4rem .6rem;font-size:.85rem">${label}</td>
       <td style="width:100%;padding:.4rem .4rem">
@@ -1533,6 +1542,7 @@ function marketHTML(data) {
       </td>
       <td style="white-space:nowrap;padding:.4rem .6rem;font-size:.85rem;font-weight:600;color:var(--primary-text)">${price}</td>
       <td style="white-space:nowrap;padding:.4rem .6rem;font-size:.75rem;color:var(--text-muted)">${r.count}</td>
+      <td style="white-space:nowrap;padding:.4rem .6rem;font-size:.8rem">${marketTrend(r.trend_pct)}</td>
     </tr>`;
   }).join('');
   return `<p style="font-size:.88rem;color:var(--text-muted);margin-bottom:1.2rem">${esc(T('market_sub'))}</p>

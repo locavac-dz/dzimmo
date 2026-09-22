@@ -58,7 +58,14 @@ async function hideIfNeeded(propertyId) {
   if (!min) return null;
   const r = await db.pool.query(
     `WITH n AS (
-       SELECT COUNT(DISTINCT s.user_id)::int AS c
+       SELECT COALESCE(SUM(
+                CASE
+                  WHEN r.verified_kind IS NOT NULL               THEN 2.0
+                  WHEN r.created_at < NOW() - INTERVAL '30 days' THEN 1.5
+                  ELSE 1.0
+                END
+              ), 0)::numeric AS c,
+              COUNT(s.user_id)::int AS n_reporters
          FROM signalements s
          JOIN users r ON r.id = s.user_id
         WHERE s.property_id = $1 AND s.status = 'pending'
@@ -72,7 +79,7 @@ async function hideIfNeeded(propertyId) {
       WHERE p.id = $1 AND p.status = 'active' AND n.c >= $3
         AND NOT EXISTS (SELECT 1 FROM users o WHERE o.id = p.owner_id AND (o.is_admin = true OR o.verified_kind IS NOT NULL))
         AND NOT EXISTS (SELECT 1 FROM agencies a WHERE a.owner_id = p.owner_id AND a.verified = true)
-    RETURNING p.id, p.title, p.owner_id, n.c AS reporters`,
+    RETURNING p.id, p.title, p.owner_id, n.n_reporters AS reporters`,
     [propertyId, HIDE_REASON, min, MIN_ACCOUNT_HOURS]);
   return r.rows[0] || null;
 }

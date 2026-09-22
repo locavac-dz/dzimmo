@@ -95,19 +95,39 @@ router.get('/me', require('../middleware/auth'), async (req, res) => {
 });
 
 // GET /api/stats/market — tendances du marché : médiane prix/m² par wilaya (public, cache 10 min)
+// trend_pct : variation vs la médiane observée 30-60 jours plus tôt (NULL si pas d'historique).
 router.get('/market', async (req, res) => {
   res.set('Cache-Control', 'public, max-age=600');
-  const result = await db.pool.query(
-    `SELECT wilaya,
-            COUNT(*)::int AS count,
-            ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY price::numeric / surface_m2))::int AS median_price_m2
-       FROM properties
-      WHERE status = 'active' AND surface_m2 > 0 AND price > 0
-      GROUP BY wilaya
+  const result = await db.pool.query(`
+    WITH current AS (
+      SELECT wilaya,
+             COUNT(*)::int AS count,
+             PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY price::numeric / surface_m2) AS med_now
+        FROM properties
+       WHERE status = 'active' AND surface_m2 > 0 AND price > 0
+       GROUP BY wilaya
       HAVING COUNT(*) >= 3
-      ORDER BY median_price_m2 DESC
-      LIMIT 20`,
-  );
+    ),
+    hist AS (
+      SELECT p.wilaya,
+             PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY h.price::numeric / p.surface_m2) AS med_hist
+        FROM price_history h
+        JOIN properties p ON p.id = h.property_id
+       WHERE h.changed_at BETWEEN NOW() - INTERVAL '60 days' AND NOW() - INTERVAL '30 days'
+         AND p.surface_m2 > 0 AND h.price > 0
+       GROUP BY p.wilaya
+    )
+    SELECT c.wilaya,
+           c.count,
+           ROUND(c.med_now)::int AS median_price_m2,
+           CASE WHEN h.med_hist IS NOT NULL AND h.med_hist > 0
+                THEN ROUND((c.med_now - h.med_hist) / h.med_hist * 100)::int
+                ELSE NULL
+           END AS trend_pct
+      FROM current c
+      LEFT JOIN hist h ON h.wilaya = c.wilaya
+     ORDER BY c.med_now DESC
+     LIMIT 20`);
   res.json({ wilayas: result.rows });
 });
 

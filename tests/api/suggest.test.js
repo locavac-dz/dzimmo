@@ -52,6 +52,13 @@ describe('GET /api/search/suggest', () => {
     assert.ok(body.length <= 8, 'plus de 8 suggestions renvoyées');
   });
 
+  it('2e passe tolérante : lettre en trop à la fin d\'un mot ≥ 5 chars', async () => {
+    // "appartementt" → 1ère passe : rien (text ne contient pas "appartementt") ;
+    // 2e passe tronque → "appartement" → trouve "Appartement F3 Bab Ezzouar"
+    const { body } = await s.request('GET', '/api/search/suggest?q=appartementt');
+    assert.ok(body.some(p => p.title.toLowerCase().includes('appartement')), '2e passe : appartement non trouvé');
+  });
+
   it('n\'inclut pas les annonces non actives', async () => {
     const r = await s.request('POST', '/api/properties', { token: user.token,
       body: { title: 'Annonce-suggest-pending-xyz', mode: 'vente', type_bien: 'terrain',

@@ -15,6 +15,23 @@ test('market_title / market_sub / market_no_data : traductions FR et AR', () => 
   assert.ok(app.includes("market_no_data:'لا توجد بيانات كافية.'"),                  'market_no_data AR absent');
 });
 
+test('trend_up / trend_down / trend_stable : traductions FR et AR', () => {
+  assert.ok(app.includes("trend_up:'↑ {n}%'"),      'trend_up FR absent');
+  assert.ok(app.includes("trend_down:'↓ {n}%'"),    'trend_down FR absent');
+  assert.ok(app.includes("trend_stable:'→ stable'"), 'trend_stable FR absent');
+  assert.ok(app.includes("trend_up:'↑ {n}%'"),      'trend_up AR absent');
+  assert.ok(app.includes("trend_down:'↓ {n}%'"),    'trend_down AR absent');
+  assert.ok(app.includes("trend_stable:'→ مستقر'"), 'trend_stable AR absent');
+});
+
+test('marketTrend : définie et lit trend_pct', () => {
+  assert.ok(app.includes('function marketTrend(t)'),   'marketTrend non définie');
+  assert.ok(app.includes("T('trend_up')"),             "T('trend_up') absent");
+  assert.ok(app.includes("T('trend_down')"),           "T('trend_down') absent");
+  assert.ok(app.includes("T('trend_stable')"),         "T('trend_stable') absent");
+  assert.ok(app.includes('r.trend_pct'),               'r.trend_pct absent dans marketHTML');
+});
+
 test('loadMarket : définie et appelle /stats/market', () => {
   assert.ok(app.includes('async function loadMarket()'),    'loadMarket non définie');
   assert.ok(app.includes("api('/stats/market')"),           '/stats/market absent');
