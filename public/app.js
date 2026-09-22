@@ -1229,6 +1229,44 @@ async function api(path, method = 'GET', body = null) {
   return d;
 }
 
+// ── CAPTCHA Cloudflare Turnstile (chargé à la demande, invisible) ──────────────
+// TURNSTILE_SITE_KEY absent côté serveur → captchaToken() renvoie '' et les routes l'ignorent.
+// Une erreur réseau → graceful : le formulaire est quand même envoyé.
+let _tsState = null;   // null = pas encore initialisé, '' = désactivé, 'ready' = prêt
+let _tsWidgetId = null, _tsResolve = null, _tsKey = '';
+
+async function _initTurnstile() {
+  if (_tsState !== null) return;
+  _tsState = '';
+  try { const r = await api('/captcha'); _tsKey = r.enabled ? (r.key || '') : ''; } catch { _tsKey = ''; }
+  if (!_tsKey) return;
+  await new Promise((ok, ko) => {
+    window._tsCb = ok;
+    const s = document.createElement('script');
+    s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=_tsCb';
+    s.onerror = ko;
+    document.head.appendChild(s);
+  });
+  const c = document.createElement('div'); document.body.appendChild(c);
+  _tsWidgetId = window.turnstile.render(c, {
+    sitekey: _tsKey, size: 'invisible',
+    callback:            t  => { if (_tsResolve) { _tsResolve(t);  _tsResolve = null; } },
+    'expired-callback': () => { if (_tsResolve) { window.turnstile.reset(_tsWidgetId); window.turnstile.execute(_tsWidgetId); } },
+    'error-callback':   () => { if (_tsResolve) { _tsResolve(''); _tsResolve = null; } },
+  });
+  _tsState = 'ready';
+}
+
+async function captchaToken() {
+  try { await _initTurnstile(); } catch { return ''; }
+  if (_tsState !== 'ready') return '';
+  return new Promise(ok => {
+    _tsResolve = ok;
+    window.turnstile.reset(_tsWidgetId);
+    window.turnstile.execute(_tsWidgetId);
+  });
+}
+
 // ── Navigation ────────────────────────────────────
 const PAGES = ['home','annonces','detail','publier','agences','agency-detail','programmes','programme-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats','contrats','newsletter'];
 
@@ -2133,7 +2171,8 @@ async function submitContactPage(event) {
   const subject = document.getElementById('cp-subject').value;
   const message = document.getElementById('cp-message').value.trim();
   try {
-    await api('/contact', 'POST', { name, email, subject, message });
+    const cf_turnstile_response = await captchaToken();
+    await api('/contact', 'POST', { name, email, subject, message, cf_turnstile_response });
     toast(T('ct_sent'));
     event.target.reset();
   } catch (e) { toast('❌ ' + (e.message || T('ct_failed'))); }   // échec : on le dit, et le texte saisi reste dans le formulaire
@@ -2147,7 +2186,8 @@ async function newsletterSubscribe(event) {
   event.preventDefault();
   const input = document.getElementById('nl-email');
   try {
-    await api('/newsletter/subscribe', 'POST', { email: input.value.trim(), lang: currentLang });
+    const cf_turnstile_response = await captchaToken();
+    await api('/newsletter/subscribe', 'POST', { email: input.value.trim(), lang: currentLang, cf_turnstile_response });
     toast(T('nl_sent'));
     event.target.reset();
   } catch (e) { toast('❌ ' + (e.message || T('nl_failed'))); }

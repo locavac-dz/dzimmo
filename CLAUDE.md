@@ -342,6 +342,16 @@ Windows : `demarrer.bat`
   (test dans `carte-zone.test.js`) : ne pas en ajouter, ni dans Express ni dans Nginx.
 - Tests : `tests/api/carte-zone.test.js` (polygone convexe et concave, filtres, limite, erreurs et traduction), `tests/unit/carte-front.test.js` (traductions FR / AR, POST, arrondi, échappement).
 
+## CAPTCHA anti-spam (Cloudflare Turnstile)
+
+- **Formulaires protégés** : page Contact (`POST /api/contact`) et inscription newsletter (`POST /api/newsletter/subscribe`). Le signalement d'annonce (`POST /api/properties/:id/signaler`) n'en a pas besoin : il exige la connexion (`auth`) et est déjà limité à 10/24 h.
+- **Côté serveur** (`server/turnstile.js`) : `verifyWith(secret, token, ip)` (exporté pour les tests) et `verify(token, ip)` (utilise `process.env.TURNSTILE_SECRET`). Sans secret → renvoie `true` (mode dev/test). Token manquant/non-string avec secret défini → `false` (400). Erreur réseau / timeout Cloudflare → `true` (graceful, même logique que les rate limiters). Le token arrivé dans le corps est `req.body.cf_turnstile_response`.
+- **Côté front** (`public/app.js`) : `_initTurnstile()` appelle `GET /api/captcha` pour obtenir la clé, charge le script Cloudflare à la demande (lazy, premier envoi seulement), crée un widget invisible. `captchaToken()` exécute le widget et renvoie le token (chaîne vide si désactivé ou en cas d'erreur). `submitContactPage` et `newsletterSubscribe` appellent `await captchaToken()` avant l'appel `api()`.
+- **`GET /api/captcha`** (public, non authentifié) : `{ key, enabled }` — permet au front de récupérer `TURNSTILE_SITE_KEY` sans l'injecter dans `index.html` (fichier statique).
+- **CSP** : `scriptSrc` et `frameSrc` ajoutent `https://challenges.cloudflare.com` uniquement si `TURNSTILE_SITE_KEY` est défini (`TURNSTILE_ON`).
+- **Configuration** (`config-check.js`) : avertit si une seule des deux variables est définie. **`.env.example`** : section dédiée avec les deux variables commentées.
+- **Tests** : `tests/unit/turnstile.test.js` (secret absent, token invalide, résultat booléen), `tests/api/captcha.test.js` (endpoint, contact et newsletter sans secret = pas de 400).
+
 ## Consignes
 
 - Ne jamais committer `.env`, `.env.production` ni `dzimmo.json`.

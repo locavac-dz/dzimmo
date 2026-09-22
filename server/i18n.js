@@ -5,8 +5,9 @@
 // Le test tests/unit/i18n-errors.test.js vérifie que chaque message du serveur figure ici.
 
 const AR = {
-  // Limitation de débit et erreurs générales
+  // Limitation de débit, CAPTCHA et erreurs générales
   'Trop de tentatives. Réessayez dans 15 minutes.': 'محاولات كثيرة جداً. أعد المحاولة بعد 15 دقيقة.',
+  'Vérification anti-spam échouée. Réessayez.': 'فشل التحقق الأمني. أعد المحاولة.',
   // Double authentification (administrateurs)
   'Double authentification requise.': 'المصادقة الثنائية مطلوبة.',
   "Activez la double authentification pour utiliser l'administration.": 'فعّل المصادقة الثنائية لاستخدام لوحة الإدارة.',

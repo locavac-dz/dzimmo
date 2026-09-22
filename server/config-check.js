@@ -99,6 +99,13 @@ function checkConfig(env = process.env) {
     if (bad.length) warnings.push(`FEATURED_PRICES contient des formules illisibles (« ${bad.join(', ')} » ignorée(s)) : attendu « jours:prix » séparés par des virgules, par exemple 7:1500,30:4000.`);
   }
 
+  const tsKey    = env.TURNSTILE_SITE_KEY || '';
+  const tsSecret = env.TURNSTILE_SECRET   || '';
+  if (tsKey && !tsSecret)
+    warnings.push('TURNSTILE_SITE_KEY est défini mais TURNSTILE_SECRET est absent : le CAPTCHA ne sera pas vérifié côté serveur.');
+  if (!tsKey && tsSecret)
+    warnings.push('TURNSTILE_SECRET est défini mais TURNSTILE_SITE_KEY est absent : le widget CAPTCHA ne se chargera pas.');
+
   const NO_MAIL = 'aucun email (confirmation, mot de passe oublié, alertes) ne sera envoyé.';
   if (!env.EMAIL_HOST) warnings.push('EMAIL_HOST est absent : ' + NO_MAIL);
   else if (/(^|\.)example\.(com|org|net)$/i.test(env.EMAIL_HOST.trim())) warnings.push(`EMAIL_HOST est encore la valeur d'exemple (${env.EMAIL_HOST}) : ` + NO_MAIL);

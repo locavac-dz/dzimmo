@@ -28,21 +28,23 @@ const isProd = process.env.NODE_ENV === 'production';
 // Connexion avec Google (facultative) : le bouton officiel exige son script, son cadre, ses appels et sa feuille de style
 // (https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid#content_security_policy),
 // et une fenêtre d'ouverture qui autorise les popups. Rien de tout cela n'est ouvert tant que GOOGLE_CLIENT_ID est absent.
-const GOOGLE_ON = !!process.env.GOOGLE_CLIENT_ID;
-const VIDEO_FRAMES = ['https://www.youtube-nocookie.com', 'https://player.vimeo.com', 'https://my.matterport.com', 'https://kuula.co'];
+const GOOGLE_ON     = !!process.env.GOOGLE_CLIENT_ID;
+const TURNSTILE_ON  = !!process.env.TURNSTILE_SITE_KEY;
+const VIDEO_FRAMES  = ['https://www.youtube-nocookie.com', 'https://player.vimeo.com', 'https://my.matterport.com', 'https://kuula.co'];
 app.use(helmet({
   contentSecurityPolicy: {
     useDefaults: false,
     directives: {
       defaultSrc:     ["'self'"],
-      scriptSrc:      ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com', ...(GOOGLE_ON ? ['https://accounts.google.com/gsi/client'] : [])],
+      scriptSrc:      ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com', ...(GOOGLE_ON ? ['https://accounts.google.com/gsi/client'] : []), ...(TURNSTILE_ON ? ['https://challenges.cloudflare.com'] : [])],
       scriptSrcAttr:  ["'unsafe-inline'"],
       styleSrc:       ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com', ...(GOOGLE_ON ? ['https://accounts.google.com/gsi/style'] : [])],
       imgSrc:         ["'self'", 'data:', 'blob:', 'https:'],
       fontSrc:        ["'self'", 'data:'],
       connectSrc:     ["'self'", ...(GOOGLE_ON ? ['https://accounts.google.com/gsi/'] : [])],
       // Vidéos et visites virtuelles des annonces (server/videos.js) : seuls ces lecteurs peuvent être incrustés, chargés au clic du visiteur
-      frameSrc:       ["'self'", ...VIDEO_FRAMES, ...(GOOGLE_ON ? ['https://accounts.google.com/gsi/'] : [])],
+      // Turnstile peut afficher une vérification visuelle dans un iframe quand la solution invisible ne suffit pas
+      frameSrc:       ["'self'", ...VIDEO_FRAMES, ...(GOOGLE_ON ? ['https://accounts.google.com/gsi/'] : []), ...(TURNSTILE_ON ? ['https://challenges.cloudflare.com'] : [])],
       objectSrc:      ["'none'"],
       baseUri:        ["'self'"],
       formAction:     ["'self'"],
@@ -239,7 +241,8 @@ app.use('/api/verification', require('./routes/verification'));
 app.use('/api/alerts',    require('./routes/alerts'));
 app.use('/api/import',    require('./routes/import'));
 
-app.get('/api/health', (_, res) => res.json({ ok: true, message: 'DzImmo API opérationnelle 🇩🇿' }));
+app.get('/api/health',  (_, res) => res.json({ ok: true, message: 'DzImmo API opérationnelle 🇩🇿' }));
+app.get('/api/captcha', (_, res) => res.json({ key: process.env.TURNSTILE_SITE_KEY || '', enabled: TURNSTILE_ON }));
 
 // Chemins inconnus : vraie 404 (et non la SPA en 200, que les moteurs de recherche prendraient pour une page valide).
 // Les pages du site sont servies plus haut : accueil et /annonce/… par seo.js, fichiers par express.static.

@@ -4,6 +4,7 @@ const router     = require('express').Router();
 const db         = require('../db');
 const mailer     = require('../mailer');
 const newsletter = require('../newsletter');
+const turnstile  = require('../turnstile');
 
 const { EMAIL_OK } = mailer;
 
@@ -13,6 +14,8 @@ const tokenOf = req => { const v = req.body?.t ?? req.query.t; return typeof v =
 
 // POST /api/newsletter/subscribe { email, lang }
 router.post('/subscribe', async (req, res) => {
+  if (!await turnstile.verify(req.body.cf_turnstile_response, req.ip))
+    return res.status(400).json({ error: 'Vérification anti-spam échouée. Réessayez.' });
   const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
   if (email.length > 254 || !EMAIL_OK.test(email)) return res.status(400).json({ error: 'Adresse email invalide.' });
   // Sans SMTP, aucun email de confirmation ne partirait : on ne fait pas croire au visiteur qu'il est inscrit

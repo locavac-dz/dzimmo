@@ -3,9 +3,10 @@
 // Avant : le formulaire postait vers une route inexistante et affichait « Message envoyé » : tous les messages étaient perdus.
 // Le message part par email à CONTACT_EMAIL, sinon aux administrateurs ; il n'est ni stocké ni journalisé (loi 18-07).
 // Si aucun envoi n'aboutit, on le dit (503) : le visiteur sait qu'il doit écrire autrement.
-const router = require('express').Router();
-const db     = require('../db');
-const mailer = require('../mailer');
+const router     = require('express').Router();
+const db         = require('../db');
+const mailer     = require('../mailer');
+const turnstile  = require('../turnstile');
 
 const { EMAIL_OK } = mailer;
 const MAX_ADMIN = 10;
@@ -23,6 +24,8 @@ async function recipients() {
 
 // POST /api/contact
 router.post('/', async (req, res) => {
+  if (!await turnstile.verify(req.body.cf_turnstile_response, req.ip))
+    return res.status(400).json({ error: 'Vérification anti-spam échouée. Réessayez.' });
   const body    = req.body || {};
   const name    = clean(body.name);
   const email   = clean(body.email).toLowerCase();
