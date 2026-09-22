@@ -37,9 +37,16 @@ function createHub({ getPool = () => require('./db').pool, channel = CHANNEL, re
     const payload = JSON.stringify({ userId: Number(userId), data });
     if (listening && Buffer.byteLength(payload) <= MAX_NOTIFY_BYTES) {
       getPool().query('SELECT pg_notify($1, $2)', [channel, payload]).catch(() => deliverLocal(userId, data));
-      return;
+    } else {
+      deliverLocal(userId, data);
     }
-    deliverLocal(userId, data);
+    // Doublonne en push pour les utilisateurs sans onglet ouvert
+    if (data?.type === 'notif') {
+      require('./push').sendPush(Number(userId), {
+        title: data.title, body: data.body, tag: data.notif_type,
+        url: data.link_id ? `/annonce/${data.link_id}` : '/',
+      }).catch(() => {});
+    }
   }
 
   function retryLater() {

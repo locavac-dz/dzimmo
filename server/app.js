@@ -240,6 +240,7 @@ app.use('/api/admin',      require('./routes/admin'));
 app.use('/api/verification', require('./routes/verification'));
 app.use('/api/alerts',    require('./routes/alerts'));
 app.use('/api/import',    require('./routes/import'));
+app.use('/api/push',      require('./routes/push'));      // notifications push navigateur (VAPID)
 
 app.get('/api/health',  (_, res) => res.json({ ok: true, message: 'DzImmo API opérationnelle 🇩🇿' }));
 app.get('/api/captcha', (_, res) => res.json({ key: process.env.TURNSTILE_SITE_KEY || '', enabled: TURNSTILE_ON }));

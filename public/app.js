@@ -416,6 +416,15 @@ const TRANSLATIONS = {
     adv_no_media:"Ajoutez une vidéo ou une visite virtuelle (YouTube, Vimeo, Matterport, Kuula) : elles rassurent les visiteurs.",
     adv_no_features:"Aucun équipement n'est indiqué (parking, ascenseur, balcon…) : cochez ceux de votre bien, ils servent aux filtres.",
     adv_all_good:"Votre annonce est complète et suscite de l'intérêt. Confirmez-la régulièrement pour qu'elle reste bien placée.",
+    prof_export:'Télécharger mes données (RGPD)',
+    push_ask:'Activer les notifications push pour ne rien manquer ?', push_yes:'Oui', push_skip:'Plus tard',
+    push_on:'🔔 Push activé', push_off:'🔕 Push désactivé',
+    dash_tab_calendrier:'Calendrier des visites',
+    cal_title:'📅 Calendrier des visites', cal_none:'Aucune visite confirmée à venir.',
+    calc_title:'🏦 Simulateur de crédit', calc_amount:'Prix du bien (DZD)', calc_apport:'Apport personnel (DZD)',
+    calc_duration:'Durée (années)', calc_rate:'Taux annuel (%)', calc_btn:'Calculer',
+    calc_loan:'Montant emprunté', calc_monthly:'Mensualité estimée', calc_total_interest:'Coût du crédit', calc_total:'Total à rembourser',
+    calc_disclaimer:'Simulation indicative. Conditions selon votre banque.',
   },
   ar: {
     site_title:'DzImmo — العقارات في الجزائر',
@@ -811,6 +820,15 @@ const TRANSLATIONS = {
     adv_no_media:'أضف فيديو أو جولة افتراضية (YouTube أو Vimeo أو Matterport أو Kuula): فهي تطمئن الزوّار.',
     adv_no_features:'لم تُذكر أي تجهيزات (موقف سيارات، مصعد، شرفة…): حدّد ما يتوفر في عقارك، فهي تُستعمل في التصفية.',
     adv_all_good:'إعلانك مكتمل ويثير الاهتمام. أكّده بانتظام ليبقى في مرتبة جيدة.',
+    prof_export:'تنزيل بياناتي (RGPD)',
+    push_ask:'تفعيل الإشعارات الفورية لا تفوّت شيئاً؟', push_yes:'نعم', push_skip:'لاحقاً',
+    push_on:'🔔 الإشعارات مفعّلة', push_off:'🔕 الإشعارات معطّلة',
+    dash_tab_calendrier:'تقويم الزيارات',
+    cal_title:'📅 تقويم الزيارات', cal_none:'لا توجد زيارات مؤكدة قادمة.',
+    calc_title:'🏦 محاكي الائتمان', calc_amount:'سعر العقار (دج)', calc_apport:'الحصة الشخصية (دج)',
+    calc_duration:'المدة (سنوات)', calc_rate:'معدل الفائدة السنوي (%)', calc_btn:'حساب',
+    calc_loan:'المبلغ المقترض', calc_monthly:'القسط الشهري التقديري', calc_total_interest:'تكلفة الائتمان', calc_total:'إجمالي المبلغ المستحق',
+    calc_disclaimer:'محاكاة تقريبية. الشروط الفعلية تعتمد على بنكك.',
   }
 };
 
@@ -1064,6 +1082,7 @@ async function loadCurrentUser() {
     loadUnreadCount();
     loadNotifsFromStorage();
     updateNotifBadge();
+    registerPush();
   } catch { token = null; localStorage.removeItem('dzimmo_token'); }
 }
 
@@ -1206,6 +1225,7 @@ async function doForgot() {
 }
 
 function logout() {
+  unregisterPush();
   token = null; currentUser = null;
   localStorage.removeItem('dzimmo_token');
   if (wsConn) { wsConn.close(); wsConn = null; }
@@ -1851,8 +1871,9 @@ function renderDetail(p) {
       document.getElementById('offer-field-' + p.id).classList.toggle('hidden', ctype.value !== 'offre');
     });
 
-    // Historique des prix + annonces similaires
+    // Historique des prix + simulateur de crédit + annonces similaires
     loadPriceHistory(p.id, p.price);
+    if (p.mode === 'vente') loadCalcCredit(p.id, Number(p.price));
     loadSimilarProperties(p.id, p.wilaya, p.type_bien);
   } catch (e) { container.innerHTML = `<p style="color:red;padding:2rem">${e.message}</p>`; }
 }
@@ -3637,14 +3658,15 @@ let dashListings = [];
 async function dashTab(tab, more = false) {
   currentDashTab = tab;
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
-    b.classList.toggle('active', ['mes-annonces','mes-contacts','favoris','alertes','profil','vitrine','verification'][i] === tab);
+    b.classList.toggle('active', ['mes-annonces','mes-contacts','calendrier','favoris','alertes','profil','vitrine','verification'][i] === tab);
   });
   document.querySelector('#page-dashboard .tab-btn.active')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });   // onglet actif visible (mobile)
   const c = document.getElementById('dash-tab-content');
   if (!more) c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';   // « Afficher plus » : la liste reste en place
 
   if (tab === 'verification') { await dashVerification(c); return; }
-  if (tab === 'vitrine') { await dashVitrine(c); return; }
+  if (tab === 'vitrine')       { await dashVitrine(c); return; }
+  if (tab === 'calendrier')    { await dashCalendrier(c); return; }
 
   if (tab === 'mes-annonces') {
     // Liste chargée par pages (DASH_PAGE annonces) : « Afficher plus » ajoute la page suivante
@@ -3823,6 +3845,7 @@ async function dashTab(tab, more = false) {
             <button class="btn btn-primary" style="flex:1" onclick="updateProfile()">${T('prof_save')}</button>
             <button class="btn btn-danger btn-sm" onclick="if(confirm(T('prof_logout_confirm'))) logout()">${T('prof_logout')}</button>
           </div>
+          <button class="btn btn-outline btn-sm" style="margin-top:.75rem;width:100%" onclick="exportData()">⬇ ${T('prof_export')}</button>
         </div>
       </div>`;
   }
@@ -4139,6 +4162,205 @@ async function sendMessage() {
     input.value = '';
     loadThread(currentChatProperty, currentChatUser);
   } catch (e) { toast('❌ ' + e.message); }
+}
+
+// ── Notifications push (Web Push API / VAPID) ──────────────────────────────
+let _pushSub = null;
+
+async function registerPush() {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    const r = await fetch('/api/push/key');
+    const { key } = await r.json();
+    if (!key) return;                          // push désactivé côté serveur
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      if (Notification.permission === 'denied') return;
+      if (Notification.permission !== 'granted') {
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') return;
+      }
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: key,
+      });
+    }
+    _pushSub = sub;
+    await api('/push/subscribe', 'POST', {
+      endpoint: sub.endpoint,
+      p256dh:   btoa(String.fromCharCode(...new Uint8Array(sub.getKey('p256dh')))),
+      auth:     btoa(String.fromCharCode(...new Uint8Array(sub.getKey('auth')))),
+    });
+  } catch {}
+}
+
+async function unregisterPush() {
+  try {
+    const sub = _pushSub || (await (await navigator.serviceWorker?.ready)?.pushManager?.getSubscription());
+    if (sub && token) {
+      await api('/push/subscribe', 'DELETE', { endpoint: sub.endpoint }).catch(() => {});
+    }
+    _pushSub = null;
+  } catch {}
+}
+
+// ── Export RGPD (loi 18-07 / droit d'accès) ────────────────────────────────
+async function exportData() {
+  try {
+    const r = await fetch(`${API}/auth/export`, { headers: { Authorization: `Bearer ${token}`, 'X-Lang': currentLang } });
+    if (!r.ok) { const d = await r.json(); throw new Error(d.error || T('err_server')); }
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `dzimmo-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+// ── Simulateur de crédit immobilier ────────────────────────────────────────
+function calcCreditAnnonce(propertyId) {
+  const amount  = Number(document.getElementById('cc-amount-'  + propertyId)?.value) || 0;
+  const apport  = Number(document.getElementById('cc-apport-'  + propertyId)?.value) || 0;
+  const years   = Number(document.getElementById('cc-years-'   + propertyId)?.value) || 20;
+  const rate    = Number(document.getElementById('cc-rate-'    + propertyId)?.value) || 5;
+  const res     = document.getElementById('cc-result-' + propertyId);
+  if (!res) return;
+  const loan = amount - apport;
+  if (loan <= 0 || years <= 0 || rate <= 0) { res.innerHTML = ''; return; }
+  const r = rate / 100 / 12;
+  const n = years * 12;
+  const monthly = loan * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+  const totalInterest = monthly * n - loan;
+  const fmt = v => Math.round(v).toLocaleString('fr-DZ') + ' DZD';
+  res.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem;margin-top:.75rem">
+      <div style="background:var(--bg);border-radius:8px;padding:.75rem;text-align:center">
+        <div style="font-size:.78rem;color:var(--text-muted)">${T('calc_monthly')}</div>
+        <div style="font-size:1.2rem;font-weight:800;color:var(--primary-text)">${fmt(monthly)}</div>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:.75rem;text-align:center">
+        <div style="font-size:.78rem;color:var(--text-muted)">${T('calc_loan')}</div>
+        <div style="font-size:1.1rem;font-weight:700">${fmt(loan)}</div>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:.75rem;text-align:center">
+        <div style="font-size:.78rem;color:var(--text-muted)">${T('calc_total_interest')}</div>
+        <div style="font-size:1.1rem;font-weight:700;color:#ef4444">${fmt(totalInterest)}</div>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:.75rem;text-align:center">
+        <div style="font-size:.78rem;color:var(--text-muted)">${T('calc_total')}</div>
+        <div style="font-size:1.1rem;font-weight:700">${fmt(monthly * n)}</div>
+      </div>
+    </div>
+    <div style="font-size:.75rem;color:var(--text-muted);margin-top:.5rem">${T('calc_disclaimer')}</div>`;
+}
+
+function loadCalcCredit(propertyId, price) {
+  const container = document.getElementById('detail-content');
+  if (!container) return;
+  const section = document.createElement('div');
+  section.style.cssText = 'margin-top:1.5rem';
+  const apport = Math.round((price || 0) * 0.2);
+  section.innerHTML = `
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;box-shadow:var(--shadow)">
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:1rem">${T('calc_title')}</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem">
+        <div class="form-row" style="margin:0"><label style="font-size:.82rem">${T('calc_amount')}</label>
+          <input id="cc-amount-${propertyId}" type="number" value="${price || ''}" min="0" oninput="calcCreditAnnonce(${propertyId})"></div>
+        <div class="form-row" style="margin:0"><label style="font-size:.82rem">${T('calc_apport')}</label>
+          <input id="cc-apport-${propertyId}" type="number" value="${apport}" min="0" oninput="calcCreditAnnonce(${propertyId})"></div>
+        <div class="form-row" style="margin:0"><label style="font-size:.82rem">${T('calc_duration')}</label>
+          <input id="cc-years-${propertyId}" type="number" value="20" min="1" max="30" oninput="calcCreditAnnonce(${propertyId})"></div>
+        <div class="form-row" style="margin:0"><label style="font-size:.82rem">${T('calc_rate')}</label>
+          <input id="cc-rate-${propertyId}" type="number" value="5" min="0.1" max="50" step="0.1" oninput="calcCreditAnnonce(${propertyId})"></div>
+      </div>
+      <div id="cc-result-${propertyId}"></div>
+    </div>`;
+  container.appendChild(section);
+  calcCreditAnnonce(propertyId);
+}
+
+// ── Calendrier des visites ──────────────────────────────────────────────────
+async function dashCalendrier(c) {
+  try {
+    const [mine, received] = await Promise.all([
+      api('/contacts/mine'),
+      api('/contacts/received'),
+    ]);
+    const visits = [...mine, ...received]
+      .filter(v => v.type === 'visite' && v.status === 'confirmed' && v.visit_date)
+      .sort((a, b) => a.visit_date.localeCompare(b.visit_date));
+
+    const today = new Date(); today.setHours(0,0,0,0);
+    const upcoming = visits.filter(v => new Date(v.visit_date) >= today);
+
+    if (!upcoming.length) {
+      c.innerHTML = `<div class="empty-state"><div class="icon">📅</div><p>${T('cal_none')}</p></div>`;
+      return;
+    }
+
+    // Calendrier HTML — mois courant + suivant
+    const months = {};
+    upcoming.forEach(v => {
+      const d = new Date(v.visit_date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!months[key]) months[key] = [];
+      months[key].push(v);
+    });
+
+    const dayNames = currentLang === 'ar'
+      ? ['أحد','اثن','ثلا','أرب','خمي','جمع','سبت']
+      : ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+
+    let html = `<h3 style="font-size:1rem;font-weight:700;margin-bottom:1rem">${T('cal_title')}</h3>`;
+    for (const [key, kvs] of Object.entries(months)) {
+      const [yr, mo] = key.split('-').map(Number);
+      const firstDay = new Date(yr, mo - 1, 1);
+      const daysInMonth = new Date(yr, mo, 0).getDate();
+      const startDow = (firstDay.getDay() + 6) % 7; // lundi=0
+      const visitDays = {};
+      kvs.forEach(v => {
+        const day = Number(v.visit_date.slice(8, 10));
+        if (!visitDays[day]) visitDays[day] = [];
+        visitDays[day].push(v);
+      });
+      const monthName = firstDay.toLocaleDateString(currentLang === 'ar' ? 'ar-DZ' : 'fr-DZ', { month: 'long', year: 'numeric' });
+      html += `<div style="background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;box-shadow:var(--shadow);margin-bottom:1rem">
+        <div style="font-weight:700;margin-bottom:.75rem;text-align:center">${esc(monthName)}</div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center">
+          ${dayNames.map(d => `<div style="font-size:.72rem;font-weight:600;color:var(--text-muted);padding:.25rem">${d}</div>`).join('')}
+          ${Array(startDow).fill('<div></div>').join('')}
+          ${Array.from({length: daysInMonth}, (_, i) => {
+            const day = i + 1;
+            const isToday = new Date(yr, mo-1, day).toDateString() === new Date().toDateString();
+            const hasVisit = visitDays[day];
+            const style = `border-radius:50%;width:2rem;height:2rem;line-height:2rem;margin:auto;font-size:.85rem;cursor:${hasVisit?'pointer':'default'};`
+              + (isToday ? 'background:var(--primary);color:#fff;font-weight:700;' : '')
+              + (hasVisit && !isToday ? 'background:rgba(12,110,79,.15);color:var(--primary-text);font-weight:700;' : '');
+            const title = hasVisit
+              ? hasVisit.map(v => `${esc(v.property_title || '')}${v.visit_time ? ' ' + v.visit_time : ''}`).join('\n')
+              : '';
+            return `<div title="${esc(title)}" style="${style}">${day}</div>`;
+          }).join('')}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:.5rem">
+        ${kvs.map(v => `
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.75rem;display:flex;gap:.75rem;align-items:center">
+            <div style="font-size:1.5rem">📅</div>
+            <div>
+              <div style="font-weight:600">${esc(v.property_title || '')}</div>
+              <div style="font-size:.85rem;color:var(--text-muted)">
+                ${esc(v.visit_date)}${v.visit_time ? ' · ' + esc(v.visit_time) : ''}
+                · <span style="color:var(--primary-text)">${T('dash_c_' + v.status)}</span>
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+    }
+    c.innerHTML = html;
+  } catch (e) { c.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
 }
 
 // ── Notifications in-app ───────────────────────────

@@ -106,6 +106,13 @@ function checkConfig(env = process.env) {
   if (!tsKey && tsSecret)
     warnings.push('TURNSTILE_SECRET est défini mais TURNSTILE_SITE_KEY est absent : le widget CAPTCHA ne se chargera pas.');
 
+  const vapidPub  = env.VAPID_PUBLIC_KEY  || '';
+  const vapidPriv = env.VAPID_PRIVATE_KEY || '';
+  if (vapidPub && !vapidPriv)
+    warnings.push('VAPID_PUBLIC_KEY est défini mais VAPID_PRIVATE_KEY est absent : les notifications push navigateur ne seront pas envoyées.');
+  if (!vapidPub && vapidPriv)
+    warnings.push('VAPID_PRIVATE_KEY est défini mais VAPID_PUBLIC_KEY est absent : le front ne pourra pas s\'abonner aux notifications push.');
+
   const NO_MAIL = 'aucun email (confirmation, mot de passe oublié, alertes) ne sera envoyé.';
   if (!env.EMAIL_HOST) warnings.push('EMAIL_HOST est absent : ' + NO_MAIL);
   else if (/(^|\.)example\.(com|org|net)$/i.test(env.EMAIL_HOST.trim())) warnings.push(`EMAIL_HOST est encore la valeur d'exemple (${env.EMAIL_HOST}) : ` + NO_MAIL);

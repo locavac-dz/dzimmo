@@ -209,6 +209,9 @@ const AR = {
   'Envoi d’emails non configuré sur le serveur.': 'إرسال البريد الإلكتروني غير مُعدّ على الخادم.',
   'L’email de test n’a pas pu être envoyé.': 'تعذّر إرسال رسالة الاختبار.',
   'Campagne introuvable.': 'الحملة غير موجودة.',
+
+  // Notifications push navigateur (server/routes/push.js)
+  'Abonnement push invalide.': 'اشتراك الإشعارات غير صالح.',
 };
 
 // Langue demandée : en-tête explicite du site (X-Lang), sinon préférence du navigateur (Accept-Language)
