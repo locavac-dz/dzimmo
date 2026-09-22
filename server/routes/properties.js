@@ -139,6 +139,9 @@ router.get('/', optionalAuth, async (req, res) => {
     const feats = featuresQ.split(',').map(f => f.trim()).filter(f => FEATURES_VALIDES.includes(f));
     if (feats.length) add('p.features @> ?::jsonb', JSON.stringify(feats));
   }
+  // Filtres de présence de média (pas de paramètre lié : condition pure)
+  if (req.query.has_video === '1') conds.push('p.video_url IS NOT NULL');
+  if (req.query.has_tour  === '1') conds.push('p.tour_url IS NOT NULL');
   // Recherche tolérante (accents, arabe, français ↔ arabe) : chaque mot de la requête doit figurer dans le texte de recherche de l'annonce
   // (server/search.js). Requête sans mot cherchable (« % » seul) : recherche brute comme avant ; vide ou non textuelle : ignorée.
   const text = search.condition(q, 's.text', ['p.title', 'p.commune', 'p.wilaya', 'p.description'], v => { params.push(v); return '$' + idx++; });

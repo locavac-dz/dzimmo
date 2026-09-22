@@ -235,6 +235,7 @@ app.use('/api/projects',   require('./routes/projects'));
 app.use('/api/promotions', require('./routes/promotions')); // mise à la une payante (server/featured.js, server/payments.js)
 app.use('/api/favorites',  require('./routes/favorites'));
 app.use('/api/stats',      require('./routes/stats'));
+app.use('/api/search',     require('./routes/suggest'));
 app.use('/api/admin/verifications', require('./routes/admin-verifications'));
 app.use('/api/admin',      require('./routes/admin'));
 app.use('/api/verification', require('./routes/verification'));

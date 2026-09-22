@@ -149,6 +149,8 @@
   <div id="main">
     <!-- Annonces mises à la une (masqué tant qu'il n'y en a aucune) : rempli par loadFeatured() -->
     <section id="home-featured" class="featured-strip hidden"></section>
+    <!-- Récemment vus : rempli par showRecentlyViewed() depuis localStorage -->
+    <div id="home-recently-viewed" class="hidden"></div>
     <div class="section-header">
       <div>
         <div class="section-title" data-i18n="recent_listings">Annonces récentes</div>
@@ -258,11 +260,15 @@
         </div>
         <div>
           <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem" data-i18n="filter_search">Recherche</label>
-          <input id="f-q" type="text" data-i18n="filter_kw_ph" data-i18n-attr="placeholder" placeholder="Mot-clé…" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
+          <div id="suggest-wrap" style="position:relative">
+            <input id="f-q" type="text" data-i18n="filter_kw_ph" data-i18n-attr="placeholder" placeholder="Mot-clé…" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem" autocomplete="off">
+            <div id="suggest-box" class="suggest-box hidden"></div>
+          </div>
         </div>
         <button class="btn btn-primary" onclick="loadAnnonces()" style="align-self:end" data-i18n="filter_apply">🔍 Filtrer</button>
         <button class="btn btn-outline" onclick="createAlertFromFilters()" style="align-self:end" data-i18n="btn_create_alert">🔔 Créer une alerte</button>
         <button class="btn btn-outline" id="btn-near-me" onclick="nearMe()" style="align-self:end;white-space:nowrap" data-i18n="near_me">📍 Près de moi</button>
+        <button class="btn btn-outline" onclick="shareSearch()" style="align-self:end;white-space:nowrap" data-i18n="share_search">🔗 Partager</button>
       </div>
       <div id="f-features-row" style="margin-top:.65rem;display:flex;flex-wrap:wrap;align-items:center;gap:.4rem">
         <span data-i18n="filter_features" style="font-size:.78rem;font-weight:600;color:var(--text-muted);white-space:nowrap">Équipements :</span>
@@ -274,6 +280,10 @@
         <button type="button" class="f-feat-btn" data-v="jardin"        onclick="toggleFeatFilter(this)"></button>
         <button type="button" class="f-feat-btn" data-v="wifi"          onclick="toggleFeatFilter(this)"></button>
         <button type="button" class="f-feat-btn" data-v="climatisation" onclick="toggleFeatFilter(this)"></button>
+      </div>
+      <div id="f-media-row" style="margin-top:.4rem;display:flex;flex-wrap:wrap;align-items:center;gap:.4rem">
+        <button type="button" class="f-feat-btn" id="f-has-video" onclick="toggleMediaFilter(this)" data-i18n="filter_has_video">Vidéo</button>
+        <button type="button" class="f-feat-btn" id="f-has-tour"  onclick="toggleMediaFilter(this)" data-i18n="filter_has_tour">Visite virtuelle</button>
       </div>
       <div id="near-me-badge" style="display:none;margin-top:.6rem;font-size:.82rem;color:var(--primary-text);font-weight:600">
         <span data-i18n="near_me_results">📍 Résultats près de :</span> <span id="near-me-label"></span>
@@ -302,6 +312,17 @@
     <div class="grid" id="annonces-grid"><div class="loading"><div class="spinner"></div></div></div>
     <div id="annonces-pagination"></div>
     <!--SEO_LANDING-->
+  </div>
+</div>
+
+<!-- ═══════════════════ PAGE TENDANCES ═══════════════════ -->
+<div id="page-tendances" class="hidden">
+  <div id="main">
+    <div class="breadcrumb">
+      <a href="#" onclick="showPage('home')" data-i18n="btn_back">← Retour</a>
+    </div>
+    <h2 style="margin-bottom:.5rem" data-i18n="market_title">Tendances du marché</h2>
+    <div id="market-content"><div class="loading"><div class="spinner"></div></div></div>
   </div>
 </div>
 
@@ -1042,6 +1063,7 @@
       <a href="#" onclick="showPage('mentions')" data-i18n="ft_mentions">Mentions légales</a>
       <a href="#" onclick="showPage('contact')" data-i18n="ft_contact">Contact</a>
       <a href="#" onclick="showPage('stats')" data-i18n="ft_stats">📊 Statistiques plateforme</a>
+      <a href="#" onclick="showPage('tendances')" data-i18n="market_title">📈 Tendances du marché</a>
       <a href="#" onclick="showPage('contrats')" data-i18n="ft_contrats">📄 Modèles de contrats</a>
     </div>
     <div class="footer-col">

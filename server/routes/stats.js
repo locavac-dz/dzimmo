@@ -94,4 +94,21 @@ router.get('/me', require('../middleware/auth'), async (req, res) => {
   res.json({ ...props.rows[0], ...contacts.rows[0], ...(await require('../clicks').totalsForOwner(uid)) });
 });
 
+// GET /api/stats/market — tendances du marché : médiane prix/m² par wilaya (public, cache 10 min)
+router.get('/market', async (req, res) => {
+  res.set('Cache-Control', 'public, max-age=600');
+  const result = await db.pool.query(
+    `SELECT wilaya,
+            COUNT(*)::int AS count,
+            ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY price::numeric / surface_m2))::int AS median_price_m2
+       FROM properties
+      WHERE status = 'active' AND surface_m2 > 0 AND price > 0
+      GROUP BY wilaya
+      HAVING COUNT(*) >= 3
+      ORDER BY median_price_m2 DESC
+      LIMIT 20`,
+  );
+  res.json({ wilayas: result.rows });
+});
+
 module.exports = router;

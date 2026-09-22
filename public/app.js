@@ -290,6 +290,11 @@ const TRANSLATIONS = {
     filter_price_min:'Prix min (DZD)', filter_price_max:'Prix max (DZD)', filter_rooms:'Pièces min',
     filter_surf_min:'Surface min (m²)', filter_no_limit:'Sans limite', opt_more:'+',
     filter_features:'Équipements :',
+    filter_has_video:'Vidéo', filter_has_tour:'Visite virtuelle',
+    recently_viewed:'Récemment vus',
+    market_title:'Tendances du marché', market_sub:'Prix médian au m² par wilaya (annonces actives)',
+    market_no_data:'Pas encore assez de données disponibles.',
+    share_search:'🔗 Partager', link_copied:'Lien copié !',
     cgu_sub:'Dernière mise à jour : 1er janvier 2026',
     cgu_h1:'1. Objet', cgu_h2:"2. Accès et inscription", cgu_h3:"3. Publication d'annonces",
     cgu_h4:'4. Responsabilité', cgu_h5:'5. Propriété intellectuelle',
@@ -703,6 +708,11 @@ const TRANSLATIONS = {
     filter_price_min:'السعر الأدنى (د.ج)', filter_price_max:'السعر الأقصى (د.ج)', filter_rooms:'الغرف الدنيا',
     filter_surf_min:'أدنى مساحة (م²)', filter_no_limit:'بدون حد', opt_more:' فأكثر',
     filter_features:'التجهيزات :',
+    filter_has_video:'فيديو', filter_has_tour:'جولة افتراضية',
+    recently_viewed:'شوهدت مؤخراً',
+    market_title:'توجهات السوق', market_sub:'متوسط السعر بالم² لكل ولاية (الإعلانات النشطة)',
+    market_no_data:'لا توجد بيانات كافية.',
+    share_search:'🔗 مشاركة', link_copied:'تم نسخ الرابط !',
     cgu_sub:'آخر تحديث: 1 يناير 2026',
     cgu_h1:'1. الموضوع', cgu_h2:'2. الوصول والتسجيل', cgu_h3:'3. نشر الإعلانات',
     cgu_h4:'4. المسؤولية', cgu_h5:'5. الملكية الفكرية',
@@ -1084,10 +1094,13 @@ async function init() {
         if (feats.includes(b.dataset.v)) b.classList.add('active');
       });
     }
+    if (params.get('f-has-video') === '1') document.getElementById('f-has-video')?.classList.add('active');
+    if (params.get('f-has-tour')  === '1') document.getElementById('f-has-tour')?.classList.add('active');
     showPage('annonces');
     loadAnnonces(Number(params.get('p')) || 1);
   }
   initPublishScore();
+  initSuggest();
 }
 
 // Les listes de wilayas sont construites (et retraduites) par rebuildSelects()
@@ -1318,7 +1331,7 @@ async function captchaToken() {
 }
 
 // ── Navigation ────────────────────────────────────
-const PAGES = ['home','annonces','detail','publier','agences','agency-detail','programmes','programme-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats','contrats','newsletter'];
+const PAGES = ['home','annonces','detail','publier','agences','agency-detail','programmes','programme-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats','contrats','newsletter','tendances'];
 
 const defaultTitle = () => T('site_title');   // titre du site dans la langue affichée (identique à celui que le serveur rend pour / et /ar)
 const PRO_PAGES = ['agences', 'agency-detail', 'programmes', 'programme-detail'];
@@ -1398,6 +1411,136 @@ function clearFeatFilters() {
   document.querySelectorAll('.f-feat-btn.active').forEach(b => b.classList.remove('active'));
 }
 
+// ── Filtre "avec média" ────────────────────────────
+function toggleMediaFilter(btn) {
+  btn.classList.toggle('active');
+  loadAnnonces();
+}
+function getMediaFilters() {
+  const out = {};
+  if (document.getElementById('f-has-video')?.classList.contains('active')) out.has_video = '1';
+  if (document.getElementById('f-has-tour')?.classList.contains('active'))  out.has_tour  = '1';
+  return out;
+}
+function clearMediaFilters() {
+  document.getElementById('f-has-video')?.classList.remove('active');
+  document.getElementById('f-has-tour')?.classList.remove('active');
+}
+
+// ── Annonces récemment vues ────────────────────────
+const VIEWED_KEY = 'dzimmo_viewed';
+const VIEWED_MAX = 6;
+function trackView(p) {
+  try {
+    const items = JSON.parse(localStorage.getItem(VIEWED_KEY) || '[]');
+    const filtered = items.filter(x => x.id !== p.id);
+    filtered.unshift({ id: p.id, title: p.title, image: p.image || null,
+      price: p.price, wilaya: p.wilaya, mode: p.mode, type_bien: p.type_bien, created_at: p.created_at });
+    localStorage.setItem(VIEWED_KEY, JSON.stringify(filtered.slice(0, VIEWED_MAX)));
+  } catch {}
+  showRecentlyViewed();
+}
+function recentlyViewedHTML() {
+  try {
+    const items = JSON.parse(localStorage.getItem(VIEWED_KEY) || '[]');
+    if (!items.length) return '';
+    return `<section style="margin-top:2rem">
+      <div class="section-header"><div class="section-title">${esc(T('recently_viewed'))}</div></div>
+      <div class="grid">${items.map(p => cardHTML(p)).join('')}</div>
+    </section>`;
+  } catch { return ''; }
+}
+function showRecentlyViewed() {
+  const el = document.getElementById('home-recently-viewed');
+  if (!el) return;
+  const html = recentlyViewedHTML();
+  el.innerHTML = html;
+  el.classList.toggle('hidden', !html);
+}
+
+// ── Partager la recherche ──────────────────────────
+function shareSearch() {
+  navigator.clipboard.writeText(location.href)
+    .then(() => toast(T('link_copied')))
+    .catch(() => toast(T('link_copied')));
+}
+
+// ── Autocomplétion de la barre de recherche ────────
+let _suggestTimer = null;
+function initSuggest() {
+  const input = document.getElementById('f-q');
+  if (!input) return;
+  input.addEventListener('input', () => {
+    clearTimeout(_suggestTimer);
+    const q = input.value.trim();
+    if (q.length < 2) { closeSuggest(); return; }
+    _suggestTimer = setTimeout(() => fetchSuggest(q), 280);
+  });
+  input.addEventListener('keydown', e => { if (e.key === 'Escape') closeSuggest(); });
+  document.addEventListener('click', e => { if (!e.target.closest('#suggest-wrap')) closeSuggest(); });
+}
+async function fetchSuggest(q) {
+  try {
+    const items = await api('/search/suggest?q=' + encodeURIComponent(q));
+    renderSuggest(items);
+  } catch { closeSuggest(); }
+}
+function renderSuggest(items) {
+  const box = document.getElementById('suggest-box');
+  if (!box) return;
+  if (!items.length) { closeSuggest(); return; }
+  box.innerHTML = items.map(p =>
+    `<div class="suggest-item" data-id="${p.id}" data-title="${esc(p.title)}" onclick="selectSuggest(this)">
+      <span class="suggest-title">${esc(p.title)}</span>
+      <span class="suggest-meta">${esc(wilayaName(p.wilaya))} · ${priceText(p)}</span>
+    </div>`,
+  ).join('');
+  box.classList.remove('hidden');
+}
+function closeSuggest() {
+  document.getElementById('suggest-box')?.classList.add('hidden');
+}
+function selectSuggest(el) {
+  const id = Number(el.dataset.id);
+  const input = document.getElementById('f-q');
+  if (input) input.value = el.dataset.title;
+  closeSuggest();
+  showPage('detail', id);
+}
+
+// ── Tendances du marché ────────────────────────────
+async function loadMarket() {
+  const el = document.getElementById('market-content');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const data = await api('/stats/market');
+    el.innerHTML = marketHTML(data);
+  } catch (e) { el.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message)}</p>`; }
+}
+function marketHTML(data) {
+  const rows = data.wilayas;
+  if (!rows || !rows.length) return `<p style="padding:2rem;color:var(--text-muted)">${esc(T('market_no_data'))}</p>`;
+  const max = rows[0].median_price_m2;
+  const bars = rows.map(r => {
+    const pct    = max > 0 ? Math.round((r.median_price_m2 / max) * 100) : 0;
+    const label  = esc(wilayaName(r.wilaya) || r.wilaya);
+    const price  = Number(r.median_price_m2).toLocaleString('fr-DZ') + ' ' + T('u_dzd') + '/m²';
+    return `<tr>
+      <td style="white-space:nowrap;padding:.4rem .6rem;font-size:.85rem">${label}</td>
+      <td style="width:100%;padding:.4rem .4rem">
+        <div style="background:var(--primary);border-radius:4px;height:18px;width:${pct}%;min-width:3px"></div>
+      </td>
+      <td style="white-space:nowrap;padding:.4rem .6rem;font-size:.85rem;font-weight:600;color:var(--primary-text)">${price}</td>
+      <td style="white-space:nowrap;padding:.4rem .6rem;font-size:.75rem;color:var(--text-muted)">${r.count}</td>
+    </tr>`;
+  }).join('');
+  return `<p style="font-size:.88rem;color:var(--text-muted);margin-bottom:1.2rem">${esc(T('market_sub'))}</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse">${bars}</table>
+    </div>`;
+}
+
 // Les liens et titres rendus par le serveur (data-seo-*) suivent la langue choisie
 function relabelSeo() {
   document.querySelectorAll('[data-seo-m]').forEach(el => {
@@ -1442,6 +1585,7 @@ function showPage(page, data = null) {
   if (page === 'sim-estimation')  initSeWilayaSelect();
   if (page === 'carte')           initMap();
   if (page === 'stats')           loadStatsPage();
+  if (page === 'tendances')       loadMarket();
   if (page === 'contrats' && window.MC) MC.open();
 }
 
@@ -1542,6 +1686,7 @@ async function loadHomeProperties(mode = '') {
     countEl.textContent = resp.total + ' ' + unit(resp.total, 'st_ad');   // « 7 annonces » / « 7 إعلانات » (duel et pluriel arabes compris)
     renderGrid(grid, resp.data);
     loadFeatured('home-featured', { mode });
+    showRecentlyViewed();
   } catch (e) { grid.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
 }
 
@@ -1568,6 +1713,9 @@ async function loadAnnonces(page = 1) {
   if (get('f-sort'))        params.set('sort',        get('f-sort'));
   const activeFeats = getActiveFeats();
   if (activeFeats.length) params.set('features', activeFeats.join(','));
+  const mf = getMediaFilters();
+  if (mf.has_video) params.set('has_video', '1');
+  if (mf.has_tour)  params.set('has_tour',  '1');
 
   // Persister les filtres dans l'URL (partage de recherche)
   const urlParams = new URLSearchParams();
@@ -1577,12 +1725,14 @@ async function loadAnnonces(page = 1) {
     if (v) urlParams.set(id, v);
   });
   if (activeFeats.length) urlParams.set('f-features', activeFeats.join(','));
+  if (mf.has_video) urlParams.set('f-has-video', '1');
+  if (mf.has_tour)  urlParams.set('f-has-tour',  '1');
   if (_commune && get('f-wilaya')) urlParams.set('f-commune', _commune.slug);
   if (page > 1) urlParams.set('p', page);
   // Seuls mode / type / wilaya (+ commune) (tri par défaut, page 1, sans autres filtres) : URL indexable /vente/appartements/oran
   const landingOnly = get('f-mode') && page === 1 && (!get('f-sort') || get('f-sort') === 'date_desc')
     && !['f-min-price', 'f-max-price', 'f-rooms', 'f-min-surface', 'f-q'].some(id => get(id))
-    && !activeFeats.length;
+    && !activeFeats.length && !mf.has_video && !mf.has_tour;
   if (landingOnly) {
     const commune = get('f-wilaya') && _commune ? _commune : null;
     history.replaceState(null, '', langPath(landingPath(get('f-mode'), get('f-type'), get('f-wilaya'), commune?.slug)));
@@ -1785,6 +1935,7 @@ function renderDetail(p) {
     // URL propre + titre d'onglet (utile au partage et à l'historique)
     history.replaceState(null, '', new URL(annonceUrl(p.id, p.title)).pathname);
     document.title = p.title + ' | DzImmo';
+    trackView(p);
     // Annonce non publiée (visible seulement de son propriétaire / d'un admin) : bandeau d'information
     const modBanner = p.status === 'pending'
       ? `<div style="background:#fef3c7;color:#92400e;border:1px solid #f59e0b;border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;font-size:.9rem">⏳ ${T('mod_banner_pending')}</div>`
