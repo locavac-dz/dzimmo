@@ -1,4 +1,4 @@
-// Alerte de baisse de prix : les membres qui ont l'annonce en favori sont prévenus (notification + email, dans leur langue),
+// Alerte de baisse de prix : les membres qui ont l'annonce en favori sont prévenus (notification WS immédiate + email différé en digest quotidien),
 // sous conditions (seuil, plancher des 30 jours, délai entre deux alertes, annonce publiée) et sauf choix contraire du membre.
 const test   = require('node:test');
 const assert = require('node:assert/strict');
@@ -25,7 +25,8 @@ test.before(async () => {
 test.after(async () => { await s.stop(); });
 
 const drops = id => wsLog.filter(w => w.id === id && w.data.type === 'notif' && w.data.notif_type === 'price_drop').map(w => w.data);
-const mailsTo = user => mails.filter(m => m.to === user.email && m.subject.startsWith('📉'));   // (l'inscription envoie aussi un email de confirmation)
+// Les emails de baisse de prix sont des digest (sujet commence par 📉) ; le filtre s'applique aux deux gabarits
+const mailsTo = user => mails.filter(m => m.to === user.email && m.subject.startsWith('📉'));
 
 // Annonce publiée à 10 000 000 DZD appartenant à `owner`
 async function listing(owner, title = 'Appartement en baisse') {
@@ -45,7 +46,7 @@ async function follower(id, { lang = 'fr', verified = true, alerts = true } = {}
 const setPrice = (owner, id, price) => s.request('PUT', `/api/properties/${id}`, { token: owner.token, body: { price } });
 const statusOf = async id => (await q('SELECT status FROM properties WHERE id = $1', [id])).rows[0].status;
 
-test('baisse de 10 % : notification et email aux favoris, dans leur langue ; pas au propriétaire ni à qui a coupé l\'alerte', async () => {
+test('baisse de 10 % : notification WS immédiate et email digest aux favoris, dans leur langue ; pas au propriétaire ni à qui a coupé l\'alerte', async () => {
   const owner = await s.register('proprio');
   const id = await listing(owner);
   await q('INSERT INTO favorites (user_id, property_id) VALUES ($1, $2)', [owner.id, id]);   // il suit sa propre annonce : jamais prévenu
@@ -55,8 +56,9 @@ test('baisse de 10 % : notification et email aux favoris, dans leur langue ; pas
   const r = await setPrice(owner, id, 9000000);
   assert.equal(r.status, 200);
   assert.equal(await statusOf(id), 'active', 'la baisse ne remet pas l\'annonce en modération');
-  await settle(() => drops(fr.id).length && drops(ar.id).length && mailsTo(fr).length && mailsTo(ar).length);
 
+  // Notifications WS : immédiates
+  await settle(() => drops(fr.id).length && drops(ar.id).length);
   const nFr = drops(fr.id);
   assert.equal(nFr.length, 1);
   assert.equal(nFr[0].link_id, id);
@@ -67,10 +69,28 @@ test('baisse de 10 % : notification et email aux favoris, dans leur langue ; pas
   assert.match(nAr.title, ARABIC);
   assert.match(nAr.body, /د\.ج/);
 
-  assert.match(mailsTo(fr)[0].subject, /Prix en baisse \(−10 %\)/);
+  // Emails : mis en file d'attente (digest quotidien)
+  const queue = (await q('SELECT user_id FROM price_drop_queue WHERE property_id = $1', [id])).rows;
+  assert.equal(queue.filter(e => e.user_id === fr.id).length, 1, 'fr en file');
+  assert.equal(queue.filter(e => e.user_id === ar.id).length, 1, 'ar en file');
+  assert.equal(queue.filter(e => e.user_id === owner.id).length, 0, 'propriétaire pas en file');
+  assert.equal(queue.filter(e => e.user_id === muet.id).length, 0, 'alerte coupée pas en file');
+  assert.equal(queue.filter(e => e.user_id === sansEmail.id).length, 0, 'sans email confirmé pas en file');
+
+  // Envoi du digest : un email par membre, dans sa langue
+  const { sendPriceDropDigest } = require('../../server/price-drop');
+  const sent = await sendPriceDropDigest();
+  assert.equal(sent, 2, 'deux membres prévenus par digest (fr et ar)');
+  assert.equal(mailsTo(fr).length, 1, 'email fr envoyé');
+  assert.equal(mailsTo(ar).length, 1, 'email ar envoyé');
+  assert.match(mailsTo(fr)[0].subject, /baisse.*favoris/);
   assert.match(mailsTo(fr)[0].html, /\/annonce\/\d+-appartement-en-baisse/);
   assert.match(mailsTo(ar)[0].subject, ARABIC);
   assert.match(mailsTo(ar)[0].html, /\/ar\/annonce\/\d+-/, 'lien vers la version arabe');
+
+  // La file est vidée après l'envoi
+  const queueAfter = (await q('SELECT id FROM price_drop_queue WHERE property_id = $1', [id])).rows;
+  assert.equal(queueAfter.length, 0, 'file vidée après digest');
 
   await pause(150);
   assert.equal(drops(owner.id).length, 0, 'propriétaire');

@@ -322,7 +322,7 @@ router.get('/featured', async (req, res) => {
       u.name AS owner_name, u.phone AS owner_phone, u.avatar AS owner_avatar, u.verified_kind AS owner_verified_kind,
       a.name AS agency_name, a.logo AS agency_logo, a.phone AS agency_phone,
       COALESCE(a.verified, false) AS agency_verified, a.kind AS agency_kind
-    FROM (SELECT p.* FROM properties p WHERE ${conds.join(' AND ')} ORDER BY random() LIMIT ${limit}) p
+    FROM (SELECT p.* FROM properties p WHERE ${conds.join(' AND ')} ORDER BY random() * GREATEST(EXTRACT(EPOCH FROM (p.featured_until - NOW())), 1) DESC LIMIT ${limit}) p
     LEFT JOIN users    u ON u.id = p.owner_id
     LEFT JOIN agencies a ON a.id = p.agency_id`, params);
   res.json({ data: rows });

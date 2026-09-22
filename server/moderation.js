@@ -69,6 +69,22 @@ async function notifyOwnerDecision(property, approved, reason) {
   }).catch(() => {});
 }
 
+// Prévient les administrateurs qu'une annonce refusée avait une mise à la une payante → remboursement manuel.
+async function notifyAdminsFeaturedRefund(property) {
+  const promo = (await db.pool.query(
+    `SELECT amount, days FROM promotions WHERE property_id = $1 AND status = 'paid' AND provider != 'admin' ORDER BY paid_at DESC LIMIT 1`,
+    [property.id])).rows[0];
+  if (!promo) return;
+  const admins = (await db.pool.query('SELECT id, email, lang FROM users WHERE is_admin = true AND banned = false')).rows;
+  for (const a of admins) {
+    mailer.mailFeaturedRefundAlert({
+      to: a.email, lang: a.lang, propertyTitle: property.title,
+      days: promo.days, amount: promo.amount, featuredUntil: property.featured_until,
+      url: `${siteUrl()}/`,
+    }).catch(() => {});
+  }
+}
+
 // Décision d'un administrateur (approbation ou refus avec motif) : commune à la file de modération et aux signalements.
 // Les signalements encore en attente sur l'annonce sont classés du même coup : sans suite si elle est approuvée, fondés si elle est refusée.
 async function decide(property, approve, motif, adminId) {
@@ -89,6 +105,9 @@ async function decide(property, approve, motif, adminId) {
   // Le propriétaire n'est prévenu que si l'annonce change d'état
   if (property.status !== status) notifyOwnerDecision(property, approve, motif).catch(() => {});
   if (approve) require('./search-alerts').notifyMatchingAlerts({ ...property, status: 'active' }).catch(() => {});
+  // Mise à la une payante encore active sur une annonce refusée → alerter les admins pour le remboursement
+  if (!approve && property.featured_until && new Date(property.featured_until) > new Date())
+    notifyAdminsFeaturedRefund(property).catch(() => {});
   return status;
 }
 

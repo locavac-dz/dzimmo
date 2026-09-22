@@ -4,6 +4,7 @@ const { sendSearchAlerts } = require('./alerts-job');
 const { guard, alert } = require('./monitor');
 const backup = require('./backup');
 const { sendVisitReminders } = require('./visit-reminders');
+const { sendPriceDropDigest } = require('./price-drop');
 
 // Chaque tâche est entourée de guard() : une erreur est journalisée ET signalée par email (server/monitor.js, une alerte par heure
 // et par tâche), au lieu de n'apparaître que dans des journaux que personne ne lit.
@@ -48,6 +49,12 @@ cron.schedule('45 3 * * *', guard('purge de la newsletter', async () => {
 cron.schedule('0 8 * * *', guard('rappels de visite', async () => {
   const n = await sendVisitReminders();
   if (n) console.log(`[cron] ${n} rappel(s) de visite envoyé(s).`);
+}));
+
+// Résumé quotidien des baisses de prix : un seul email par membre avec la liste de ses favoris en baisse
+cron.schedule('0 18 * * *', guard('résumé baisses de prix', async () => {
+  const n = await sendPriceDropDigest();
+  if (n) console.log(`[cron] ${n} résumé(s) de baisse de prix envoyé(s).`);
 }));
 
 // Envoi des alertes email — toutes les heures

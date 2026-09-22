@@ -63,10 +63,49 @@ async function notifyDrop(propertyId, oldPrice, newPrice, lowest) {
       ...notif(lang, 'price_drop', { title: p.title, price: money(lang, newPrice), percent: info.percent }),
       link_id: p.id, time: new Date().toISOString() });
     if (u.email_verified)
-      await mailer.mailPriceDrop({ to: u.email, lang, name: u.name, propertyTitle: p.title, oldPrice: Number(oldPrice), newPrice: Number(newPrice),
-        percent: info.percent, url: `${mailer.siteUrl()}${seo.localized(lang, path)}` }).catch(() => {});
+      await db.pool.query(
+        `INSERT INTO price_drop_queue (user_id, property_id, old_price, new_price, percent) VALUES ($1,$2,$3,$4,$5)`,
+        [u.id, p.id, Number(oldPrice), Number(newPrice), info.percent]).catch(() => {});
   }
   return followers.length;
 }
 
-module.exports = { MIN_PERCENT, COOLDOWN_DAYS, LOOKBACK_DAYS, MAX_RECIPIENTS, dropInfo, lowestRecent, notifyDrop, money };
+// Résumé quotidien : lit la file, envoie un email par utilisateur (regroupant toutes ses baisses), purge les entrées envoyées.
+// Retourne le nombre de membres prévenus.
+async function sendPriceDropDigest() {
+  const seo = require('./seo');
+  const rows = (await db.pool.query(`
+    SELECT q.id, q.user_id, q.property_id, q.old_price, q.new_price, q.percent,
+           u.name, u.email, u.lang,
+           p.id AS pid, p.title AS property_title, p.mode, p.wilaya, p.type_bien
+      FROM price_drop_queue q
+      JOIN users u ON u.id = q.user_id
+      JOIN properties p ON p.id = q.property_id
+     WHERE u.banned = false AND u.notify_price_drop = true`)).rows;
+  if (!rows.length) return 0;
+
+  const byUser = {};
+  for (const r of rows) {
+    (byUser[r.user_id] ??= { name: r.name, email: r.email, lang: normalize(r.lang), drops: [], ids: [] }).drops.push(r);
+    byUser[r.user_id].ids.push(r.id);
+  }
+
+  let sent = 0;
+  for (const { name, email, lang, drops, ids } of Object.values(byUser)) {
+    const dropData = drops.map(d => ({
+      propertyTitle: d.property_title,
+      oldPrice: d.old_price,
+      newPrice: d.new_price,
+      percent: d.percent,
+      url: `${mailer.siteUrl()}${seo.localized(lang, seo.propertyPath({ id: d.property_id, title: d.property_title, type_bien: d.type_bien, mode: d.mode, wilaya: d.wilaya }))}`,
+    }));
+    const ok = await mailer.mailPriceDropDigest({ to: email, lang, name, drops: dropData }).catch(() => false);
+    if (ok !== false) {
+      await db.pool.query(`DELETE FROM price_drop_queue WHERE id = ANY($1)`, [ids]).catch(() => {});
+      sent++;
+    }
+  }
+  return sent;
+}
+
+module.exports = { MIN_PERCENT, COOLDOWN_DAYS, LOOKBACK_DAYS, MAX_RECIPIENTS, dropInfo, lowestRecent, notifyDrop, sendPriceDropDigest, money };

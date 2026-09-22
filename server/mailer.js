@@ -405,6 +405,47 @@ function buildListingExpired(lang, { name, propertyTitle, renewUrl }) {
   };
 }
 
+// Reçu de mise à la une (server/featured.js, activate()) : envoyé au propriétaire dès que le paiement est confirmé.
+function buildFeaturedReceipt(lang, { name, propertyTitle, days, amount, featuredUntil, url }) {
+  const d = Number(days);
+  const daysLabel = pick(lang,
+    `${d} ${d > 1 ? 'jours' : 'jour'}`,
+    d === 1 ? 'يوم' : d === 2 ? 'يومان' : `${d} أيام`);
+  const until = new Date(featuredUntil).toLocaleDateString(lang === 'ar' ? 'ar-DZ' : 'fr-DZ',
+    { day: 'numeric', month: 'long', year: 'numeric' });
+  const amt = `${fmt(amount)} ${ui(lang).dzd}`;
+  return {
+    subject: pick(lang, `⭐ Votre annonce est à la une — DzImmo`, `⭐ إعلانك مميَّز الآن — DzImmo`),
+    html: wrap(`
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Votre annonce est à la une ! ⭐', '⭐ إعلانك مميَّز الآن!')}</h2>
+      <p>${ui(lang).hello} <strong>${esc(name)}</strong>${pick(lang, ',', '،')}</p>
+      <p>${pick(lang,
+        `L'annonce <strong>${esc(propertyTitle)}</strong> est mise à la une pour <strong>${esc(daysLabel)}</strong>, jusqu'au ${esc(until)}.`,
+        `تم تمييز إعلانك <strong>${esc(propertyTitle)}</strong> لمدة <strong>${esc(daysLabel)}</strong> حتى ${esc(until)}.`)}</p>
+      <p style="color:#666">${pick(lang, `Montant réglé : ${amt}`, `المبلغ المدفوع : ${amt}`)}</p>
+      ${centered(button(url, pick(lang, 'Voir mon annonce', 'عرض إعلاني'), lang))}
+    `, lang),
+  };
+}
+
+// Alerte aux administrateurs : une annonce refusée avait une mise à la une payante en cours → remboursement manuel.
+function buildFeaturedRefundAlert(lang, { propertyTitle, days, amount, featuredUntil, url }) {
+  const until = new Date(featuredUntil).toLocaleDateString(lang === 'ar' ? 'ar-DZ' : 'fr-DZ',
+    { day: 'numeric', month: 'long', year: 'numeric' });
+  const amt = `${fmt(amount)} ${ui(lang).dzd}`;
+  return {
+    subject: pick(lang, `⚠️ Annonce à la une refusée — remboursement à traiter`, `⚠️ إعلان مميَّز مرفوض — يجب معالجة الاسترداد`),
+    html: wrap(`
+      <h2 style="color:#b91c1c;margin-top:0">${pick(lang, 'Remboursement à traiter ⚠️', 'يجب معالجة الاسترداد ⚠️')}</h2>
+      <p>${pick(lang,
+        `L'annonce <strong>${esc(propertyTitle)}</strong> a été <strong>refusée</strong> alors qu'une mise à la une payante (${Number(days)} j, ${amt}) est active jusqu'au ${esc(until)}.`,
+        `تم <strong>رفض</strong> الإعلان <strong>${esc(propertyTitle)}</strong> بينما الإعلان المميَّز (${Number(days)} أيام، ${amt}) نشط حتى ${esc(until)}.`)}</p>
+      <p>${pick(lang, 'Traitez le remboursement manuellement.', 'عالج الاسترداد يدوياً.')}</p>
+      ${centered(button(url, pick(lang, "Ouvrir l'administration", 'فتح الإدارة'), lang))}
+    `, lang),
+  };
+}
+
 // Baisse de prix d'une annonce en favoris (server/price-drop.js). Les prix et le pourcentage arrivent en nombres : tout est forcé en nombre.
 function buildPriceDrop(lang, { name, propertyTitle, oldPrice, newPrice, percent, url }) {
   const u = ui(lang);
@@ -482,6 +523,39 @@ function buildNewsletter(lang, { subject, body, unsubscribeUrl }) {
         'Vous recevez cet email car vous êtes inscrit(e) à la newsletter de DzImmo.',
         'تصلك هذه الرسالة لأنك مشترك في النشرة البريدية لـ DzImmo.')}
         <a href="${esc(unsubscribeUrl)}" style="color:#0C6E4F">${pick(lang, 'Me désinscrire', 'إلغاء الاشتراك')}</a></p>
+    `, lang),
+  };
+}
+
+// Résumé quotidien des baisses de prix sur les favoris (server/price-drop.js, sendPriceDropDigest).
+// `drops` : tableau de { propertyTitle, oldPrice, newPrice, percent, url }.
+function buildPriceDropDigest(lang, { name, drops }) {
+  const rows = drops.map(d => {
+    const pct = Number(d.percent);
+    const cur = ui(lang).dzd;
+    return `<tr>
+      <td style="padding:.35rem .7rem"><a href="${esc(d.url)}" style="color:#0C6E4F;text-decoration:none">${esc(d.propertyTitle)}</a></td>
+      <td style="padding:.35rem .7rem;text-align:center;color:#0C6E4F;font-weight:700">↓ ${pct}%</td>
+      <td style="padding:.35rem .7rem;text-decoration:line-through;color:#999">${fmt(d.oldPrice)} ${cur}</td>
+      <td style="padding:.35rem .7rem;font-weight:700;color:#0C6E4F">${fmt(d.newPrice)} ${cur}</td>
+    </tr>`;
+  }).join('');
+  const n = drops.length;
+  return {
+    subject: pick(lang,
+      `📉 ${n} baisse${n > 1 ? 's' : ''} de prix sur vos favoris — DzImmo`,
+      `📉 ${n} انخفاض${n > 2 ? 'ات' : (n === 2 ? 'ان' : '')} في مفضلتك — DzImmo`),
+    html: wrap(`
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Baisses de prix du jour 📉', 'تخفيضات أسعار اليوم 📉')}</h2>
+      <p>${ui(lang).hello} <strong>${esc(name)}</strong>${pick(lang, ',', '،')}</p>
+      <p>${pick(lang, 'Ces biens de vos favoris ont baissé leur prix :', 'انخفضت أسعار هذه العقارات من مفضلتك:')}</p>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:14px">${rows}</table>
+      </div>
+      ${centered(button(`${siteUrl()}/#favoris`, pick(lang, 'Voir mes favoris', 'عرض المفضلة'), lang))}
+      <p style="font-size:.8rem;color:#aaa;margin-top:1.5rem">${pick(lang,
+        'Vous recevez cet email car ces annonces sont dans vos favoris. Pour couper les alertes, décochez « Alertes de baisse de prix » dans Mon compte → Profil.',
+        'تصلك هذه الرسالة لأن هذه الإعلانات في مفضلتك. لإيقاف التنبيهات ألغِ تحديد «تنبيهات انخفاض الأسعار» في حسابي.')}</p>
     `, lang),
   };
 }
@@ -579,8 +653,11 @@ function buildSecurityNotice(lang, { name, event }) {
   };
 }
 
-const mailAlert = d => send(d.to, buildAlert(d.lang, d));
-const mailPriceDrop = d => send(d.to, buildPriceDrop(d.lang, d));
+const mailAlert             = d => send(d.to, buildAlert(d.lang, d));
+const mailPriceDrop         = d => send(d.to, buildPriceDrop(d.lang, d));
+const mailFeaturedReceipt   = d => send(d.to, buildFeaturedReceipt(d.lang, d));
+const mailFeaturedRefundAlert = d => send(d.to, buildFeaturedRefundAlert(d.lang, d));
+const mailPriceDropDigest   = d => send(d.to, buildPriceDropDigest(d.lang, d));
 const mailSecurityNotice = d => send(d.to, buildSecurityNotice(d.lang, d));
 const mailListingReported = d => send(d.to, buildListingReported(d.lang, d));
 const mailAdminReported = d => send(d.to, buildAdminReported(d.lang, d));
@@ -604,9 +681,11 @@ module.exports = {
   mailContactRequest, mailVisitReminder, mailNewMessage, mailSearchAlert,
   mailModerationDecision, mailAdminPending, mailVerificationDecision, mailAdminVerificationPending,
   mailExpiryReminder, mailListingExpired, mailListingReported, mailAdminReported, mailAlert, mailPriceDrop, mailSecurityNotice, mailSiteContact, mailNewsletterConfirm, mailNewsletter, CONTACT_SUBJECTS,
+  mailFeaturedReceipt, mailFeaturedRefundAlert, mailPriceDropDigest,
   // gabarits purs (tests)
   build: { buildWelcome, buildVerifyEmail, buildPasswordReset, buildContactRequest, buildNewMessage,
            buildSearchAlert, buildModerationDecision, buildAdminPending,
            buildVerificationDecision, buildAdminVerificationPending, buildExpiryReminder, buildListingExpired, buildSiteContact, buildNewsletterConfirm, buildNewsletter,
-           buildListingReported, buildAdminReported, buildAlert, buildPriceDrop, buildSecurityNotice, buildVisitReminder },
+           buildListingReported, buildAdminReported, buildAlert, buildPriceDrop, buildSecurityNotice, buildVisitReminder,
+           buildFeaturedReceipt, buildFeaturedRefundAlert, buildPriceDropDigest },
 };

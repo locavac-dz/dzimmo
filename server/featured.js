@@ -4,6 +4,7 @@
 
 const { pool } = require('./db');
 const payments = require('./payments');
+const mailer   = require('./mailer');
 
 const DEFAULT_PRICES = '7:1500,15:2500,30:4000';   // jours:prix en DZD
 const MAX_DAYS = 365;
@@ -31,14 +32,27 @@ function enabled(env = process.env) {
 const EXTEND = `UPDATE properties SET featured_until = GREATEST(COALESCE(featured_until, now()), now()) + ($2::int * interval '1 day')
                  WHERE id = $1 RETURNING featured_until`;
 
-// Paiement confirmé : la promotion passe de « pending » à « paid » (une seule fois, même si la confirmation arrive deux fois) et prolonge l'annonce
+// Paiement confirmé : la promotion passe de « pending » à « paid » (une seule fois, même si la confirmation arrive deux fois) et prolonge l'annonce.
+// Un email de reçu est envoyé au propriétaire (sans bloquer la réponse).
 async function activate(promotionId) {
   const done = await pool.query(
-    `UPDATE promotions SET status = 'paid', paid_at = now() WHERE id = $1 AND status = 'pending' RETURNING property_id, days`, [promotionId]);
+    `UPDATE promotions SET status = 'paid', paid_at = now() WHERE id = $1 AND status = 'pending' RETURNING property_id, days, amount`, [promotionId]);
   if (!done.rows[0]) return null;
-  const { property_id, days } = done.rows[0];
+  const { property_id, days, amount } = done.rows[0];
   const r = await pool.query(EXTEND, [property_id, days]);
-  return r.rows[0] ? r.rows[0].featured_until : null;
+  if (!r.rows[0]) return null;
+  const featuredUntil = r.rows[0].featured_until;
+  pool.query(
+    `SELECT u.email, u.lang, u.name, p.title FROM properties p JOIN users u ON u.id = p.owner_id WHERE p.id = $1`,
+    [property_id]).then(({ rows }) => {
+    const info = rows[0];
+    if (!info) return;
+    mailer.mailFeaturedReceipt({
+      to: info.email, lang: info.lang, name: info.name, propertyTitle: info.title,
+      days, amount, featuredUntil, url: `${mailer.siteUrl()}/annonce/${property_id}`,
+    }).catch(() => {});
+  }).catch(() => {});
+  return featuredUntil;
 }
 
 // Attribution par un administrateur : days > 0 prolonge (offert, historisé à 0 DZD), days = 0 retire la mise à la une
