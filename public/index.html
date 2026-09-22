@@ -264,6 +264,17 @@
         <button class="btn btn-outline" onclick="createAlertFromFilters()" style="align-self:end" data-i18n="btn_create_alert">🔔 Créer une alerte</button>
         <button class="btn btn-outline" id="btn-near-me" onclick="nearMe()" style="align-self:end;white-space:nowrap" data-i18n="near_me">📍 Près de moi</button>
       </div>
+      <div id="f-features-row" style="margin-top:.65rem;display:flex;flex-wrap:wrap;align-items:center;gap:.4rem">
+        <span data-i18n="filter_features" style="font-size:.78rem;font-weight:600;color:var(--text-muted);white-space:nowrap">Équipements :</span>
+        <button type="button" class="f-feat-btn" data-v="meuble"        onclick="toggleFeatFilter(this)"></button>
+        <button type="button" class="f-feat-btn" data-v="parking"       onclick="toggleFeatFilter(this)"></button>
+        <button type="button" class="f-feat-btn" data-v="balcon"        onclick="toggleFeatFilter(this)"></button>
+        <button type="button" class="f-feat-btn" data-v="ascenseur"     onclick="toggleFeatFilter(this)"></button>
+        <button type="button" class="f-feat-btn" data-v="piscine"       onclick="toggleFeatFilter(this)"></button>
+        <button type="button" class="f-feat-btn" data-v="jardin"        onclick="toggleFeatFilter(this)"></button>
+        <button type="button" class="f-feat-btn" data-v="wifi"          onclick="toggleFeatFilter(this)"></button>
+        <button type="button" class="f-feat-btn" data-v="climatisation" onclick="toggleFeatFilter(this)"></button>
+      </div>
       <div id="near-me-badge" style="display:none;margin-top:.6rem;font-size:.82rem;color:var(--primary-text);font-weight:600">
         <span data-i18n="near_me_results">📍 Résultats près de :</span> <span id="near-me-label"></span>
         <button onclick="clearNearMe()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.85rem;margin-left:.4rem" data-i18n="near_me_clear">✕ Retirer</button>

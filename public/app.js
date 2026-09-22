@@ -289,6 +289,7 @@ const TRANSLATIONS = {
     filter_wilaya:'Wilaya', filter_mode:'Mode', filter_type:'Type',
     filter_price_min:'Prix min (DZD)', filter_price_max:'Prix max (DZD)', filter_rooms:'Pièces min',
     filter_surf_min:'Surface min (m²)', filter_no_limit:'Sans limite', opt_more:'+',
+    filter_features:'Équipements :',
     cgu_sub:'Dernière mise à jour : 1er janvier 2026',
     cgu_h1:'1. Objet', cgu_h2:"2. Accès et inscription", cgu_h3:"3. Publication d'annonces",
     cgu_h4:'4. Responsabilité', cgu_h5:'5. Propriété intellectuelle',
@@ -701,6 +702,7 @@ const TRANSLATIONS = {
     filter_wilaya:'الولاية', filter_mode:'النوع', filter_type:'نوع العقار',
     filter_price_min:'السعر الأدنى (د.ج)', filter_price_max:'السعر الأقصى (د.ج)', filter_rooms:'الغرف الدنيا',
     filter_surf_min:'أدنى مساحة (م²)', filter_no_limit:'بدون حد', opt_more:' فأكثر',
+    filter_features:'التجهيزات :',
     cgu_sub:'آخر تحديث: 1 يناير 2026',
     cgu_h1:'1. الموضوع', cgu_h2:'2. الوصول والتسجيل', cgu_h3:'3. نشر الإعلانات',
     cgu_h4:'4. المسؤولية', cgu_h5:'5. الملكية الفكرية',
@@ -925,6 +927,8 @@ function rebuildSelects() {
   // à gauche inverse les groupes de chiffres : « 50 000 000 » s'affichait « 000 000 50 » en arabe.
   document.querySelectorAll('#f-min-price option:not([value=""]), #f-max-price option:not([value=""])')
     .forEach(o => { o.textContent = formatPrice(o.value); });
+  // Labels des boutons de filtre équipements (traduits selon la langue courante)
+  document.querySelectorAll('.f-feat-btn[data-v]').forEach(b => { b.textContent = T('feat_' + b.dataset.v); });
 }
 
 // ── Wilayas d'Algérie — 69 wilayas (loi n°26-06 du 4 avril 2026)
@@ -1073,6 +1077,13 @@ async function init() {
     set('f-min-surface', params.get('f-min-surface'));
     set('f-q',           params.get('f-q'));
     set('f-sort',        params.get('f-sort'));
+    const featsParam = params.get('f-features');
+    if (featsParam) {
+      const feats = featsParam.split(',');
+      document.querySelectorAll('.f-feat-btn[data-v]').forEach(b => {
+        if (feats.includes(b.dataset.v)) b.classList.add('active');
+      });
+    }
     showPage('annonces');
     loadAnnonces(Number(params.get('p')) || 1);
   }
@@ -1374,6 +1385,19 @@ function setCommune(slug, label) {
 }
 function clearCommune() { setCommune(null); loadAnnonces(); }
 
+// ── Filtre équipements ──────────────────────────────────────────────────
+// Les labels des boutons sont renseignés par rebuildSelects() car ils dépendent de la langue.
+function toggleFeatFilter(btn) {
+  btn.classList.toggle('active');
+  loadAnnonces();
+}
+function getActiveFeats() {
+  return Array.from(document.querySelectorAll('.f-feat-btn.active')).map(b => b.dataset.v);
+}
+function clearFeatFilters() {
+  document.querySelectorAll('.f-feat-btn.active').forEach(b => b.classList.remove('active'));
+}
+
 // Les liens et titres rendus par le serveur (data-seo-*) suivent la langue choisie
 function relabelSeo() {
   document.querySelectorAll('[data-seo-m]').forEach(el => {
@@ -1542,6 +1566,8 @@ async function loadAnnonces(page = 1) {
   if (get('f-min-surface')) params.set('min_surface', get('f-min-surface'));
   if (get('f-q'))           params.set('q',           get('f-q'));
   if (get('f-sort'))        params.set('sort',        get('f-sort'));
+  const activeFeats = getActiveFeats();
+  if (activeFeats.length) params.set('features', activeFeats.join(','));
 
   // Persister les filtres dans l'URL (partage de recherche)
   const urlParams = new URLSearchParams();
@@ -1550,11 +1576,13 @@ async function loadAnnonces(page = 1) {
     const v = get(id);
     if (v) urlParams.set(id, v);
   });
+  if (activeFeats.length) urlParams.set('f-features', activeFeats.join(','));
   if (_commune && get('f-wilaya')) urlParams.set('f-commune', _commune.slug);
   if (page > 1) urlParams.set('p', page);
-  // Seuls mode / type / wilaya (+ commune) (tri par défaut, page 1) : URL indexable /vente/appartements/oran
+  // Seuls mode / type / wilaya (+ commune) (tri par défaut, page 1, sans autres filtres) : URL indexable /vente/appartements/oran
   const landingOnly = get('f-mode') && page === 1 && (!get('f-sort') || get('f-sort') === 'date_desc')
-    && !['f-min-price', 'f-max-price', 'f-rooms', 'f-min-surface', 'f-q'].some(id => get(id));
+    && !['f-min-price', 'f-max-price', 'f-rooms', 'f-min-surface', 'f-q'].some(id => get(id))
+    && !activeFeats.length;
   if (landingOnly) {
     const commune = get('f-wilaya') && _commune ? _commune : null;
     history.replaceState(null, '', langPath(landingPath(get('f-mode'), get('f-type'), get('f-wilaya'), commune?.slug)));

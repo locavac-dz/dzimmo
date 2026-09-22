@@ -95,7 +95,7 @@ async function affiliation(user, body, current = {}) {
 router.get('/', optionalAuth, async (req, res) => {
   const { wilaya, commune, mode, type_bien, min_price, max_price,
           min_surface, max_surface, rooms, q, status,
-          page, limit: limitQ, sort } = req.query;
+          page, limit: limitQ, sort, features: featuresQ } = req.query;
 
   // Les annonces en attente / refusées / archivées ne sont pas listables publiquement
   if (status && !STATUTS_PUBLICS.includes(status) && !req.user?.is_admin)
@@ -134,6 +134,11 @@ router.get('/', optionalAuth, async (req, res) => {
   if (num(min_surface) !== null) add('p.surface_m2 >= ?', num(min_surface));
   if (num(max_surface) !== null) add('p.surface_m2 <= ?', num(max_surface));
   if (num(rooms)       !== null) add('p.rooms >= ?',      Math.min(1000, Math.ceil(num(rooms)))); // colonne entière
+  // Filtre équipements : p.features doit contenir TOUS les équipements demandés (opérateur @> sur JSONB)
+  if (typeof featuresQ === 'string' && featuresQ.trim()) {
+    const feats = featuresQ.split(',').map(f => f.trim()).filter(f => FEATURES_VALIDES.includes(f));
+    if (feats.length) add('p.features @> ?::jsonb', JSON.stringify(feats));
+  }
   // Recherche tolérante (accents, arabe, français ↔ arabe) : chaque mot de la requête doit figurer dans le texte de recherche de l'annonce
   // (server/search.js). Requête sans mot cherchable (« % » seul) : recherche brute comme avant ; vide ou non textuelle : ignorée.
   const text = search.condition(q, 's.text', ['p.title', 'p.commune', 'p.wilaya', 'p.description'], v => { params.push(v); return '$' + idx++; });

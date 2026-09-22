@@ -968,3 +968,18 @@
 
 /* Lien « Imprimer la fiche » de la fiche d'une annonce (page servie par server/fiche.js) */
 .print-link { display: flex; align-items: center; justify-content: center; margin-top: .5rem; text-decoration: none; }
+
+/* ── Filtre équipements (barre de recherche) ─────────────────────────── */
+.f-feat-btn {
+  background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 20px; padding: .22rem .7rem;
+  font-size: .78rem; cursor: pointer; color: var(--text-muted);
+  transition: all .15s; white-space: nowrap; user-select: none;
+}
+.f-feat-btn.active {
+  background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .f-feat-btn { background: var(--card); }
+}
+:root[data-theme="dark"] .f-feat-btn { background: var(--card); }
