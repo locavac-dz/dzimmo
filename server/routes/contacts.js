@@ -7,11 +7,15 @@ const { notif } = require('../messages');
 
 const TYPES_VALIDES   = ['visite', 'info', 'offre'];
 const STATUTS_VALIDES = ['pending', 'confirmed', 'rejected', 'done'];
+const TIME_RE         = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
 
 // GET /api/contacts/mine — demandes envoyées par l'utilisateur
 router.get('/mine', auth, async (req, res) => {
   const r = await db.pool.query(
-    `SELECT c.*, COALESCE(p.title, '') AS property_title, COALESCE(p.image, '') AS property_image
+    `SELECT c.id, c.property_id, c.user_id, c.type, c.message,
+            c.visit_date::text AS visit_date, c.visit_time,
+            c.offer_amount, c.status, c.created_at,
+            COALESCE(p.title, '') AS property_title, COALESCE(p.image, '') AS property_image
        FROM contact_requests c
        LEFT JOIN properties p ON p.id = c.property_id
       WHERE c.user_id = $1
@@ -22,7 +26,10 @@ router.get('/mine', auth, async (req, res) => {
 // GET /api/contacts/received — demandes reçues sur les annonces du propriétaire
 router.get('/received', auth, async (req, res) => {
   const r = await db.pool.query(
-    `SELECT c.*, COALESCE(p.title, '') AS property_title, COALESCE(p.image, '') AS property_image,
+    `SELECT c.id, c.property_id, c.user_id, c.type, c.message,
+            c.visit_date::text AS visit_date, c.visit_time,
+            c.offer_amount, c.status, c.created_at,
+            COALESCE(p.title, '') AS property_title, COALESCE(p.image, '') AS property_image,
             COALESCE(u.name, 'Inconnu') AS requester_name, u.phone AS requester_phone
        FROM contact_requests c
        JOIN properties p ON p.id = c.property_id AND p.owner_id = $1
@@ -33,7 +40,7 @@ router.get('/received', auth, async (req, res) => {
 
 // POST /api/contacts — envoyer une demande de contact
 router.post('/', auth, async (req, res) => {
-  const { property_id, type, message, visit_date, offer_amount } = req.body;
+  const { property_id, type, message, visit_date, visit_time, offer_amount } = req.body;
   if (!property_id || !type) return res.status(400).json({ error: 'Annonce et type requis.' });
   if (!TYPES_VALIDES.includes(type)) return res.status(400).json({ error: 'Type invalide.' });
 
@@ -48,11 +55,17 @@ router.post('/', auth, async (req, res) => {
   if (type === 'offre' && !offer_amount)
     return res.status(400).json({ error: 'Montant de l\'offre requis.' });
 
+  const cleanTime = (type === 'visite' && typeof visit_time === 'string' && TIME_RE.test(visit_time.trim()))
+    ? visit_time.trim() : null;
+  if (type === 'visite' && visit_time && !cleanTime)
+    return res.status(400).json({ error: 'Heure de visite invalide.' });
+
   const request = await db.contact_requests.insert({
     property_id: Number(property_id), user_id: req.user.id,
     type, message: message || null,
-    visit_date:   visit_date    || null,
-    offer_amount: offer_amount  ? Number(offer_amount) : null,
+    visit_date:   visit_date  || null,
+    visit_time:   cleanTime,
+    offer_amount: offer_amount ? Number(offer_amount) : null,
     status: 'pending',
   });
 
@@ -61,7 +74,7 @@ router.post('/', auth, async (req, res) => {
     mailer.mailContactRequest({
       ownerName:    owner.name, ownerEmail: owner.email, lang: owner.lang,
       requesterName: requester.name, propertyTitle: property.title,
-      type, message, visitDate: visit_date, offerAmount: offer_amount,
+      type, message, visitDate: visit_date, visitTime: cleanTime, offerAmount: offer_amount,
     });
   }
 

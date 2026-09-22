@@ -3,6 +3,7 @@ const { pool } = require('./db');
 const { sendSearchAlerts } = require('./alerts-job');
 const { guard, alert } = require('./monitor');
 const backup = require('./backup');
+const { sendVisitReminders } = require('./visit-reminders');
 
 // Chaque tâche est entourée de guard() : une erreur est journalisée ET signalée par email (server/monitor.js, une alerte par heure
 // et par tâche), au lieu de n'apparaître que dans des journaux que personne ne lit.
@@ -41,6 +42,12 @@ cron.schedule('* * * * *', guard('newsletter', async () => {
 cron.schedule('45 3 * * *', guard('purge de la newsletter', async () => {
   const n = await require('./newsletter').purgeUnconfirmed();
   if (n) console.log(`[cron] newsletter : ${n} inscription(s) non confirmée(s) effacée(s).`);
+}));
+
+// Rappels de visite J-1 : visites confirmées prévues demain
+cron.schedule('0 8 * * *', guard('rappels de visite', async () => {
+  const n = await sendVisitReminders();
+  if (n) console.log(`[cron] ${n} rappel(s) de visite envoyé(s).`);
 }));
 
 // Envoi des alertes email — toutes les heures

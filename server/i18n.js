@@ -5,6 +5,16 @@
 // Le test tests/unit/i18n-errors.test.js vérifie que chaque message du serveur figure ici.
 
 const AR = {
+  // Demandes de contact et visites
+  'Annonce et type requis.': 'الإعلان والنوع مطلوبان.',
+  'Type invalide.': 'النوع غير صالح.',
+  'Vous ne pouvez pas contacter votre propre annonce.': 'لا يمكنك الاتصال بإعلانك الخاص.',
+  'Date de visite requise.': 'تاريخ الزيارة مطلوب.',
+  'Heure de visite invalide.': 'وقت الزيارة غير صالح.',
+  "Montant de l'offre requis.": 'مبلغ العرض مطلوب.',
+  'Demande introuvable.': 'الطلب غير موجود.',
+  'Statut invalide.': 'الحالة غير صالحة.',
+
   // Limitation de débit, CAPTCHA et erreurs générales
   'Trop de tentatives. Réessayez dans 15 minutes.': 'محاولات كثيرة جداً. أعد المحاولة بعد 15 دقيقة.',
   'Vérification anti-spam échouée. Réessayez.': 'فشل التحقق الأمني. أعد المحاولة.',

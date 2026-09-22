@@ -66,7 +66,8 @@ const TRANSLATIONS = {
     det_reviews:'Avis', det_anon:'Anonyme', det_agency:'Agence immobilière', det_private:'Particulier',
     det_contact:'Contacter le vendeur', det_req_type:'Type de demande',
     det_opt_info:"Demande d'information", det_opt_visit:'Demander une visite', det_opt_offer:'Faire une offre de prix',
-    det_visit_date:'Date de visite souhaitée', det_offer_amount:"Montant de l'offre (DZD)",
+    det_visit_date:'Date de visite souhaitée', det_visit_time:'Heure souhaitée', det_visit_time_none:'Sans préférence',
+    det_offer_amount:"Montant de l'offre (DZD)",
     det_msg:'Message', det_msg_ph:'Votre message…', det_send_req:'Envoyer la demande', det_send_msg:'💬 Envoyer un message',
     det_call:'Appeler', det_whatsapp:'WhatsApp', det_wa_msg:"Bonjour, votre annonce « {title} » sur DzImmo m'intéresse : {url}",
     det_login_hint:'Connectez-vous pour contacter le vendeur', det_login:'Se connecter',
@@ -460,7 +461,8 @@ const TRANSLATIONS = {
     det_reviews:'التقييمات', det_anon:'مجهول', det_agency:'وكالة عقارية', det_private:'فرد',
     det_contact:'تواصل مع البائع', det_req_type:'نوع الطلب',
     det_opt_info:'طلب معلومات', det_opt_visit:'طلب زيارة', det_opt_offer:'تقديم عرض سعر',
-    det_visit_date:'تاريخ الزيارة المطلوب', det_offer_amount:'مبلغ العرض (د.ج)',
+    det_visit_date:'تاريخ الزيارة المطلوب', det_visit_time:'الوقت المفضل', det_visit_time_none:'بدون تفضيل',
+    det_offer_amount:'مبلغ العرض (د.ج)',
     det_msg:'الرسالة', det_msg_ph:'رسالتك…', det_send_req:'إرسال الطلب', det_call:'اتصال', det_whatsapp:'واتساب', det_wa_msg:'السلام عليكم، أنا مهتم بإعلانكم «{title}» على DzImmo: {url}',
     det_send_msg:'💬 إرسال رسالة',
     det_login_hint:'سجّل الدخول للتواصل مع البائع', det_login:'تسجيل الدخول',
@@ -1801,6 +1803,11 @@ function renderDetail(p) {
               <div id="visit-field-${p.id}" class="hidden">
                 <label>${T('det_visit_date')}</label>
                 <input type="date" id="cdate-${p.id}" min="${new Date().toISOString().slice(0,10)}">
+                <label style="margin-top:.5rem">${T('det_visit_time')}</label>
+                <select id="ctime-${p.id}">
+                  <option value="">${T('det_visit_time_none')}</option>
+                  ${(() => { const opts = []; for (let h = 8; h < 20; h++) { opts.push(`<option value="${String(h).padStart(2,'0')}:00">${String(h).padStart(2,'0')}:00</option>`); opts.push(`<option value="${String(h).padStart(2,'0')}:30">${String(h).padStart(2,'0')}:30</option>`); } return opts.join(''); })()}
+                </select>
               </div>
               <div id="offer-field-${p.id}" class="hidden">
                 <label>${T('det_offer_amount')}</label>
@@ -1933,9 +1940,10 @@ async function submitContact(event, propertyId, ownerId) {
   const type    = document.getElementById('ctype-' + propertyId)?.value;
   const message = document.getElementById('cmsg-' + propertyId)?.value;
   const visitDate   = document.getElementById('cdate-' + propertyId)?.value;
+  const visitTime   = document.getElementById('ctime-' + propertyId)?.value;
   const offerAmount = document.getElementById('coffer-' + propertyId)?.value;
   try {
-    await api('/contacts', 'POST', { property_id: propertyId, type, message, visit_date: visitDate || null, offer_amount: offerAmount || null });
+    await api('/contacts', 'POST', { property_id: propertyId, type, message, visit_date: visitDate || null, visit_time: visitTime || null, offer_amount: offerAmount || null });
     toast(T('det_sent'));
   } catch (e) { toast('❌ ' + e.message); }
   return false;
@@ -3717,6 +3725,7 @@ async function dashTab(tab, more = false) {
           <div style="font-size:.83rem;color:var(--text-muted)">
             <strong>${esc(d.requester_name)}</strong> · ${T('dash_t_' + (['visite', 'offre'].includes(d.type) ? d.type : 'info'))} ·
             <span class="status-${d.status}">${['pending', 'confirmed', 'rejected', 'done'].includes(d.status) ? T('dash_c_' + d.status) : d.status}</span>
+            ${d.type === 'visite' && d.visit_date ? ` · 📅 ${esc(String(d.visit_date).slice(0,10))}${d.visit_time ? ' ' + esc(d.visit_time) : ''}` : ''}
           </div>
           ${d.message ? `<div style="font-size:.83rem;color:var(--text-muted);margin-top:.25rem">"${esc(d.message.slice(0,80))}..."</div>` : ''}
         </div>

@@ -342,6 +342,15 @@ Windows : `demarrer.bat`
   (test dans `carte-zone.test.js`) : ne pas en ajouter, ni dans Express ni dans Nginx.
 - Tests : `tests/api/carte-zone.test.js` (polygone convexe et concave, filtres, limite, erreurs et traduction), `tests/unit/carte-front.test.js` (traductions FR / AR, POST, arrondi, échappement).
 
+## Planification des visites
+
+- **Champ `visit_time` (TEXT `HH:MM`)** (migration 027) sur `contact_requests` : optionnel, seulement pour `type = 'visite'`. Validé par la route (`TIME_RE`) ; refusé avec 400 + message traduit si le format est incorrect. Les deux SELECT existants castent `visit_date::text` pour éviter les décalages horaires côté client.
+- **Front** (`public/app.js`) : sélecteur d'heure (créneaux de 30 min, 08:00–19:30) sous le champ date dans le formulaire de contact ; `submitContact` envoie `visit_time` ; la carte de demande du tableau de bord affiche `📅 date heure` si les deux champs sont renseignés.
+- **Email** (`server/mailer.js`) : `buildContactRequest` affiche `date à heure` quand `visitTime` est fourni. Nouveau gabarit `buildVisitReminder` (FR + AR) pour les rappels J-1 — envoyé aux deux parties (visiteur et annonceur) avec `mailVisitReminder`.
+- **Notification WS** (`server/messages.js`) : `visit_reminder` (FR + AR).
+- **Rappel J-1** (`server/visit-reminders.js`, `sendVisitReminders`) : cherche les visites confirmées dont `visit_date = demain`, envoie email + WS aux deux parties. Déclenché par `server/cron.js` à 08:00 chaque matin (enveloppé dans `guard`).
+- **Tests** : `tests/api/visites.test.js` (POST avec/sans heure, format invalide, GET retourne `visit_time`, `sendVisitReminders` renvoie un nombre), `tests/unit/emails-notifs.test.js` (jeu de données `buildVisitReminder` ajouté).
+
 ## CAPTCHA anti-spam (Cloudflare Turnstile)
 
 - **Formulaires protégés** : page Contact (`POST /api/contact`) et inscription newsletter (`POST /api/newsletter/subscribe`). Le signalement d'annonce (`POST /api/properties/:id/signaler`) n'en a pas besoin : il exige la connexion (`auth`) et est déjà limité à 10/24 h.

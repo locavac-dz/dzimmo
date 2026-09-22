@@ -151,13 +151,18 @@ function buildPasswordReset(lang, { name, resetUrl }) {
   };
 }
 
-function buildContactRequest(lang, { ownerName, requesterName, propertyTitle, type, message, visitDate, offerAmount }) {
+function buildContactRequest(lang, { ownerName, requesterName, propertyTitle, type, message, visitDate, visitTime, offerAmount }) {
   const labels = pick(lang,
     { visite: 'Demande de visite', info: 'Demande de renseignement', offre: 'Offre de prix' },
     { visite: 'طلب زيارة', info: 'طلب معلومات', offre: 'عرض سعر' });
   const typeLabel = labels[type] || type;
+  const dateStr = visitDate
+    ? visitTime
+      ? `${esc(visitDate)} ${pick(lang, 'à', 'الساعة')} ${esc(visitTime)}`
+      : esc(visitDate)
+    : '';
   const extra = type === 'visite' && visitDate
-    ? `<p style="margin:4px 0"><strong>${pick(lang, '📅 Date souhaitée :', '📅 التاريخ المطلوب:')}</strong> ${esc(visitDate)}</p>`
+    ? `<p style="margin:4px 0"><strong>${pick(lang, '📅 Date souhaitée :', '📅 التاريخ المطلوب:')}</strong> ${dateStr}</p>`
     : type === 'offre' && offerAmount
     ? `<p style="margin:4px 0"><strong>${pick(lang, '💰 Offre proposée :', '💰 العرض المقترح:')}</strong> ${fmt(offerAmount)} ${ui(lang).dzd}</p>`
     : '';
@@ -176,6 +181,34 @@ function buildContactRequest(lang, { ownerName, requesterName, propertyTitle, ty
         ${message ? `<p style="margin:4px 0"><strong>${pick(lang, '💬 Message :', '💬 الرسالة:')}</strong> ${esc(message)}</p>` : ''}
       </div>
       ${button(siteUrl(), pick(lang, 'Répondre sur DzImmo', 'الرد على DzImmo'), lang)}
+    `, lang),
+  };
+}
+
+// Rappel J-1 envoyé aux deux parties (visiteur et annonceur) pour une visite confirmée
+function buildVisitReminder(lang, { recipientName, requesterName, ownerName, propertyTitle, visitDate, visitTime, propertyUrl, role }) {
+  const dateStr = visitTime
+    ? `${esc(visitDate)} ${pick(lang, 'à', 'الساعة')} ${esc(visitTime)}`
+    : esc(visitDate);
+  const intro = role === 'requester'
+    ? pick(lang,
+        `Vous avez une visite confirmée pour <strong>${esc(propertyTitle)}</strong> demain${visitTime ? ` à <strong>${esc(visitTime)}</strong>` : ''}.`,
+        `لديك زيارة مؤكدة لـ <strong>${esc(propertyTitle)}</strong> غداً${visitTime ? ` الساعة <strong>${esc(visitTime)}</strong>` : ''}.`)
+    : pick(lang,
+        `<strong>${esc(requesterName)}</strong> a confirmé une visite pour <strong>${esc(propertyTitle)}</strong> demain${visitTime ? ` à <strong>${esc(visitTime)}</strong>` : ''}.`,
+        `أكّد <strong>${esc(requesterName)}</strong> زيارة لـ <strong>${esc(propertyTitle)}</strong> غداً${visitTime ? ` الساعة <strong>${esc(visitTime)}</strong>` : ''}.`);
+  return {
+    subject: pick(lang, `🗓️ Rappel de visite — ${propertyTitle}`, `🗓️ تذكير بالزيارة — ${propertyTitle}`),
+    html: wrap(`
+      <h2 style="color:#222;margin-top:0">${pick(lang, '📅 Rappel de visite demain', '📅 تذكير بالزيارة غداً')}</h2>
+      <p>${ui(lang).hello} <strong>${esc(recipientName)}</strong>${pick(lang, ',', '،')}</p>
+      <p>${intro}</p>
+      <div style="background:#f0fdf4;border-radius:10px;padding:16px;margin:20px 0;border-${lang === 'ar' ? 'right' : 'left'}:4px solid #0C6E4F">
+        <p style="margin:4px 0"><strong>${pick(lang, '🏠 Bien :', '🏠 العقار:')}</strong> ${esc(propertyTitle)}</p>
+        <p style="margin:4px 0"><strong>${pick(lang, '📅 Date :', '📅 التاريخ:')}</strong> ${dateStr}</p>
+        ${role === 'owner' ? `<p style="margin:4px 0"><strong>${pick(lang, '👤 Visiteur :', '👤 الزائر:')}</strong> ${esc(requesterName)}</p>` : ''}
+      </div>
+      ${button(propertyUrl, pick(lang, 'Voir l\'annonce', 'عرض الإعلان'), lang)}
     `, lang),
   };
 }
@@ -460,7 +493,8 @@ const send = (to, built) => sendMail({ to, ...built });
 const mailWelcome = d => send(d.email, buildWelcome(d.lang, d));
 const mailVerifyEmail = d => send(d.email, buildVerifyEmail(d.lang, d));
 const mailPasswordReset = d => send(d.email, buildPasswordReset(d.lang, d));
-const mailContactRequest = d => send(d.ownerEmail, buildContactRequest(d.lang, d));
+const mailContactRequest  = d => send(d.ownerEmail, buildContactRequest(d.lang, d));
+const mailVisitReminder   = d => send(d.email, buildVisitReminder(d.lang, d));
 // Annonce remise en modération après plusieurs signalements : le propriétaire est prévenu, sans savoir qui a signalé
 function buildListingReported(lang, { name, propertyTitle, url }) {
   return {
@@ -567,12 +601,12 @@ const mailNewsletter = d => sendMail({ to: d.to, ...buildNewsletter(d.lang, d),
 module.exports = {
   sendMail, sender, siteUrl, configured, FROM_OK, EMAIL_OK,
   mailWelcome, mailVerifyEmail, mailPasswordReset,
-  mailContactRequest, mailNewMessage, mailSearchAlert,
+  mailContactRequest, mailVisitReminder, mailNewMessage, mailSearchAlert,
   mailModerationDecision, mailAdminPending, mailVerificationDecision, mailAdminVerificationPending,
   mailExpiryReminder, mailListingExpired, mailListingReported, mailAdminReported, mailAlert, mailPriceDrop, mailSecurityNotice, mailSiteContact, mailNewsletterConfirm, mailNewsletter, CONTACT_SUBJECTS,
   // gabarits purs (tests)
   build: { buildWelcome, buildVerifyEmail, buildPasswordReset, buildContactRequest, buildNewMessage,
            buildSearchAlert, buildModerationDecision, buildAdminPending,
            buildVerificationDecision, buildAdminVerificationPending, buildExpiryReminder, buildListingExpired, buildSiteContact, buildNewsletterConfirm, buildNewsletter,
-           buildListingReported, buildAdminReported, buildAlert, buildPriceDrop, buildSecurityNotice },
+           buildListingReported, buildAdminReported, buildAlert, buildPriceDrop, buildSecurityNotice, buildVisitReminder },
 };
