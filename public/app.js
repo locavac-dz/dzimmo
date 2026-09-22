@@ -147,6 +147,7 @@ const TRANSLATIONS = {
     media_video:'Vidéo', media_tour:'Visite virtuelle', media_load_video:'▶ Lire la vidéo', media_load_tour:'🧭 Lancer la visite virtuelle',
     media_privacy:'Le lecteur {p} ne se charge qu\'au clic : aucun cookie tiers avant.', media_open:'Ouvrir sur {p}', media_badge_video:'Vidéo', media_badge_tour:'Visite 3D',
     pub_submit:"Publier l'annonce", pub_cancel:'Annuler',
+    pub_score_label:'Complétude de l\'annonce',
     f_meuble:'Meublé', f_parking:'Parking', f_balcon:'Balcon', f_terrasse:'Terrasse',
     f_ascenseur:'Ascenseur', f_gardien:'Gardien', f_piscine:'Piscine',
     f_clim:'Climatisation', f_chauff:'Chauffage central', f_wifi:'Wi-Fi',
@@ -558,6 +559,7 @@ const TRANSLATIONS = {
     media_video:'فيديو', media_tour:'جولة افتراضية', media_load_video:'▶ تشغيل الفيديو', media_load_tour:'🧭 بدء الجولة الافتراضية',
     media_privacy:'لا يُحمَّل مشغّل {p} إلا بعد النقر: لا ملفات تعريف ارتباط من طرف ثالث قبل ذلك.', media_open:'فتح على {p}', media_badge_video:'فيديو', media_badge_tour:'جولة 3D',
     pub_submit:'نشر الإعلان', pub_cancel:'إلغاء',
+    pub_score_label:'اكتمال الإعلان',
     f_meuble:'مفروشة', f_parking:'موقف سيارات', f_balcon:'شرفة', f_terrasse:'تراس',
     f_ascenseur:'مصعد', f_gardien:'حارس', f_piscine:'مسبح',
     f_clim:'تكييف هواء', f_chauff:'تدفئة مركزية', f_wifi:'واي فاي',
@@ -1074,6 +1076,7 @@ async function init() {
     showPage('annonces');
     loadAnnonces(Number(params.get('p')) || 1);
   }
+  initPublishScore();
 }
 
 // Les listes de wilayas sont construites (et retraduites) par rebuildSelects()
@@ -1405,7 +1408,7 @@ function showPage(page, data = null) {
   if (page === 'annonces')        loadAnnonces();
   if (page === 'agences')         loadAgences();
   if (page === 'programmes')      loadProgrammes();
-  if (page === 'publier')         { syncPublishMode(); initPublishAs(); }
+  if (page === 'publier')         { syncPublishMode(); initPublishAs(); updatePublishScore(); }
   if (page === 'programme-detail' && data) { window._programmeId = data; loadProgrammeDetail(data); }
   if (page === 'dashboard')       loadDashboard();
   if (page === 'messages')        loadMessages();
@@ -3730,7 +3733,10 @@ async function dashTab(tab, more = false) {
       <button class="btn btn-outline btn-sm" onclick="triggerImportCSV()">${T('imp_btn')}</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:.7rem">
-      ${data.map(p => `
+      ${data.map(p => {
+        const score      = completenessScore(p);
+        const scoreColor = score >= 80 ? 'var(--primary)' : score >= 60 ? '#f59e0b' : '#dc2626';
+        return `
         <div style="background:var(--white);border-radius:12px;border:1px solid var(--border);overflow:hidden;display:flex;box-shadow:var(--shadow)">
           <img src="${esc(thumbUrl(p.image, 480) || '')}" loading="lazy" style="width:96px;min-height:80px;object-fit:cover;flex-shrink:0;background:var(--border)" onerror="this.style.background='var(--border)'">
           <div style="flex:1;padding:.8rem 1rem;min-width:0">
@@ -3740,6 +3746,10 @@ async function dashTab(tab, more = false) {
               ${p.verified?'<span style="background:#0C6E4F20;color:var(--primary-text);padding:.1rem .42rem;border-radius:20px;font-size:.71rem;font-weight:700">✓</span>':''}
             </div>
             <div style="font-weight:700;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(p.title)}">${esc(p.title)}</div>
+            <div style="display:flex;align-items:center;gap:.4rem;margin:.2rem 0 .1rem">
+              <div style="flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden"><div style="width:${score}%;height:100%;background:${scoreColor}"></div></div>
+              <span style="font-size:.68rem;color:${scoreColor};font-weight:700;white-space:nowrap">${score} %</span>
+            </div>
             <div style="font-size:.79rem;color:var(--text-muted)">📍 ${esc(wilayaName(p.wilaya))} · <strong style="color:var(--primary-text)">${priceText(p)}</strong></div>
             ${p.status === 'rejected' && p.moderation_reason ? `<div style="font-size:.79rem;color:#dc2626;margin-top:.25rem">${T('dash_reason')} ${esc(modReason(p.moderation_reason))}</div>` : ''}
             ${p.status === 'active' && p.last_confirmed_at ? `<div style="font-size:.76rem;margin-top:.3rem;color:${p.expires_at ? '#b45309' : 'var(--text-muted)'};font-weight:${p.expires_at ? 700 : 400}">${p.expires_at
@@ -3764,7 +3774,7 @@ async function dashTab(tab, more = false) {
             ${p.status==='active' && promo.enabled && promo.plans.length ? `<button class="btn btn-outline btn-sm promo-btn" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap" data-id="${p.id}" onclick="openPromote(this.dataset.id)">${T('dash_feature_btn')}</button>` : ''}
             ${p.status==='active'?`<button class="btn btn-outline btn-sm" style="font-size:.77rem;padding:.3rem .6rem;white-space:nowrap;border-color:#94a3b8;color:#64748b" onclick="ownerArchive(${p.id})">${T('dash_archive')}</button>`:''}
           </div>
-        </div>`).join('')}
+        </div>`; }).join('')}
     </div>`
       + (hasMore ? `<div style="text-align:center;margin-top:1rem"><button class="btn btn-outline" onclick="dashTab('mes-annonces', true)">${T('dash_more')}</button></div>` : '')
       + buildViewsChart(data);
@@ -3979,6 +3989,7 @@ function renderPhotoPreviews() {
       <img src="${esc(p.preview)}" alt="">
       <button class="photo-remove" onclick="removePhoto(${i})">×</button>
     </div>`).join('');
+  updatePublishScore();
 }
 
 function removePhoto(i) {
@@ -3989,6 +4000,65 @@ function removePhoto(i) {
 document.querySelectorAll('.feature-toggle').forEach(btn => {
   btn.addEventListener('click', () => btn.classList.toggle('selected'));
 });
+
+// ── Score de complétude d'une annonce (0–100) ────────────────────────────────
+// Fonctionne sur un objet annonce (tableau de bord) ou sur les données du formulaire (via formScoreData).
+function completenessScore(d) {
+  let s = 0;
+  if (String(d.title       || '').length >= 20) s += 20;
+  if (String(d.description || '').length >= 100) s += 20;
+  const pc = d.photos_count != null ? d.photos_count : (Array.isArray(d.photos) ? d.photos.length : 0);
+  if (pc >= 3)                                  s += 20;
+  if (Number(d.price) > 0)                      s += 10;
+  if (Number(d.surface_m2) > 0)                 s += 10;
+  if (Number(d.rooms) > 0)                      s += 5;
+  if (String(d.commune || '').trim())            s += 5;
+  const fc = d.features_count != null ? d.features_count : (Array.isArray(d.features) ? d.features.length : 0);
+  if (fc >= 3)                                  s += 5;
+  if (d.video_url || d.tour_url)                s += 5;
+  return s;
+}
+
+// Lit les valeurs actuelles du formulaire de publication pour le calcul du score.
+function formScoreData() {
+  const val = id => (document.getElementById(id)?.value || '');
+  return {
+    title:          val('pub-title'),
+    description:    val('pub-desc'),
+    photos_count:   uploadedPhotos.length,
+    price:          val('pub-price'),
+    surface_m2:     val('pub-surface'),
+    rooms:          val('pub-rooms'),
+    commune:        val('pub-commune'),
+    features_count: document.querySelectorAll('.feature-toggle.selected').length,
+    video_url:      val('pub-video'),
+    tour_url:       val('pub-tour'),
+  };
+}
+
+// Met à jour la jauge dans le formulaire de publication.
+function updatePublishScore() {
+  const bar = document.getElementById('pub-score-bar');
+  const pct = document.getElementById('pub-score-pct');
+  if (!bar || !pct) return;
+  const s = completenessScore(formScoreData());
+  bar.style.width      = s + '%';
+  const color = s >= 80 ? 'var(--primary)' : s >= 60 ? '#f59e0b' : '#dc2626';
+  bar.style.background = color;
+  pct.style.color      = s >= 80 ? 'var(--primary-text)' : s >= 60 ? '#d97706' : '#dc2626';
+  pct.textContent      = s + ' %';
+}
+
+// Branche les écouteurs de la jauge sur tous les champs du formulaire.
+function initPublishScore() {
+  PUB_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', updatePublishScore);
+  });
+  document.querySelectorAll('.feature-toggle').forEach(b =>
+    b.addEventListener('click', () => setTimeout(updatePublishScore, 0)));
+  updatePublishScore();
+}
 
 // ── Modification d'une annonce : le formulaire de publication sert aussi d'écran « Modifier » ─────────────────────────────
 // Le mode, le type de bien et la wilaya restent figés (le serveur ne les change pas : ils fondent le contrôle de qualité et la recherche).

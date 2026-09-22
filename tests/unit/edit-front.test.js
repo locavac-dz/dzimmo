@@ -137,7 +137,7 @@ test('sortie du mode édition : plus aucune donnée de l\'annonce ne reste dans 
 
 test('showPage : quitter la page de publication en mode édition remet le formulaire à zéro ; l\'arrivée règle le mode', () => {
   assert.match(app, /if \(page !== 'publier' && publishEditId\) \{ publishEditId = null; resetPublishForm\(\); \}/);
-  assert.match(app, /if \(page === 'publier'\)\s+\{ syncPublishMode\(\); initPublishAs\(\); \}/);
+  assert.match(app, /if \(page === 'publier'\)\s+\{ syncPublishMode\(\); initPublishAs\(\);[^}]*\}/);
   assert.match(app, /function cancelPublish\(\) \{ showPage\(publishEditId \? 'dashboard' : 'home'\); \}/);
   // la vitrine (pro.js) n'est pas réaffichée après coup en mode édition
   assert.match(pro, /if \(publishEditId\) return;/);
