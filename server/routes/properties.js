@@ -698,6 +698,43 @@ router.delete('/:id/photos', auth, async (req, res) => {
   res.json({ photos });
 });
 
+// GET /api/properties/:id/similar — 6 biens actifs de la même wilaya, même mode, même type,
+// fourchette de prix ±50 % ; la même commune passe en premier.
+router.get('/:id/similar', optionalAuth, async (req, res) => {
+  const id = db.toId(req.params.id);
+  if (id === null) return res.json([]);
+  const prop = await db.properties.findById(id);
+  if (!prop || prop.status !== 'active') return res.json([]);
+
+  const price = Number(prop.price) || 0;
+  const { rows } = await db.pool.query(
+    `SELECT p.*,
+       u.name AS owner_name, u.phone AS owner_phone, u.avatar AS owner_avatar,
+       u.verified_kind AS owner_verified_kind,
+       a.name AS agency_name, a.logo AS agency_logo, a.phone AS agency_phone,
+       COALESCE(a.verified, false) AS agency_verified, a.kind AS agency_kind
+     FROM properties p
+     LEFT JOIN users    u ON u.id = p.owner_id
+     LEFT JOIN agencies a ON a.id = p.agency_id
+    WHERE p.id      != $1
+      AND p.status   = 'active'
+      AND p.wilaya   = $2
+      AND p.mode     = $3
+      AND p.type_bien = $4
+      AND ($5 = 0 OR p.price BETWEEN $6 AND $7)
+    ORDER BY
+      CASE WHEN $8::text IS NOT NULL AND p.commune = $8::text THEN 1 ELSE 0 END DESC,
+      (p.featured_until > NOW()) DESC,
+      p.views DESC,
+      p.id DESC
+    LIMIT 6`,
+    [id, prop.wilaya, prop.mode, prop.type_bien,
+     price, Math.round(price * 0.5), Math.round(price * 1.5),
+     prop.commune ?? null]
+  );
+  res.json(rows);
+});
+
 // POST /api/properties/:id/reviews
 router.post('/:id/reviews', auth, async (req, res) => {
   const { rating, comment, contact_request_id } = req.body;

@@ -78,7 +78,7 @@ const TRANSLATIONS = {
     rp_m_arnaque:'Arnaque ou fausse annonce', rp_m_indisponible:'Bien déjà vendu ou loué', rp_m_faux:'Informations trompeuses (prix, surface…)',
     rp_m_photos:'Photos qui ne correspondent pas', rp_m_doublon:'Annonce en double', rp_m_interdit:'Contenu interdit ou choquant', rp_m_autre:'Autre',
     det_published:'Publié le', det_copy:'🔗 Copier', det_print:'🖨️ Imprimer la fiche (avec code QR)', det_sent:'✅ Demande envoyée au vendeur !',
-    det_price_hist:'📈 Historique des prix', det_stable:'stable', det_similar:'Biens similaires',
+    det_price_hist:'📈 Historique des prix', det_stable:'stable', det_similar:'Biens similaires', new_badge:'Nouveau',
     cmp_max:'Vous pouvez comparer 3 biens maximum.', cmp_min:'Sélectionnez au moins 2 biens à comparer.',
     cmp_remove:'Retirer', cmp_view:'Voir →', cmp_r_price:'Prix', cmp_r_commune:'Commune', cmp_r_surface:'Surface',
     cmp_r_floor:'Étage', cmp_r_published:'Publié', cmp_r_verified:'Vérifié',
@@ -489,7 +489,7 @@ const TRANSLATIONS = {
     rp_m_arnaque:'احتيال أو إعلان مزيف', rp_m_indisponible:'عقار بيع أو أُجّر بالفعل', rp_m_faux:'معلومات مضللة (السعر، المساحة…)',
     rp_m_photos:'صور غير مطابقة', rp_m_doublon:'إعلان مكرر', rp_m_interdit:'محتوى ممنوع أو صادم', rp_m_autre:'أخرى',
     det_published:'نُشر في', det_copy:'🔗 نسخ', det_print:'🖨️ طباعة البطاقة (مع رمز QR)', det_sent:'✅ تم إرسال الطلب إلى البائع!',
-    det_price_hist:'📈 تطور السعر', det_stable:'مستقر', det_similar:'عقارات مشابهة',
+    det_price_hist:'📈 تطور السعر', det_stable:'مستقر', det_similar:'عقارات مشابهة', new_badge:'جديد',
     cmp_max:'يمكنك مقارنة 3 عقارات كحد أقصى.', cmp_min:'اختر عقارين على الأقل للمقارنة.',
     cmp_remove:'إزالة', cmp_view:'عرض ←', cmp_r_price:'السعر', cmp_r_commune:'البلدية', cmp_r_surface:'المساحة',
     cmp_r_floor:'الطابق', cmp_r_published:'تاريخ النشر', cmp_r_verified:'موثَّق',
@@ -1650,11 +1650,13 @@ function cardHTML(p) {
     p.baths      ? p.baths + ' ' + unit(p.baths, 'u_bath') : null,
   ].filter(Boolean).join(' · ');
   const isCmp = _compareList.some(x => x.id === p.id);
+  const isNew = p.created_at && (Date.now() - new Date(p.created_at).getTime()) < 3 * 24 * 60 * 60 * 1000;
   return `
   <div class="card-wrapper" onclick="showPage('detail', ${p.id})">
     <div class="card">
       <img class="card-img" ${imgAttrs(p.image || 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70', '(max-width: 640px) 100vw, 320px')} alt="${esc(p.title)}" loading="lazy" onerror="this.removeAttribute('srcset');this.src='https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=70'">
       ${p.verified ? '<span class="verified-badge">' + T('verified_badge') + '</span>' : ''}
+      ${isNew ? '<span class="new-badge">' + T('new_badge') + '</span>' : ''}
       ${isFeatured(p) ? '<span class="featured-badge">' + T('featured_badge') + '</span>' : ''}
       ${p.video_url || p.tour_url ? '<span class="media-badge">' + (p.tour_url ? '🧭 ' + T('media_badge_tour') : '🎬 ' + T('media_badge_video')) + '</span>' : ''}
       ${token ? `<button class="card-fav" onclick="event.stopPropagation();toggleFav(${p.id},this)" title="${T('fav_tip')}">🤍</button>` : ''}
@@ -1861,12 +1863,20 @@ function renderDetail(p) {
               ${T('det_published')} ${new Date(p.created_at).toLocaleDateString('fr-DZ')}${p.status === 'active' && p.last_confirmed_at
                 ? `<br>✔ ${T('det_confirmed')} ${new Date(p.last_confirmed_at).toLocaleDateString('fr-DZ')}` : ''}
             </div>
-            <div style="display:flex;gap:.5rem;margin-top:.75rem">
-              <button class="btn btn-outline btn-sm" style="flex:1;display:flex;align-items:center;justify-content:center;gap:.4rem" data-title="${esc(p.title)}" onclick="shareWhatsApp(${p.id}, this.dataset.title, ${Number(p.price) || 0})">
+            <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.75rem">
+              <button class="btn btn-outline btn-sm" style="flex:1;min-width:calc(50% - .25rem);display:flex;align-items:center;justify-content:center;gap:.4rem" data-title="${esc(p.title)}" onclick="shareWhatsApp(${p.id}, this.dataset.title, ${Number(p.price) || 0})">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                 WhatsApp
               </button>
-              <button class="btn btn-outline btn-sm" style="flex:1" onclick="copyPropertyLink(${p.id})">${T('det_copy')}</button>
+              <button class="btn btn-outline btn-sm" style="flex:1;min-width:calc(50% - .25rem)" onclick="copyPropertyLink(${p.id})">${T('det_copy')}</button>
+              <button class="btn btn-outline btn-sm" style="flex:1;min-width:calc(50% - .25rem)" data-id="${p.id}" data-title="${esc(p.title)}" onclick="shareProperty('facebook',this)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="#1877F2" style="vertical-align:middle;margin-inline-end:.3rem"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.413c0-3.025 1.791-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.265h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>
+                Facebook
+              </button>
+              <button class="btn btn-outline btn-sm" style="flex:1;min-width:calc(50% - .25rem)" data-id="${p.id}" data-title="${esc(p.title)}" onclick="shareProperty('x',this)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-inline-end:.3rem"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.258 5.629zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                𝕏
+              </button>
             </div>
             <a class="btn btn-outline btn-sm print-link" href="${esc(annonceUrl(p.id, p.title))}/fiche" target="_blank" rel="noopener">${T('det_print')}</a>
             ${p.status === 'active' && !(currentUser && currentUser.id === p.owner_id) ? `
@@ -1888,7 +1898,7 @@ function renderDetail(p) {
     // Historique des prix + simulateur de crédit + annonces similaires
     loadPriceHistory(p.id, p.price);
     if (p.mode === 'vente') loadCalcCredit(p.id, Number(p.price));
-    loadSimilarProperties(p.id, p.wilaya, p.type_bien);
+    loadSimilarProperties(p.id);
   } catch (e) { container.innerHTML = `<p style="color:red;padding:2rem">${e.message}</p>`; }
 }
 
@@ -1954,12 +1964,11 @@ async function loadPriceHistory(id, currentPrice) {
   } catch {}
 }
 
-async function loadSimilarProperties(excludeId, wilaya, type_bien) {
+async function loadSimilarProperties(id) {
   const container = document.getElementById('detail-content');
   if (!container) return;
   try {
-    const resp = await api(`/properties?wilaya=${encodeURIComponent(wilaya)}&type_bien=${encodeURIComponent(type_bien)}&limit=5`);
-    const similar = (resp.data || []).filter(p => p.id !== excludeId).slice(0, 4);
+    const similar = await api('/properties/' + id + '/similar');
     if (!similar.length) return;
     const section = document.createElement('div');
     section.style.cssText = 'margin-top:2.5rem';
@@ -2504,6 +2513,17 @@ function shareWhatsApp(id, title, price) {
   const url  = annonceUrl(id, title);
   const text = `🏠 ${title} — ${formatPrice(price)} DZD\n${url}`;
   window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(text), '_blank', 'noopener');
+}
+
+function shareProperty(network, btn) {
+  const id    = Number(btn.dataset.id);
+  const title = btn.dataset.title;
+  const url   = encodeURIComponent(location.origin + '/annonce/' + id);
+  const text  = encodeURIComponent('🏠 ' + title);
+  if (network === 'facebook')
+    window.open('https://www.facebook.com/sharer/sharer.php?u=' + url, '_blank', 'noopener');
+  else if (network === 'x')
+    window.open('https://x.com/intent/tweet?text=' + text + '&url=' + url, '_blank', 'noopener');
 }
 
 function copyPropertyLink(id) {

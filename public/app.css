@@ -246,6 +246,13 @@
     .promo-plan input { width: auto; margin: 0; }
     .promo-plan strong { margin-inline-start: auto; white-space: nowrap; color: var(--primary-text); }
 
+    /* Pastille « Nouveau » : annonce de moins de 3 jours */
+    .new-badge {
+      position: absolute; top: 44px; inset-inline-start: 10px;
+      background: #2563eb; color: #fff;
+      padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;
+    }
+
     /* Pastille « Vidéo » / « Visite 3D » d'une carte (sous le bouton de comparaison, en bas de la photo) */
     .media-badge {
       position: absolute; top: 166px; inset-inline-start: 10px;
