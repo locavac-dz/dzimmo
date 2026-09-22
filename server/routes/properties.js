@@ -425,6 +425,8 @@ router.post('/', auth, async (req, res) => {
   if (!direct) {
     const owner = await db.users.findById(req.user.id);
     moderation.notifyAdminsPending(property, owner ? owner.name : 'Un utilisateur').catch(() => {});
+  } else {
+    require('../search-alerts').notifyMatchingAlerts(property).catch(() => {});
   }
   // warnings : à afficher à l'annonceur ; held : compte de confiance dont l'annonce est tout de même vérifiée (signal de qualité)
   res.status(201).json({ id: property.id, status: property.status, warnings: quality.warningsFor(assessment), held: trusted && !direct });

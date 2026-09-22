@@ -88,6 +88,7 @@ async function decide(property, approve, motif, adminId) {
     [approve ? 'dismissed' : 'resolved', adminId, property.id]);
   // Le propriétaire n'est prévenu que si l'annonce change d'état
   if (property.status !== status) notifyOwnerDecision(property, approve, motif).catch(() => {});
+  if (approve) require('./search-alerts').notifyMatchingAlerts({ ...property, status: 'active' }).catch(() => {});
   return status;
 }
 

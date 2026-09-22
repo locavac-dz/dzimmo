@@ -24,7 +24,7 @@ function syncLangUrl() {
 const TRANSLATIONS = {
   fr: {
     site_title:'DzImmo — Immobilier en Algérie',
-    nav_home:'Accueil', nav_annonces:'Annonces', nav_agences:'Agences', nav_carte:'Carte', menu_label:'Menu',
+    nav_home:'Accueil', nav_annonces:'Annonces', nav_agences:'Agences', nav_carte:'Carte', nav_estimer:'🔍 Estimer', menu_label:'Menu',
     btn_publier:'+ Publier', btn_login:'Connexion', btn_register:"S'inscrire",
     hero_title:'Trouvez votre bien immobilier en Algérie',
     hero_sub:'Appartements, villas, terrains, locaux · Vente et location partout en Algérie',
@@ -425,10 +425,17 @@ const TRANSLATIONS = {
     calc_duration:'Durée (années)', calc_rate:'Taux annuel (%)', calc_btn:'Calculer',
     calc_loan:'Montant emprunté', calc_monthly:'Mensualité estimée', calc_total_interest:'Coût du crédit', calc_total:'Total à rembourser',
     calc_disclaimer:'Simulation indicative. Conditions selon votre banque.',
+    est_title:'🔍 Estimation du prix', est_intro:'Fourchette basée sur les annonces actives comparables.',
+    est_surface:'Surface (m²)', est_btn:'Estimer',
+    est_low:'Fourchette basse', est_mid:'Estimation médiane', est_high:'Fourchette haute',
+    est_pm2:'prix/m²',
+    est_scope_wilaya:'Source : annonces de la wilaya.', est_scope_national:'Source : annonces nationales (données wilaya insuffisantes).',
+    est_no_data:'Pas assez d\'annonces comparables. Élargissez les critères.',
+    est_count:'{n} annonces comparables',
   },
   ar: {
     site_title:'DzImmo — العقارات في الجزائر',
-    nav_home:'الرئيسية', nav_annonces:'الإعلانات', nav_agences:'الوكالات', nav_carte:'الخريطة', menu_label:'القائمة',
+    nav_home:'الرئيسية', nav_annonces:'الإعلانات', nav_agences:'الوكالات', nav_carte:'الخريطة', nav_estimer:'🔍 تقدير', menu_label:'القائمة',
     btn_publier:'+ نشر', btn_login:'تسجيل الدخول', btn_register:'إنشاء حساب',
     hero_title:'ابحث عن عقارك في الجزائر',
     hero_sub:'شقق، فلل، أراضي، محلات · بيع وإيجار في جميع أنحاء الجزائر',
@@ -829,6 +836,13 @@ const TRANSLATIONS = {
     calc_duration:'المدة (سنوات)', calc_rate:'معدل الفائدة السنوي (%)', calc_btn:'حساب',
     calc_loan:'المبلغ المقترض', calc_monthly:'القسط الشهري التقديري', calc_total_interest:'تكلفة الائتمان', calc_total:'إجمالي المبلغ المستحق',
     calc_disclaimer:'محاكاة تقريبية. الشروط الفعلية تعتمد على بنكك.',
+    est_title:'🔍 تقدير السعر', est_intro:'نطاق السعر بناءً على الإعلانات المشابهة النشطة.',
+    est_surface:'المساحة (م²)', est_btn:'تقدير',
+    est_low:'الحد الأدنى', est_mid:'التقدير المتوسط', est_high:'الحد الأعلى',
+    est_pm2:'سعر/م²',
+    est_scope_wilaya:'المصدر: إعلانات الولاية.', est_scope_national:'المصدر: إعلانات وطنية (بيانات الولاية غير كافية).',
+    est_no_data:'إعلانات مقارنة غير كافية. وسّع المعايير.',
+    est_count:'{n} إعلان مقارن',
   }
 };
 
@@ -4279,6 +4293,63 @@ function loadCalcCredit(propertyId, price) {
     </div>`;
   container.appendChild(section);
   calcCreditAnnonce(propertyId);
+}
+
+// ── Outil d'estimation de prix ──────────────────────────────────────────────
+function openEstimationModal() {
+  const ws = document.getElementById('est-wilaya');
+  if (ws && !ws.options.length) fillWilayaSelect(ws);
+  document.getElementById('est-result').innerHTML = '';
+  openModal('estimation');
+}
+
+async function submitEstimation() {
+  const type_bien = document.getElementById('est-type')?.value || '';
+  const wilaya    = document.getElementById('est-wilaya')?.value || '';
+  const mode      = document.getElementById('est-mode')?.value || 'vente';
+  const surface   = document.getElementById('est-surface')?.value || '';
+  if (!wilaya || !surface || Number(surface) <= 0) return;
+  const res = document.getElementById('est-result');
+  res.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const p = new URLSearchParams({ mode, wilaya });
+    if (type_bien) p.set('type_bien', type_bien);
+    if (surface)   p.set('surface', surface);
+    const d = await api('/properties/estimation?' + p);
+    if (!d.count || d.count < 2) {
+      res.innerHTML = `<div class="empty-state" style="margin:1rem 0"><p>${T('est_no_data')}</p></div>`;
+      return;
+    }
+    const surf = Number(surface);
+    const fmt  = v => v ? Math.round(v * surf).toLocaleString('fr-DZ') + ' DZD' : '—';
+    const fmPm2= v => v ? Math.round(v).toLocaleString('fr-DZ') + ' DZD/m²' : '—';
+    res.innerHTML = `
+      <div style="margin-top:1rem">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:.75rem">
+          <div style="background:var(--bg);border-radius:8px;padding:.75rem;text-align:center">
+            <div style="font-size:.75rem;color:var(--text-muted)">${T('est_low')}</div>
+            <div style="font-size:1rem;font-weight:700;color:var(--primary-text)">${fmt(d.p25_pm2)}</div>
+            <div style="font-size:.7rem;color:var(--text-muted)">${fmPm2(d.p25_pm2)}</div>
+          </div>
+          <div style="background:var(--bg);border-radius:8px;padding:.75rem;text-align:center;border:2px solid var(--primary)">
+            <div style="font-size:.75rem;color:var(--text-muted)">${T('est_mid')}</div>
+            <div style="font-size:1.1rem;font-weight:800;color:var(--primary-text)">${fmt(d.avg_pm2)}</div>
+            <div style="font-size:.7rem;color:var(--text-muted)">${fmPm2(d.avg_pm2)}</div>
+          </div>
+          <div style="background:var(--bg);border-radius:8px;padding:.75rem;text-align:center">
+            <div style="font-size:.75rem;color:var(--text-muted)">${T('est_high')}</div>
+            <div style="font-size:1rem;font-weight:700;color:var(--primary-text)">${fmt(d.p75_pm2)}</div>
+            <div style="font-size:.7rem;color:var(--text-muted)">${fmPm2(d.p75_pm2)}</div>
+          </div>
+        </div>
+        <div style="font-size:.75rem;color:var(--text-muted)">
+          ${T('est_count').replace('{n}', d.count)} · ${T(d.scope === 'wilaya' ? 'est_scope_wilaya' : 'est_scope_national')}
+        </div>
+      </div>`;
+  } catch (e) {
+    res.innerHTML = '';
+    toast('❌ ' + e.message);
+  }
 }
 
 // ── Calendrier des visites ──────────────────────────────────────────────────
