@@ -260,6 +260,20 @@
       padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;
     }
 
+    /* Pastille « Réactif » : annonceur qui répond vite */
+    .responsive-badge {
+      position: absolute; top: 112px; inset-inline-start: 10px;
+      background: #7c3aed; color: #fff;
+      padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;
+    }
+
+    /* Conseil de prix sous le champ prix (formulaire de publication) */
+    .pub-estimate-hint {
+      font-size: .82rem; color: var(--primary-text); margin-top: .35rem;
+      padding: .35rem .6rem; background: var(--primary-light, #f0fdf4); border-radius: 6px;
+      min-height: 1.4em;
+    }
+
     /* Pastille « Vidéo » / « Visite 3D » d'une carte (sous le bouton de comparaison, en bas de la photo) */
     .media-badge {
       position: absolute; top: 166px; inset-inline-start: 10px;

@@ -512,7 +512,7 @@ async function landingPage(req, res, f, base, lang) {
 function mount(app) {
   app.get('/robots.txt', (req, res) => {
     res.type('text/plain').send(
-      `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /newsletter/\nDisallow: /ar/newsletter/\n\nSitemap: ${baseUrl(req)}/sitemap.xml\n`);
+      `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /newsletter/\nDisallow: /ar/newsletter/\nDisallow: /favoris-partages/\nDisallow: /ar/favoris-partages/\n\nSitemap: ${baseUrl(req)}/sitemap.xml\n`);
   });
 
   const sendXml = (res, xml) => res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(xml);
@@ -661,6 +661,25 @@ function mount(app) {
 
   // Chemin trop profond sous /vente, /location… : vraie 404 plutôt que la SPA en 200
   app.get(bothLangs(MODE_ROOTS.map(r => r + '/:a/:b/*rest')), notFound);
+
+  // Page tendances du marché — indexée, bilingue
+  app.get(bothLangs(['/tendances']), (req, res) => {
+    const lang = langOfReq(req), base = baseUrl(req), t = textOf(lang);
+    const title = t.marketTitle, description = t.marketDesc;
+    return send(res, {
+      lang, title, description,
+      canonical: base + localized(lang, '/tendances'),
+      alternates: versions(base, '/tendances'),
+    });
+  });
+
+  // Favoris partagés — jamais indexés (contenu utilisateur, token dans l'URL)
+  app.get(bothLangs(['/favoris-partages/:token']), (req, res) => {
+    const lang = langOfReq(req), t = textOf(lang);
+    res.set('Referrer-Policy', 'no-referrer');
+    return send(res, { lang, title: t.sharedFavsTitle, description: t.homeDesc,
+                       canonical: baseUrl(req) + localized(lang, '/'), robots: 'noindex,nofollow' });
+  });
 }
 
 module.exports = { mount, propertyPath, agencyPath, projectPath, slugify, landingPath, landingLabel, localized, SITEMAP_PROPERTIES };

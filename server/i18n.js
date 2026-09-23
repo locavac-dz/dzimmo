@@ -153,6 +153,7 @@ const AR = {
   'Alerte introuvable.': 'التنبيه غير موجود.',
   'property_id requis.': 'معرّف الإعلان مطلوب.',
   'Déjà dans les favoris.': 'موجود بالفعل في المفضلة.',
+  'Lien invalide.': 'الرابط غير صالح.',
 
   // Page Contact (visiteur → équipe du site)
   'Nom et message requis.': 'الاسم والرسالة مطلوبان.',

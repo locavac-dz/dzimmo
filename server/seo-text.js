@@ -1,4 +1,4 @@
-// ── Textes des pages servies par server/seo.js, en français et en arabe ─────────────────────────────────────────
+﻿// ── Textes des pages servies par server/seo.js, en français et en arabe ─────────────────────────────────────────
 // Le serveur rend le <head> (titre, description, JSON-LD) et la liste crawlable de chaque page : les moteurs de recherche
 // n'exécutent pas la SPA, ils doivent donc lire la bonne langue dans le HTML. Les libellés des types, des modes et des
 // wilayas suivent ceux du site (TRANSLATIONS de public/app.js, contrôlé par tests/unit/seo-i18n.test.js).
@@ -45,8 +45,11 @@ const fr = {
   projectFacts: (j, place, status, delivery) => [`Programme neuf à ${place}`, status, delivery,
     j.price_from != null && `à partir de ${fmtPrice(j.price_from)} DZD`, `par ${j.agency_name}`].filter(Boolean).join(' · '),
   projectTitle: (name, wilaya) => `${name} — Programme neuf à ${wilaya} | DzImmo`,
-  newsletterConfirm: 'Confirmation de l’inscription à la newsletter | DzImmo',
+  newsletterConfirm: "Confirmation de l’inscription à la newsletter | DzImmo",
   newsletterUnsub: 'Désinscription de la newsletter | DzImmo',
+  marketTitle: 'Tendances du marché immobilier en Algérie | DzImmo',
+  marketDesc: 'Prix médians au m² par wilaya, évolution sur 30 jours et tendances du marché immobilier algérien.',
+  sharedFavsTitle: 'Liste de favoris partagée | DzImmo',
 };
 
 const ar = {
@@ -91,6 +94,9 @@ const ar = {
   projectTitle: (name, wilaya) => `${name} — مشروع جديد في ${wilaya} | DzImmo`,
   newsletterConfirm: 'تأكيد الاشتراك في النشرة البريدية | DzImmo',
   newsletterUnsub: 'إلغاء الاشتراك في النشرة البريدية | DzImmo',
+  marketTitle: 'توجهات سوق العقارات في الجزائر | DzImmo',
+  marketDesc: 'متوسطات الأسعار بالمتر المربع حسب الولاية، التطور خلال 30 يوماً واتجاهات السوق العقاري الجزائري.',
+  sharedFavsTitle: 'قائمة مشتركة من المفضلة | DzImmo',
 };
 
 const TEXT = { fr, ar };

@@ -57,6 +57,29 @@ cron.schedule('0 18 * * *', guard('résumé baisses de prix', async () => {
   if (n) console.log(`[cron] ${n} résumé(s) de baisse de prix envoyé(s).`);
 }));
 
+// Badge « Réactif » : mise à jour quotidienne — 80 % des demandes répondues en < 24 h sur 30 jours (min. 3)
+cron.schedule('0 5 * * *', guard('badge réactif', async () => {
+  const r = await pool.query(`
+    UPDATE users u
+       SET responsive = (
+         SELECT COUNT(*) FILTER (WHERE cr.responded_at IS NOT NULL
+                                    AND cr.responded_at - cr.created_at <= INTERVAL '24 hours')::float
+              / NULLIF(COUNT(*), 0) >= 0.8
+              AND COUNT(*) >= 3
+           FROM contact_requests cr
+           JOIN properties p ON p.id = cr.property_id
+          WHERE p.owner_id = u.id
+            AND cr.created_at >= NOW() - INTERVAL '30 days'
+       )
+     WHERE EXISTS (
+       SELECT 1 FROM contact_requests cr2
+       JOIN properties p2 ON p2.id = cr2.property_id
+       WHERE p2.owner_id = u.id AND cr2.created_at >= NOW() - INTERVAL '30 days'
+     )
+    RETURNING id`);
+  if (r.rowCount) console.log(`[cron] ${r.rowCount} badge(s) réactif mis à jour.`);
+}));
+
 // Envoi des alertes email — toutes les heures
 cron.schedule('0 * * * *', guard('alertes de recherche', () => sendSearchAlerts()));
 

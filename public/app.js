@@ -426,6 +426,26 @@ const TRANSLATIONS = {
     adv_no_features:"Aucun équipement n'est indiqué (parking, ascenseur, balcon…) : cochez ceux de votre bien, ils servent aux filtres.",
     adv_no_floor:"L'étage n'est pas renseigné : les acheteurs et locataires filtrent souvent par étage pour un appartement ou un bureau.",
     adv_all_good:"Votre annonce est complète et suscite de l'intérêt. Confirmez-la régulièrement pour qu'elle reste bien placée.",
+    responsive_badge:'⚡ Réactif',
+    pub_estimate_loading:"Calcul de l’estimation…",
+    pub_estimate_hint:'Annonces similaires : fourchette <b>{low}</b> – <b>{high}</b> DZD (médiane {median})',
+    pub_estimate_per_m2:'{per_m2} DZD/m² en médiane',
+    pub_estimate_none:"Pas assez d’annonces similaires pour estimer.",
+    fav_share_btn:'🔗 Partager mes favoris',
+    fav_share_copied:'Lien copié !',
+    fav_share_revoke:'Révoquer le lien',
+    fav_share_revoked:'Lien révoqué.',
+    fav_shared_title:'Favoris partagés',
+    fav_share_intro:'Partagez ce lien pour que vos contacts voient votre sélection sans créer de compte.',
+    mkt_title:'Tendances du marché',
+    mkt_wilaya:'Wilaya',
+    mkt_med:'Prix médian/m²',
+    mkt_count:'Annonces',
+    mkt_trend:'Tendance',
+    mkt_up:'↑ hausse',
+    mkt_down:'↓ baisse',
+    mkt_stable:'→ stable',
+    mkt_no_data:'Données insuffisantes.',
     prof_export:'Télécharger mes données (RGPD)',
     push_ask:'Activer les notifications push pour ne rien manquer ?', push_yes:'Oui', push_skip:'Plus tard',
     push_on:'🔔 Push activé', push_off:'🔕 Push désactivé',
@@ -847,6 +867,26 @@ const TRANSLATIONS = {
     adv_no_features:'لم تُذكر أي تجهيزات (موقف سيارات، مصعد، شرفة…): حدّد ما يتوفر في عقارك، فهي تُستعمل في التصفية.',
     adv_no_floor:'الطابق غير مُدرج: كثير من المشترين والمستأجرين يبحثون بالطابق في الشقق والمكاتب.',
     adv_all_good:'إعلانك مكتمل ويثير الاهتمام. أكّده بانتظام ليبقى في مرتبة جيدة.',
+    responsive_badge:'⚡ متجاوب',
+    pub_estimate_loading:'جارٍ حساب التقدير…',
+    pub_estimate_hint:'إعلانات مشابهة: نطاق <b>{low}</b> – <b>{high}</b> دج (الوسيط {median})',
+    pub_estimate_per_m2:'{per_m2} دج/م² وسيطاً',
+    pub_estimate_none:'لا توجد إعلانات مشابهة كافية للتقدير.',
+    fav_share_btn:'🔗 مشاركة مفضلتي',
+    fav_share_copied:'تم نسخ الرابط!',
+    fav_share_revoke:'إلغاء الرابط',
+    fav_share_revoked:'تم إلغاء الرابط.',
+    fav_shared_title:'مفضلة مشتركة',
+    fav_share_intro:'شارك هذا الرابط ليطّلع أقاربك على اختياراتك دون إنشاء حساب.',
+    mkt_title:'اتجاهات السوق',
+    mkt_wilaya:'الولاية',
+    mkt_med:'السعر الوسيط/م²',
+    mkt_count:'الإعلانات',
+    mkt_trend:'الاتجاه',
+    mkt_up:'↑ ارتفاع',
+    mkt_down:'↓ انخفاض',
+    mkt_stable:'→ مستقر',
+    mkt_no_data:'بيانات غير كافية.',
     prof_export:'تنزيل بياناتي (RGPD)',
     push_ask:'تفعيل الإشعارات الفورية لا تفوّت شيئاً؟', push_yes:'نعم', push_skip:'لاحقاً',
     push_on:'🔔 الإشعارات مفعّلة', push_off:'🔕 الإشعارات معطّلة',
@@ -1064,6 +1104,8 @@ async function init() {
   else if (progMatch) showPage('programme-detail', Number(progMatch[1]));
   else if (path === '/newsletter/confirmation' || path === '/newsletter/desinscription')
     showNewsletterLink(path === '/newsletter/confirmation' ? 'confirm' : 'unsub', params);
+  const sharedFavMatch = path.match(/^\/favoris-partages\/([0-9a-f]{64})$/);
+  if (sharedFavMatch) showPage('favoris-partages', sharedFavMatch[1]);
   const annonceMatch = routePath().match(/^\/annonce\/(\d+)/);
   // Lien de l'email de rappel (?renew=jeton) : mémorisé avant que la fiche ne réécrive l'adresse
   if (annonceMatch && params.get('renew')) { window._renewToken = params.get('renew'); window._renewFor = Number(annonceMatch[1]); }
@@ -1106,6 +1148,7 @@ async function init() {
     loadAnnonces(Number(params.get('p')) || 1);
   }
   initPublishScore();
+  initEstimate();
   initSuggest();
 }
 
@@ -1337,7 +1380,7 @@ async function captchaToken() {
 }
 
 // ── Navigation ────────────────────────────────────
-const PAGES = ['home','annonces','detail','publier','agences','agency-detail','programmes','programme-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats','contrats','newsletter','tendances'];
+const PAGES = ['home','annonces','detail','publier','agences','agency-detail','programmes','programme-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats','contrats','newsletter','tendances','favoris-partages'];
 
 const defaultTitle = () => T('site_title');   // titre du site dans la langue affichée (identique à celui que le serveur rend pour / et /ar)
 const PRO_PAGES = ['agences', 'agency-detail', 'programmes', 'programme-detail'];
@@ -1524,6 +1567,19 @@ async function loadMarket() {
     el.innerHTML = marketHTML(data);
   } catch (e) { el.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message)}</p>`; }
 }
+async function loadSharedFavorites(token) {
+  const el = document.getElementById('shared-fav-content');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const data = await api('/favorites/shared/' + token);
+    if (!data.length) { el.innerHTML = '<div class="empty-state"><div class="icon">❤️</div><p>' + T('dash_no_fav') + '</p></div>'; return; }
+    el.innerHTML = '<div class="grid">' + data.map(p => cardHTML(p)).join('') + '</div>';
+  } catch (e) {
+    el.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message || T('err_server'))}</p>`;
+  }
+}
+
 function marketTrend(t) {
   const n = Number(t);
   if (!Number.isFinite(n) || t === null || t === undefined) return '';
@@ -1600,6 +1656,7 @@ function showPage(page, data = null) {
   if (page === 'carte')           initMap();
   if (page === 'stats')           loadStatsPage();
   if (page === 'tendances')       loadMarket();
+  if (page === 'favoris-partages' && data) loadSharedFavorites(data);
   if (page === 'contrats' && window.MC) MC.open();
 }
 
@@ -1854,6 +1911,7 @@ function cardHTML(p) {
       ${p.verified ? '<span class="verified-badge">' + T('verified_badge') + '</span>' : ''}
       ${isNew ? '<span class="new-badge">' + T('new_badge') + '</span>' : ''}
       ${isPriceDrop && !isNew ? '<span class="price-drop-badge">' + T('price_drop_badge') + '</span>' : ''}
+      ${p.owner_responsive ? '<span class="responsive-badge">' + T('responsive_badge') + '</span>' : ''}
       ${isFeatured(p) ? '<span class="featured-badge">' + T('featured_badge') + '</span>' : ''}
       ${p.video_url || p.tour_url ? '<span class="media-badge">' + (p.tour_url ? '🧭 ' + T('media_badge_tour') : '🎬 ' + T('media_badge_video')) + '</span>' : ''}
       ${token ? `<button class="card-fav" onclick="event.stopPropagation();toggleFav(${p.id},this)" title="${T('fav_tip')}">🤍</button>` : ''}
@@ -4000,8 +4058,13 @@ async function dashTab(tab, more = false) {
 
   if (tab === 'favoris') {
     const data = await api('/favorites');
-    if (!data.length) { c.innerHTML = '<div class="empty-state"><div class="icon">❤️</div><h3>' + T('dash_no_fav') + '</h3><p>' + T('dash_fav_hint') + '</p></div>'; return; }
-    c.innerHTML = `<div class="grid">${data.map(p => cardHTML(p)).join('')}</div>`;
+    const shareBar = `<div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap">
+      <button class="btn btn-secondary btn-sm" onclick="shareFavorites()">${T('fav_share_btn')}</button>
+      <button class="btn btn-danger btn-sm" onclick="revokeFavorites()" id="fav-revoke-btn" style="display:none">${T('fav_share_revoke')}</button>
+      <span id="fav-share-url" style="font-size:.82rem;color:var(--primary-text);word-break:break-all"></span>
+    </div>`;
+    if (!data.length) { c.innerHTML = shareBar + '<div class="empty-state"><div class="icon">❤️</div><h3>' + T('dash_no_fav') + '</h3><p>' + T('dash_fav_hint') + '</p></div>'; return; }
+    c.innerHTML = shareBar + `<div class="grid">${data.map(p => cardHTML(p)).join('')}</div>`;
   }
 
   if (tab === 'alertes') {
@@ -4126,6 +4189,28 @@ async function saveAlert() {
   } catch (e) {
     toast('❌ ' + (e.message || T('alert_max')));
   }
+}
+
+async function shareFavorites() {
+  try {
+    const { url } = await api('/favorites/share', 'POST');
+    const fullUrl = location.origin + url;
+    const urlEl = document.getElementById('fav-share-url');
+    const revokeEl = document.getElementById('fav-revoke-btn');
+    if (urlEl) urlEl.textContent = fullUrl;
+    if (revokeEl) revokeEl.style.display = '';
+    try { await navigator.clipboard.writeText(fullUrl); toast('🔗 ' + T('fav_share_copied')); } catch { toast('🔗 ' + T('fav_share_copied')); }
+  } catch (e) { toast('❌ ' + e.message); }
+}
+async function revokeFavorites() {
+  try {
+    await api('/favorites/share', 'DELETE');
+    const urlEl = document.getElementById('fav-share-url');
+    const revokeEl = document.getElementById('fav-revoke-btn');
+    if (urlEl) urlEl.textContent = '';
+    if (revokeEl) revokeEl.style.display = 'none';
+    toast('✅ ' + T('fav_share_revoked'));
+  } catch (e) { toast('❌ ' + e.message); }
 }
 
 async function deleteAlert(id) {
@@ -4253,6 +4338,43 @@ function initPublishScore() {
   document.querySelectorAll('.feature-toggle').forEach(b =>
     b.addEventListener('click', () => setTimeout(updatePublishScore, 0)));
   updatePublishScore();
+}
+
+// ── Estimation automatique de prix ────────────────────────────────────────────────────────────────────────────────────────
+// Affiche une fourchette de prix indicative sous le champ prix du formulaire de publication,
+// d'après les annonces actives similaires (même mode + type + wilaya).
+let _estimateTimer = null;
+function initEstimate() {
+  const priceEl = document.getElementById('pub-price');
+  if (!priceEl) return;
+  let hint = document.getElementById('pub-estimate');
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.id = 'pub-estimate';
+    hint.className = 'pub-estimate-hint';
+    priceEl.insertAdjacentElement('afterend', hint);
+  }
+  const trigger = ['pub-mode', 'pub-type', 'pub-wilaya', 'pub-surface'].map(id => document.getElementById(id)).filter(Boolean);
+  const refresh = () => {
+    clearTimeout(_estimateTimer);
+    _estimateTimer = setTimeout(async () => {
+      const mode    = (document.getElementById('pub-mode')?.value    || '').trim();
+      const type    = (document.getElementById('pub-type')?.value    || '').trim();
+      const wilaya  = (document.getElementById('pub-wilaya')?.value  || '').trim();
+      const surface = (document.getElementById('pub-surface')?.value || '').trim();
+      if (!mode || !type || !wilaya) { hint.textContent = ''; return; }
+      hint.innerHTML = T('pub_estimate_loading');
+      const q = `mode=${encodeURIComponent(mode)}&type_bien=${encodeURIComponent(type)}&wilaya=${encodeURIComponent(wilaya)}` +
+                (surface ? `&surface_m2=${encodeURIComponent(surface)}` : '');
+      const d = await api('GET', `/api/properties/estimate?${q}`).catch(() => null);
+      if (!d || !d.count) { hint.textContent = T('pub_estimate_none'); return; }
+      const fmt = n => Number(n).toLocaleString('fr-DZ');
+      hint.innerHTML = T('pub_estimate_hint').replace('{low}', fmt(d.low)).replace('{high}', fmt(d.high)).replace('{median}', fmt(d.median)) +
+        (d.per_m2 ? ' · ' + T('pub_estimate_per_m2').replace('{per_m2}', fmt(d.per_m2)) : '');
+    }, 600);
+  };
+  trigger.forEach(el => el.addEventListener('change', refresh));
+  refresh();
 }
 
 // ── Modification d'une annonce : le formulaire de publication sert aussi d'écran « Modifier » ─────────────────────────────

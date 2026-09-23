@@ -159,6 +159,7 @@ router.get('/', optionalAuth, async (req, res) => {
     pool.query(
       `SELECT p.*,
          u.name   AS owner_name,  u.phone  AS owner_phone,  u.avatar AS owner_avatar,  u.verified_kind AS owner_verified_kind,
+         u.responsive AS owner_responsive,
          a.name   AS agency_name, a.logo   AS agency_logo,  a.phone  AS agency_phone,  COALESCE(a.verified, false) AS agency_verified, a.kind AS agency_kind
        FROM (SELECT p.* FROM properties p
               ${where}
@@ -304,6 +305,30 @@ router.post('/zone', async (req, res) => {
   const conds = [...mapFilters(req.body, add), geo.boxCondition(poly.box, add), geo.polygonCondition(1, 2)];
   const { data, truncated } = await mapRows(conds, params, { order: 'p.created_at DESC, p.id DESC' });
   res.json({ data, total: data.length, truncated });
+});
+
+// GET /api/properties/estimate?mode=&type_bien=&wilaya=&surface_m2= — fourchette de prix indicative (public, cache 10 min)
+// Calcule la médiane, les 25e et 75e percentiles du prix (et du prix/m²) des annonces actives similaires.
+// Retourne { count:0 } si moins de 3 annonces comparables. DOIT être avant /:id.
+router.get('/estimate', async (req, res) => {
+  const { mode, type_bien, wilaya } = req.query;
+  const surface = parseFloat(req.query.surface_m2) || null;
+  if (!mode || !type_bien || !wilaya) return res.json({ count: 0 });
+  res.set('Cache-Control', 'public, max-age=600');
+  const r = await db.pool.query(`
+    SELECT COUNT(*)::int AS count,
+           PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY price) AS low,
+           PERCENTILE_CONT(0.5)  WITHIN GROUP (ORDER BY price) AS median,
+           PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY price) AS high,
+           PERCENTILE_CONT(0.5)  WITHIN GROUP (ORDER BY price::numeric / surface_m2) FILTER (WHERE surface_m2 > 0) AS per_m2
+      FROM properties
+     WHERE status = 'active' AND mode = $1 AND type_bien = $2 AND wilaya = $3`,
+    [mode, type_bien, wilaya]);
+  const row = r.rows[0];
+  if (!row || row.count < 3) return res.json({ count: 0 });
+  const fmt = v => v ? Math.round(Number(v)) : null;
+  res.json({ count: row.count, low: fmt(row.low), median: fmt(row.median), high: fmt(row.high),
+             per_m2: fmt(row.per_m2), surface_m2: surface });
 });
 
 // GET /api/properties/featured[?wilaya=&mode=&type_bien=&limit=] — annonces « À la une » (DOIT être avant /:id) : publiées, mise en avant en cours.

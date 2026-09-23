@@ -102,7 +102,10 @@ router.put('/:id/status', auth, async (req, res) => {
   const { status } = req.body;
   if (!STATUTS_VALIDES.includes(status)) return res.status(400).json({ error: 'Statut invalide.' });
 
-  await db.contact_requests.update({ id: request.id }, { status });
+  const patch = { status };
+  if (request.status === 'pending' && (status === 'confirmed' || status === 'rejected'))
+    patch.responded_at = new Date();
+  await db.contact_requests.update({ id: request.id }, patch);
 
   // Notifier le demandeur en temps réel pour les statuts confirmé/refusé
   if (status === 'confirmed' || status === 'rejected') {
