@@ -30,12 +30,6 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// DELETE /api/favorites/:property_id — supprimer un favori
-router.delete('/:property_id', auth, async (req, res) => {
-  await db.favorites.delete({ user_id: req.user.id, property_id: db.toId(req.params.property_id) ?? 0 });
-  res.json({ ok: true });
-});
-
 // GET /api/favorites/check/:property_id
 router.get('/check/:property_id', auth, async (req, res) => {
   const fav = await db.favorites.findOne({ user_id: req.user.id, property_id: db.toId(req.params.property_id) ?? 0 });
@@ -49,9 +43,15 @@ router.post('/share', auth, async (req, res) => {
   res.json({ token, url: `/favoris-partages/${token}` });
 });
 
-// DELETE /api/favorites/share — révoque le lien de partage
+// DELETE /api/favorites/share — révoque le lien de partage (doit être avant DELETE /:property_id)
 router.delete('/share', auth, async (req, res) => {
   await db.pool.query('UPDATE users SET favorites_share_token = NULL WHERE id = $1', [req.user.id]);
+  res.json({ ok: true });
+});
+
+// DELETE /api/favorites/:property_id — supprimer un favori
+router.delete('/:property_id', auth, async (req, res) => {
+  await db.favorites.delete({ user_id: req.user.id, property_id: db.toId(req.params.property_id) ?? 0 });
   res.json({ ok: true });
 });
 
