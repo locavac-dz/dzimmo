@@ -560,6 +560,47 @@ function buildPriceDropDigest(lang, { name, drops }) {
   };
 }
 
+// Bilan hebdomadaire des annonceurs : envoyé chaque lundi aux propriétaires ayant au moins 1 annonce active.
+// `properties` : top 3 les plus vues (id, title, views_7d) ; `totals` : vues / demandes / favoris / active_count sur 7 jours.
+function buildWeeklyDigest(lang, { name, properties, totals }) {
+  const stat = (icon, label, val) =>
+    `<div style="text-align:center;padding:.9rem .5rem"><div style="font-size:1.7rem;font-weight:900;color:#0C6E4F">${Number(val)}</div><div style="font-size:.8rem;color:#666;margin-top:.2rem">${icon} ${esc(label)}</div></div>`;
+  const propRows = (properties || []).map(p => `
+    <tr>
+      <td style="padding:.45rem .7rem;border-bottom:1px solid #f0f0f0">${esc(p.title)}</td>
+      <td style="padding:.45rem .7rem;border-bottom:1px solid #f0f0f0;text-align:center;font-weight:700;color:#0C6E4F">${Number(p.views_7d)}</td>
+    </tr>`).join('');
+  const activeCount = Number(totals.active_count);
+  return {
+    subject: pick(lang, '📊 Votre bilan de la semaine — DzImmo', '📊 ملخص أسبوعك — DzImmo'),
+    html: wrap(`
+      <h2 style="color:#222;margin-top:0">${pick(lang, 'Votre bilan de la semaine 📊', 'ملخص أسبوعك 📊')}</h2>
+      <p>${ui(lang).hello} <strong>${esc(name)}</strong>${pick(lang, ',', '،')}</p>
+      <p>${pick(lang,
+        `Voici vos chiffres des 7 derniers jours pour vos <strong>${activeCount}</strong> annonce${activeCount > 1 ? 's' : ''} active${activeCount > 1 ? 's' : ''} :`,
+        `إليك أرقام الـ7 أيام الماضية لإعلاناتك الـ<strong>${activeCount}</strong> النشطة:`)}</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);background:#f0fdf4;border-radius:12px;padding:.25rem;margin:1rem 0">
+        ${stat('👁', pick(lang, 'Vues', 'مشاهدات'), totals.views_7d)}
+        ${stat('📩', pick(lang, 'Demandes', 'طلبات'), totals.contacts_7d)}
+        ${stat('❤️', pick(lang, 'Favoris', 'مفضلة'), totals.fav_7d)}
+      </div>
+      ${propRows ? `
+      <h3 style="font-size:.92rem;margin:1.2rem 0 .5rem">${pick(lang, 'Annonces les plus vues', 'الإعلانات الأكثر مشاهدة')}</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:13.5px">
+        <thead><tr>
+          <th style="padding:.35rem .7rem;text-align:${lang === 'ar' ? 'right' : 'left'};color:#888;font-size:.78rem;font-weight:600">${pick(lang, 'Annonce', 'الإعلان')}</th>
+          <th style="padding:.35rem .7rem;text-align:center;color:#888;font-size:.78rem;font-weight:600">${pick(lang, 'Vues', 'مشاهدات')}</th>
+        </tr></thead>
+        <tbody>${propRows}</tbody>
+      </table>` : ''}
+      ${centered(button(siteUrl() + '/#dashboard', pick(lang, 'Voir mes statistiques', 'عرض إحصائياتي'), lang))}
+      <p style="font-size:.8rem;color:#aaa;margin-top:1.5rem">${pick(lang,
+        'Vous recevez ce résumé chaque lundi car vous avez des annonces actives sur DzImmo.',
+        'تصلك هذه الرسالة كل اثنين لأن لديك إعلانات نشطة على DzImmo.')}</p>
+    `, lang),
+  };
+}
+
 // ── Envoi ────────────────────────────────────────────────────────────────────
 // Chaque fonction reçoit `lang` (langue du destinataire) ; sans lang : français.
 const send = (to, built) => sendMail({ to, ...built });
@@ -682,10 +723,11 @@ module.exports = {
   mailModerationDecision, mailAdminPending, mailVerificationDecision, mailAdminVerificationPending,
   mailExpiryReminder, mailListingExpired, mailListingReported, mailAdminReported, mailAlert, mailPriceDrop, mailSecurityNotice, mailSiteContact, mailNewsletterConfirm, mailNewsletter, CONTACT_SUBJECTS,
   mailFeaturedReceipt, mailFeaturedRefundAlert, mailPriceDropDigest,
+  mailWeeklyDigest: d => send(d.email, buildWeeklyDigest(d.lang, d)),
   // gabarits purs (tests)
   build: { buildWelcome, buildVerifyEmail, buildPasswordReset, buildContactRequest, buildNewMessage,
            buildSearchAlert, buildModerationDecision, buildAdminPending,
            buildVerificationDecision, buildAdminVerificationPending, buildExpiryReminder, buildListingExpired, buildSiteContact, buildNewsletterConfirm, buildNewsletter,
            buildListingReported, buildAdminReported, buildAlert, buildPriceDrop, buildSecurityNotice, buildVisitReminder,
-           buildFeaturedReceipt, buildFeaturedRefundAlert, buildPriceDropDigest },
+           buildFeaturedReceipt, buildFeaturedRefundAlert, buildPriceDropDigest, buildWeeklyDigest },
 };

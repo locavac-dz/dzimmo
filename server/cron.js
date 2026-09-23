@@ -80,6 +80,12 @@ cron.schedule('0 5 * * *', guard('badge réactif', async () => {
   if (r.rowCount) console.log(`[cron] ${r.rowCount} badge(s) réactif mis à jour.`);
 }));
 
+// Bilan hebdomadaire : chaque lundi à 08:30 (après les rappels de visite, avant les alertes)
+cron.schedule('30 8 * * 1', guard('bilan hebdomadaire', async () => {
+  const n = await require('./weekly-digest').sendWeeklyDigest();
+  if (n) console.log(`[cron] ${n} bilan(s) hebdomadaire(s) envoyé(s).`);
+}));
+
 // Envoi des alertes email — toutes les heures
 cron.schedule('0 * * * *', guard('alertes de recherche', () => sendSearchAlerts()));
 

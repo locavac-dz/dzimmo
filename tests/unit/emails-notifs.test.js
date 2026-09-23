@@ -39,6 +39,7 @@ const SAMPLES = {
   buildFeaturedReceipt:           { name: 'Karim', propertyTitle: 'Villa X', days: 7, amount: 1500, featuredUntil: '2026-10-01T00:00:00Z', url: 'https://dzimmo.dz/annonce/1' },
   buildFeaturedRefundAlert:       { propertyTitle: 'Villa X', days: 7, amount: 1500, featuredUntil: '2026-10-01T00:00:00Z', url: 'https://dzimmo.dz/' },
   buildPriceDropDigest:           { name: 'Karim', drops: [{ propertyTitle: 'Villa X', oldPrice: 30000000, newPrice: 27000000, percent: 10, url: 'https://dzimmo.dz/annonce/1' }] },
+  buildWeeklyDigest:              { name: 'Karim', properties: [{ id: 1, title: 'Villa X', views_7d: 42 }], totals: { views_7d: 120, contacts_7d: 3, fav_7d: 5, active_count: 2 } },
 };
 
 test('chaque gabarit d\'email existe et est couvert par un jeu de données', () => {
