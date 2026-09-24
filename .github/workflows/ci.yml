@@ -59,3 +59,44 @@ jobs:
       - run: npm ci
 
       - run: npm test
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: test
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: dzimmo
+          POSTGRES_PASSWORD: dzimmo
+          POSTGRES_DB: dzimmo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dzimmo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://dzimmo:dzimmo@localhost:5432/dzimmo
+      NODE_ENV: development
+      JWT_SECRET: secret-e2e-ci
+      PORT: 3001
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Navigateurs Playwright (Chromium uniquement)
+        run: npx playwright install --with-deps chromium
+
+      - run: npm run test:e2e

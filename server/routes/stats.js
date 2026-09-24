@@ -22,6 +22,34 @@ router.get('/', admin, async (req, res) => {
   res.json({ users, properties, contacts, agencies, active, sold, rented, pending_contacts: pending, pending_props });
 });
 
+// GET /api/stats/details — métriques avancées (admin) : activité 7j/30j, signalements, newsletter
+router.get('/details', admin, async (req, res) => {
+  const { pool } = db;
+  const { rows } = await pool.query(`
+    SELECT
+      (SELECT COUNT(*)::int FROM users WHERE created_at >= NOW() - INTERVAL '7 days')    AS new_users_7d,
+      (SELECT COUNT(*)::int FROM users WHERE created_at >= NOW() - INTERVAL '30 days')   AS new_users_30d,
+      (SELECT COUNT(*)::int FROM users WHERE verified_kind IS NOT NULL)                  AS verified_users,
+      (SELECT COUNT(*)::int FROM users WHERE banned = true)                              AS banned_users,
+      (SELECT COUNT(*)::int FROM properties
+         WHERE status = 'active' AND featured_until > NOW())                             AS featured_active,
+      (SELECT COUNT(*)::int FROM contact_requests
+         WHERE created_at >= NOW() - INTERVAL '7 days')                                  AS contacts_7d,
+      (SELECT COUNT(*)::int FROM contact_requests
+         WHERE created_at >= NOW() - INTERVAL '30 days')                                 AS contacts_30d,
+      (SELECT COALESCE(SUM(views), 0)::bigint FROM property_views_daily
+         WHERE day >= CURRENT_DATE - 6)                                                  AS views_7d,
+      (SELECT COALESCE(SUM(views), 0)::bigint FROM property_views_daily
+         WHERE day >= CURRENT_DATE - 29)                                                 AS views_30d,
+      (SELECT COUNT(*)::int FROM signalements WHERE status = 'pending')                  AS signalements_pending,
+      (SELECT COUNT(*)::int FROM signalements
+         WHERE status IN ('resolved', 'ignored'))                                        AS signalements_closed,
+      (SELECT COUNT(*)::int FROM newsletter_subscribers
+         WHERE confirmed_at IS NOT NULL)                                                 AS newsletter_subscribers
+  `);
+  res.json(rows[0]);
+});
+
 // GET /api/stats/public — statistiques publiques de la plateforme (sans auth)
 // Cache mémoire de 60 s (par processus) : évite de relancer les agrégats SQL à chaque appel
 const PUBLIC_STATS_TTL_MS = 60 * 1000;

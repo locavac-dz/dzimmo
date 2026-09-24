@@ -50,6 +50,7 @@ const TRANSLATIONS = {
     filter_search:'Recherche', filter_kw_ph:'Mot-clé…', filter_apply:'🔍 Filtrer',
     near_me:'📍 Près de moi', near_me_results:'📍 Résultats près de :', near_me_clear:'✕ Retirer', commune_in:'🏘️ Commune :',
     annonces_heading:'Annonces immobilières', res_one:'résultat', res_many:'résultats',
+    search_suggest:'Voulez-vous dire :',
     pub_first_photo:'La première photo sera la photo principale.',
     msg_title:'💬 Messagerie', msg_select:'Sélectionnez une conversation', msg_none:'Aucune conversation',
     u_dzd:'DZD', u_month:'/mois', u_m2:'m²',
@@ -491,6 +492,7 @@ const TRANSLATIONS = {
     filter_search:'بحث', filter_kw_ph:'كلمة مفتاحية…', filter_apply:'🔍 تصفية',
     near_me:'📍 بالقرب مني', near_me_results:'📍 نتائج بالقرب من:', near_me_clear:'✕ إزالة', commune_in:'🏘️ البلدية:',
     annonces_heading:'إعلانات عقارية', res_one:'نتيجة', res_many:'نتائج',
+    search_suggest:'هل تقصد:',
     pub_first_photo:'ستكون الصورة الأولى هي الصورة الرئيسية.',
     msg_title:'💬 الرسائل', msg_select:'اختر محادثة', msg_none:'لا توجد محادثات',
     u_dzd:'د.ج', u_month:'/شهر', u_m2:'م²',
@@ -1396,6 +1398,68 @@ function annonceUrl(id, title) {
   return window.location.origin + langPath('/annonce/' + id + (slug ? '-' + slug : ''));
 }
 
+// ── Correction orthographique légère des mots-clés de recherche ──────────────
+// Détecte les fautes de frappe (distance d'édition ≤ 2) par rapport au vocabulaire
+// connu (wilayas, types de biens, modes) et propose une correction dans l'état "0 résultat".
+function _normForSearch(s) {
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function _levenshtein(a, b) {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  let curr = new Array(b.length + 1);
+  for (let i = 1; i <= a.length; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= b.length; j++)
+      curr[j] = a[i-1] === b[j-1] ? prev[j-1] : 1 + Math.min(prev[j], curr[j-1], prev[j-1]);
+    [prev, curr] = [curr, prev];
+  }
+  return prev[b.length];
+}
+
+let _searchVocab = null;
+function _getSearchVocab() {
+  if (_searchVocab) return _searchVocab;
+  const types = ['appartement', 'villa', 'maison', 'bureau', 'terrain', 'ferme', 'entrepot'];
+  const modes = ['vente', 'location'];
+  _searchVocab = [
+    ...types.map(w => ({ norm: w, display: w })),
+    ...modes.map(w => ({ norm: w, display: w })),
+    ...WILAYAS.map(w => ({ norm: _normForSearch(w), display: w })),
+  ];
+  return _searchVocab;
+}
+
+function correctQuery(query) {
+  if (!query || query.length < 3) return null;
+  const vocab = _getSearchVocab();
+  const words = _normForSearch(query).split(' ');
+  let corrected = [...words];
+  let changed = false;
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    if (w.length < 4) continue;
+    const maxDist = w.length > 5 ? 2 : 1;
+    let best = null, bestDist = maxDist + 1;
+    for (const entry of vocab) {
+      if (entry.norm.includes(' ')) continue;
+      const d = _levenshtein(w, entry.norm);
+      if (d > 0 && d <= maxDist && d < bestDist) { bestDist = d; best = entry; }
+    }
+    if (best) { corrected[i] = best.display; changed = true; }
+  }
+  return changed ? corrected.join(' ') : null;
+}
+
+function applyQueryCorrection(text) {
+  const el = document.getElementById('f-q');
+  if (el) { el.value = text; loadAnnonces(); }
+}
+
 // ── Pages de recherche indexables : /vente/appartements/oran (voir server/seo.js) ──
 const SEO_MODES = { 'vente': 'vente', 'location': 'location_longue', 'location-saisonniere': 'location_courte' };
 const SEO_TYPES = { 'appartements': 'appartement', 'villas': 'villa', 'maisons': 'maison', 'bureaux': 'bureau',
@@ -1818,7 +1882,14 @@ async function loadAnnonces(page = 1) {
     countEl.textContent = total + ' ' + T(total > 1 ? 'res_many' : 'res_one');
     if (!data.length) {
       document.getElementById('annonces-featured')?.classList.add('hidden');
-      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🔍</div><h3>Aucune annonce trouvée</h3><p>Essayez d\'élargir vos critères.</p></div>';
+      const rawQ = get('f-q');
+      const suggestion = rawQ ? correctQuery(rawQ) : null;
+      const suggHTML = suggestion
+        ? `<p style="margin:.5rem 0 0;font-size:.9rem">${T('search_suggest')} <a href="#" class="js-query-suggestion" data-q="${esc(suggestion)}" style="color:var(--primary-text);font-weight:600">${esc(suggestion)}</a> ?</p>`
+        : '';
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="icon">🔍</div><h3>Aucune annonce trouvée</h3><p>Essayez d'élargir vos critères.${suggHTML}</p></div>`;
+      const suggLink = grid.querySelector('.js-query-suggestion');
+      if (suggLink) suggLink.addEventListener('click', e => { e.preventDefault(); applyQueryCorrection(suggLink.dataset.q); });
       return;
     }
     renderGrid(grid, data);
@@ -3242,9 +3313,10 @@ async function adminLoadResume() {
   const c = document.getElementById('admin-content');
   c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
-    const s = await api('/stats');
+    const [s, d] = await Promise.all([api('/stats'), api('/stats/details')]);
     c.innerHTML = `
-      <div class="dashboard-stats">
+      <h3 style="margin:0 0 .75rem;font-size:1rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Vue d'ensemble</h3>
+      <div class="dashboard-stats" style="margin-bottom:1.5rem">
         <div class="stat-card"><div class="val">${s.users}</div><div class="lbl">Utilisateurs</div></div>
         <div class="stat-card"><div class="val">${s.active}</div><div class="lbl">Annonces actives</div></div>
         <div class="stat-card" style="cursor:pointer;${s.pending_props ? 'border:2px solid #d97706' : ''}" onclick="adminTab('moderation')"><div class="val">${s.pending_props || 0}</div><div class="lbl">À modérer</div></div>
@@ -3252,6 +3324,24 @@ async function adminLoadResume() {
         <div class="stat-card"><div class="val">${s.agencies}</div><div class="lbl">Agences</div></div>
         <div class="stat-card"><div class="val">${s.contacts}</div><div class="lbl">Demandes contact</div></div>
         <div class="stat-card"><div class="val">${s.pending_contacts}</div><div class="lbl">En attente</div></div>
+      </div>
+      <h3 style="margin:0 0 .75rem;font-size:1rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Activité — 7 derniers jours</h3>
+      <div class="dashboard-stats" style="margin-bottom:1.5rem">
+        <div class="stat-card"><div class="val">${d.new_users_7d}</div><div class="lbl">Nouveaux membres</div></div>
+        <div class="stat-card"><div class="val">${Number(d.views_7d).toLocaleString('fr-DZ')}</div><div class="lbl">Vues d'annonces</div></div>
+        <div class="stat-card"><div class="val">${d.contacts_7d}</div><div class="lbl">Nouvelles demandes</div></div>
+        <div class="stat-card"><div class="val">${d.new_users_30d}</div><div class="lbl">Membres / 30j</div></div>
+        <div class="stat-card"><div class="val">${Number(d.views_30d).toLocaleString('fr-DZ')}</div><div class="lbl">Vues / 30j</div></div>
+        <div class="stat-card"><div class="val">${d.contacts_30d}</div><div class="lbl">Demandes / 30j</div></div>
+      </div>
+      <h3 style="margin:0 0 .75rem;font-size:1rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Plateforme</h3>
+      <div class="dashboard-stats">
+        <div class="stat-card"><div class="val">${d.verified_users}</div><div class="lbl">Profils vérifiés</div></div>
+        <div class="stat-card"><div class="val">${d.banned_users}</div><div class="lbl">Bannis</div></div>
+        <div class="stat-card"><div class="val">${d.featured_active}</div><div class="lbl">À la une actifs</div></div>
+        <div class="stat-card" style="cursor:pointer;${d.signalements_pending ? 'border:2px solid #d97706' : ''}" onclick="adminTab('signalements')"><div class="val">${d.signalements_pending}</div><div class="lbl">Signalements</div></div>
+        <div class="stat-card"><div class="val">${d.signalements_closed}</div><div class="lbl">Signalements traités</div></div>
+        <div class="stat-card"><div class="val">${d.newsletter_subscribers}</div><div class="lbl">Abonnés newsletter</div></div>
       </div>`;
   } catch (e) { c.innerHTML = `<p style="color:red;padding:1rem">${e.message}</p>`; }
 }
