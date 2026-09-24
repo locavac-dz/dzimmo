@@ -945,6 +945,9 @@
     /* Petits téléphones : le nom du site disparaît de l'en-tête (l'icône reste), sinon cloche + messages + avatar ne tiennent pas */
     @media (max-width: 420px) { .logo-text { display: none; } }
 
+    /* Très petits écrans : cartes de stats empilées (iPhone SE 375px) */
+    @media (max-width: 420px) { .dashboard-stats { grid-template-columns: 1fr; } }
+
     /* Comparateur sur mobile : barre compacte (miniatures seules, plus de bouton coupé), posée au-dessus de la barre
        d'appel d'une fiche, tableau à colonne des critères fixe, boutons plus faciles à toucher */
     @media (max-width: 768px) {

@@ -231,14 +231,14 @@ router.get('/export', require('../middleware/auth'), async (req, res) => {
         WHERE m.from_id = $1 OR m.to_id = $1
         ORDER BY m.id`, [uid]),
     pool.query(
-      `SELECT c.id, c.type, c.status, c.message, c.visit_date, c.offer_amount, c.created_at,
+      `SELECT c.id, c.type, c.status, c.message, c.visit_date, c.visit_time, c.offer_amount, c.created_at,
               p.id AS property_id, p.title AS property_title
          FROM contact_requests c
          JOIN properties p ON p.id = c.property_id
         WHERE c.user_id = $1
         ORDER BY c.id`, [uid]),
     pool.query(
-      `SELECT c.id, c.type, c.status, c.message, c.visit_date, c.offer_amount, c.created_at,
+      `SELECT c.id, c.type, c.status, c.message, c.visit_date, c.visit_time, c.offer_amount, c.created_at,
               c.user_id AS requester_id, u.name AS requester_name,
               p.id AS property_id, p.title AS property_title
          FROM contact_requests c
