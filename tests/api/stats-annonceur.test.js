@@ -43,7 +43,7 @@ test("forme : 30 jours consécutifs jusqu'à aujourd'hui, tout à zéro pour une
   assert.equal(r.days[29], await today());
   assert.equal(r.days[0], await ago(29));
   assert.deepEqual(r.views, []); assert.deepEqual(r.favorites, []); assert.deepEqual(r.clicks, []);
-  assert.deepEqual(r.totals, { views_30d: 0, views_7d: 0, favorites_30d: 0, favorites_total: 0, calls_30d: 0, whatsapps_30d: 0, contacts_30d: 0 });
+  assert.deepEqual(r.totals, { views_30d: 0, views_7d: 0, favorites_30d: 0, favorites_total: 0, calls_30d: 0, whatsapps_30d: 0, contacts_30d: 0, conversion_rate: 0 });
   assert.ok(Array.isArray(r.advice));
 });
 
@@ -56,7 +56,7 @@ test('vues, favoris, clics et demandes comptés par jour ; au-delà de 30 jours 
   await q(`INSERT INTO contact_requests (property_id, user_id, type, created_at) VALUES ($1, $2, 'info', now() - interval '60 days')`, [id, fans[1].id]);
 
   const r = (await stats(id, owner)).body;
-  assert.deepEqual(r.totals, { views_30d: 19, views_7d: 9, favorites_30d: 2, favorites_total: 3, calls_30d: 5, whatsapps_30d: 1, contacts_30d: 1 });
+  assert.deepEqual(r.totals, { views_30d: 19, views_7d: 9, favorites_30d: 2, favorites_total: 3, calls_30d: 5, whatsapps_30d: 1, contacts_30d: 1, conversion_rate: 5.3 });
   const at = (rows, day, key) => rows.filter(x => x.day === day).reduce((t, x) => t + Number(x[key]), 0);
   assert.equal(at(r.views, r.days[29], 'views'), 5);
   assert.equal(at(r.favorites, r.days[29], 'n'), 1);

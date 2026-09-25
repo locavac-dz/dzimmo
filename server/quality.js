@@ -16,7 +16,20 @@ const LOW_RATIO = 0.25, HIGH_RATIO = 4;
 const MIN_LOCAL = 5;              // annonces comparables (même wilaya, mode et type) pour juger un prix
 const MIN_NATIONAL = 15;          // à défaut, comparaison à l'échelle du pays (même mode et type)
 const DOUBLE_SUBMIT_SECONDS = 120;
-const BLOCKING = ['duplicate_other', 'price_low', 'price_high'];
+const BLOCKING = ['duplicate_other', 'price_low', 'price_high', 'content_bypass'];
+
+// Détection de contact direct dans le corps d'une annonce (contournement de la plateforme)
+const PHONE_RE = /(?:0[5-7]\d{8}|\+213\s*[5-7]\d{8}|00\s*213\s*[5-7]\d{8})/;
+const EMAIL_RE = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/;
+const URL_RE   = /https?:\/\/|(?:^|\s)www\.[a-z]/i;
+
+function contentFlags(title, description) {
+  const text = String(title || '') + ' ' + String(description || '');
+  if (PHONE_RE.test(text)) return 'contact_phone';
+  if (EMAIL_RE.test(text)) return 'contact_email';
+  if (URL_RE.test(text))   return 'contact_url';
+  return null;
+}
 
 // Sans accents, casse ni ponctuation ; les lettres arabes sont conservées
 const normalize = s => String(s || '').normalize('NFD').replace(/\p{M}+/gu, '').toLowerCase()
@@ -88,6 +101,8 @@ async function assess(c, { excludeId = 0 } = {}) {
     details.price = price;
     if (price.flag) flags.push(price.flag);
   }
+  const cf = contentFlags(c.title, c.description);
+  if (cf) { flags.push('content_bypass'); details.content_bypass = { reason: cf }; }
   return { flags, details, titleKey, fingerprint: fp, doubleSubmit, blocking: isBlocking(flags) };
 }
 
@@ -108,6 +123,7 @@ function warningsFor(a) {
   if (a.flags.includes('duplicate_other')) w.push({ code: 'duplicate_other' });
   if (a.flags.includes('price_low')) w.push({ code: 'price_low', ratio: a.details.price.ratio });
   if (a.flags.includes('price_high')) w.push({ code: 'price_high', ratio: a.details.price.ratio });
+  if (a.flags.includes('content_bypass')) w.push({ code: 'content_bypass' });
   return w;
 }
 
@@ -123,4 +139,4 @@ async function backfill(batch = 500) {
   return rows.length;
 }
 
-module.exports = { assess, save, backfill, warningsFor, isBlocking, normalize, fingerprint, BLOCKING, LOW_RATIO, HIGH_RATIO, MIN_LOCAL, MIN_NATIONAL };
+module.exports = { assess, save, backfill, warningsFor, isBlocking, contentFlags, normalize, fingerprint, BLOCKING, LOW_RATIO, HIGH_RATIO, MIN_LOCAL, MIN_NATIONAL };

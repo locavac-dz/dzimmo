@@ -9,11 +9,13 @@ const LOW_VIEWS_7D      = 5;     // moins de vues sur 7 jours, à partir de MATU
 const DROP_MIN_PREVIOUS = 10;    // vues des 7 jours précédents nécessaires pour parler de baisse
 const DROP_RATIO        = 0.5;   // moins de la moitié des vues de la semaine précédente
 const NO_ENGAGEMENT_MIN = 30;    // vues sur 30 jours sans aucun favori, clic ni demande
+const LOW_CONVERSION_VIEWS = 100; // vues minimum pour juger le taux de conversion
+const LOW_CONVERSION_RATE  = 0.02; // moins de 2 % de vues converties en demandes de contact
 const MAX_ADVICE        = 4;
 
 // Ordre de priorité (le plus important d'abord) : c'est aussi la liste des codes que le site doit savoir traduire
 const CODES = ['price_high', 'few_photos', 'no_phone', 'no_engagement', 'views_drop', 'low_visibility', 'short_description',
-               'no_location', 'no_media', 'no_features', 'no_floor', 'all_good'];
+               'no_location', 'no_media', 'no_features', 'no_floor', 'low_conversion', 'all_good'];
 
 const sum = a => a.reduce((t, v) => t + (Number(v) || 0), 0);
 
@@ -45,6 +47,8 @@ function advise({ property: p, phone, series, quality = null, contacts30 = 0, no
   if (!p.video_url && !p.tour_url) add('no_media', 'tip');
   if (p.type_bien !== 'terrain' && !(Array.isArray(p.features) && p.features.length)) add('no_features', 'tip');
   if (['appartement', 'bureau'].includes(p.type_bien) && p.floor == null) add('no_floor', 'tip');
+  if (views30 >= LOW_CONVERSION_VIEWS && contacts30 / views30 < LOW_CONVERSION_RATE)
+    add('low_conversion', 'tip', { views: views30, contacts: contacts30 });
 
   const list = CODES.filter(c => found.has(c)).map(c => found.get(c)).slice(0, MAX_ADVICE);
   // Rien à reprocher et déjà des visites : on le dit (un encouragement plutôt qu'une liste vide)

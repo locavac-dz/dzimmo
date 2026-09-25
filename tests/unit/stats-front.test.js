@@ -21,7 +21,7 @@ function text(lang, key) {
 }
 
 // Paramètres que le serveur envoie pour chaque code (server/advice.js)
-const PARAMS = { price_high: ['pct'], few_photos: ['n', 'min'], no_engagement: ['views'], views_drop: ['pct'], low_visibility: ['n'], short_description: ['n', 'min'] };
+const PARAMS = { price_high: ['pct'], few_photos: ['n', 'min'], no_engagement: ['views'], views_drop: ['pct'], low_visibility: ['n'], short_description: ['n', 'min'], low_conversion: ['views', 'contacts'] };
 
 test('chaque conseil du serveur a son texte en français et en arabe, avec ses paramètres', () => {
   for (const code of CODES) {
@@ -35,7 +35,7 @@ test('chaque conseil du serveur a son texte en français et en arabe, avec ses p
 });
 
 test('les autres textes du panneau existent dans les deux langues', () => {
-  for (const key of ['dash_stats_title', 'st_views', 'st_favs', 'st_clicks', 'st_calls', 'st_wa', 'st_contacts', 'st_favs_total', 'st_no_data', 'st_advice', 'st_advice_tip']) {
+  for (const key of ['dash_stats_title', 'st_views', 'st_favs', 'st_clicks', 'st_calls', 'st_wa', 'st_contacts', 'st_conversion', 'st_favs_total', 'st_no_data', 'st_advice', 'st_advice_tip']) {
     for (const lang of ['fr', 'ar']) {
       const t = text(lang, key);
       assert.ok(t, `${lang}.${key}`);
@@ -47,7 +47,7 @@ test('les autres textes du panneau existent dans les deux langues', () => {
 
 // Panneau exécuté avec de vraies traductions extraites de la page
 function panel(stats, lang = 'fr') {
-  const keys = ['dash_stats_title', 'st_views', 'st_favs', 'st_clicks', 'st_calls', 'st_wa', 'st_contacts', 'st_favs_total', 'st_no_data', 'st_advice', 'st_advice_tip',
+  const keys = ['dash_stats_title', 'st_views', 'st_favs', 'st_clicks', 'st_calls', 'st_wa', 'st_contacts', 'st_conversion', 'st_favs_total', 'st_no_data', 'st_advice', 'st_advice_tip',
                 ...CODES.map(c => 'adv_' + c)];
   const tr = { fr: {}, ar: {} };
   for (const l of ['fr', 'ar']) for (const k of keys) tr[l][k] = text(l, k);
@@ -60,14 +60,14 @@ function panel(stats, lang = 'fr') {
 }
 
 const days = Array.from({ length: 30 }, (_, i) => `2026-09-${String(i + 1).padStart(2, '0')}`);
-const totals = { views_30d: 42, views_7d: 10, favorites_30d: 3, favorites_total: 7, calls_30d: 4, whatsapps_30d: 2, contacts_30d: 1 };
+const totals = { views_30d: 42, views_7d: 10, favorites_30d: 3, favorites_total: 7, calls_30d: 4, whatsapps_30d: 2, contacts_30d: 1, conversion_rate: 2.4 };
 const base = { days, views: [{ day: days[29], views: 6 }, { day: days[20], views: 2 }], favorites: [{ day: days[25], n: 1 }], clicks: [{ day: days[29], channel: 'call', n: 2 }, { day: days[29], channel: 'whatsapp', n: 1 }], totals, advice: [] };
 
 test('panneau : trois courbes (vues, favoris, clics), les totaux et la légende', () => {
   const html = panel(base);
   assert.equal((html.match(/<path /g) || []).length, 3);
   for (const c of ['#0C6E4F', '#e11d48', '#f59e0b']) assert.ok(html.includes(c), c);
-  for (const label of ['Vues', 'Favoris', 'Clics', 'Appels', 'WhatsApp', 'Demandes']) assert.ok(html.includes(label), label);
+  for (const label of ['Vues', 'Favoris', 'Clics', 'Appels', 'WhatsApp', 'Demandes', 'Taux de contact']) assert.ok(html.includes(label), label);
   assert.ok(html.includes('7 au total'));
   assert.ok(html.includes('>42<'), 'vues sur 30 jours');
   assert.ok(!html.includes('adv_'), 'aucune clé de traduction brute');

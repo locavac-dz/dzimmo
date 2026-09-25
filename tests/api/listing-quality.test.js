@@ -60,8 +60,8 @@ test('empreinte : identique aux accents, casse et ponctuation près ; absente po
   assert.notEqual(quality.fingerprint('x'.repeat(60)), null, '60 caractères : comparé');
 });
 
-test('signaux bloquants : copie, prix trop bas, prix trop élevé ; le doublon du même annonceur n\'en est pas un', () => {
-  assert.deepEqual(quality.BLOCKING, ['duplicate_other', 'price_low', 'price_high']);
+test('signaux bloquants : copie, prix trop bas, prix trop élevé, contact direct ; le doublon du même annonceur n\'en est pas un', () => {
+  assert.deepEqual(quality.BLOCKING, ['duplicate_other', 'price_low', 'price_high', 'content_bypass']);
   assert.equal(quality.isBlocking(['duplicate_own']), false);
   assert.equal(quality.isBlocking([]), false);
   assert.equal(quality.isBlocking(['duplicate_own', 'price_low']), true);

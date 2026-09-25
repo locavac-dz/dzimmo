@@ -677,6 +677,9 @@ router.get('/:id/stats', auth, async (req, res) => {
     calls_30d: total(daily(channel('call'), r => r.n)), whatsapps_30d: total(daily(channel('whatsapp'), r => r.n)),
     contacts_30d: contacts.rows[0].n,
   };
+  totals.conversion_rate = totals.views_30d > 0
+    ? +(totals.contacts_30d / totals.views_30d * 100).toFixed(1)
+    : 0;
   res.json({
     days: list,
     views: views.rows, clicks: clicks.rows, favorites: favorites.rows,

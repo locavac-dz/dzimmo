@@ -65,11 +65,13 @@
     .logo {
       display: flex; align-items: center; gap: .55rem;
       direction: ltr;  /* le logo garde le même ordre (icône puis nom) en français et en arabe */
-      font-size: 1.5rem; font-weight: 900; font-family: Georgia, serif;
+      font-size: 1.5rem; font-weight: 900; font-family: 'Inter','Helvetica Neue',Arial,sans-serif;
       color: var(--primary-text); white-space: nowrap;
     }
     .logo-mark { width: 36px; height: 36px; flex-shrink: 0; }
+    .logo-text .logo-dz { color: var(--gold-text); }
     .logo-text span { font-weight: 300; }
+    .footer-tagline { font-size: .68rem; letter-spacing: 1.8px; font-weight: 500; color: rgba(255,255,255,.35); margin: -.15rem 0 .5rem; text-transform: uppercase; }
     .nav { display: flex; align-items: center; gap: 0.25rem; flex: 1; }
     .nav-link {
       padding: 0.4rem 0.75rem; border-radius: 8px;

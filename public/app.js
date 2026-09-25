@@ -94,6 +94,8 @@ const TRANSLATIONS = {
     alert_active:'🔔 Alerte active', ph_example:'ex : {v}',
     prof_title:'Informations personnelles', prof_name:'Nom', prof_email:'Email', prof_phone:'Téléphone', prof_bio:'Bio',
     prof_notify_drop:'Alertes de baisse de prix', prof_notify_drop_hint:'Notification et email quand le prix d\'une annonce de vos favoris baisse d\'au moins 3 %.',
+    prof_push_enable:'🔔 Activer les notifications push', prof_push_disable:'🔕 Désactiver les notifications push',
+    prof_push_hint:'Recevez les alertes en temps réel même quand le site est fermé.', prof_push_na:'Notifications push non disponibles sur ce navigateur.',
     prof_save:'Enregistrer', prof_logout:'Déconnexion', prof_logout_confirm:'Déconnexion ?', prof_updated:'✅ Profil mis à jour !',
     logout_done:'Déconnexion effectuée.', pub_choose:'Choisir…',
     mod_pending_ok:"Annonce envoyée ! Elle sera visible après validation par notre équipe (généralement sous 24 h). Vous serez notifié(e) de la décision.",
@@ -243,6 +245,7 @@ const TRANSLATIONS = {
     q_price_high:"Le prix au m² est très supérieur à celui des biens comparables : notre équipe vérifiera l'annonce avant de la publier.",
     q_dup_own:'Vous avez déjà publié une annonce très semblable (« {title} »).',
     q_dup_other:"Le texte de cette annonce est identique à celui d'une annonce déjà publiée : notre équipe la vérifiera avant de la publier.",
+    q_content_bypass:"La description contient un contact direct (téléphone, email ou lien) : utilisez uniquement le système de contact de la plateforme. Notre équipe vérifiera l'annonce.",
     q_held:"Votre compte est de confiance, mais cette annonce est vérifiée avant publication à cause de l'avertissement ci-dessus.",
     q_pending_flag:'En vérification : prix inhabituel ou texte identique à une autre annonce.',
     g_terms:'En continuant avec Google, vous acceptez les <a href="#" data-p="cgu" onclick="return goLegal(this)">CGU</a> et la <a href="#" data-p="confidentialite" onclick="return goLegal(this)">politique de confidentialité</a>.',
@@ -409,7 +412,7 @@ const TRANSLATIONS = {
     pr_title:'Mettre votre annonce à la une', pr_intro:"Votre annonce apparaît en tête de l'accueil et de la page Annonces pendant la durée choisie.",
     pr_extend_note:"Si l'annonce est déjà à la une, la durée s'ajoute à la fin de la période en cours.", pr_test_note:"Mode test : aucun argent n'est prélevé.",
     pr_pay:'Payer et mettre à la une', pr_closed:'Les mises à la une ne sont pas ouvertes pour le moment.', pr_choose:'Choisissez une formule.', pr_done:"Votre annonce est à la une jusqu'au {date}.",
-    st_views:'Vues', st_favs:'Favoris', st_clicks:'Clics', st_calls:'Appels', st_wa:'WhatsApp', st_contacts:'Demandes',
+    st_views:'Vues', st_favs:'Favoris', st_clicks:'Clics', st_calls:'Appels', st_wa:'WhatsApp', st_contacts:'Demandes', st_conversion:'Taux de contact',
     st_favs_total:'{n} au total', st_no_data:"Pas encore de visite sur cette période.", st_advice:'Conseils', st_advice_tip:"Conseils calculés d'après les statistiques de cette annonce.",
     dash_edit:'✏️ Modifier', pub_edit_heading:"✏️ Modifier l'annonce", pub_edit_submit:'Enregistrer les modifications',
     pub_edit_locked:"Le mode, le type de bien et la wilaya ne se modifient pas : republiez une annonce pour les changer.",
@@ -426,6 +429,7 @@ const TRANSLATIONS = {
     adv_no_media:"Ajoutez une vidéo ou une visite virtuelle (YouTube, Vimeo, Matterport, Kuula) : elles rassurent les visiteurs.",
     adv_no_features:"Aucun équipement n'est indiqué (parking, ascenseur, balcon…) : cochez ceux de votre bien, ils servent aux filtres.",
     adv_no_floor:"L'étage n'est pas renseigné : les acheteurs et locataires filtrent souvent par étage pour un appartement ou un bureau.",
+    adv_low_conversion:"Seulement {contacts} demande(s) pour {views} vues en 30 jours (moins de 2 %) : enrichissez la description, ajoutez des équipements et vérifiez que votre prix est compétitif.",
     adv_all_good:"Votre annonce est complète et suscite de l'intérêt. Confirmez-la régulièrement pour qu'elle reste bien placée.",
     responsive_badge:'⚡ Réactif',
     pub_estimate_loading:"Calcul de l’estimation…",
@@ -536,6 +540,8 @@ const TRANSLATIONS = {
     alert_active:'🔔 تنبيه نشط', ph_example:'مثال: {v}',
     prof_title:'المعلومات الشخصية', prof_name:'الاسم', prof_email:'البريد الإلكتروني', prof_phone:'الهاتف', prof_bio:'نبذة',
     prof_notify_drop:'تنبيهات انخفاض الأسعار', prof_notify_drop_hint:'إشعار وبريد إلكتروني عندما ينخفض سعر إعلان في مفضلتك بنسبة 3٪ على الأقل.',
+    prof_push_enable:'🔔 تفعيل الإشعارات الفورية', prof_push_disable:'🔕 إلغاء الإشعارات الفورية',
+    prof_push_hint:'استلم التنبيهات حتى عندما يكون المتصفح مغلقاً.', prof_push_na:'الإشعارات الفورية غير متوفرة في هذا المتصفح.',
     prof_save:'حفظ', prof_logout:'تسجيل الخروج', prof_logout_confirm:'هل تريد تسجيل الخروج؟', prof_updated:'✅ تم تحديث الملف الشخصي!',
     logout_done:'تم تسجيل الخروج.', pub_choose:'اختر…',
     mod_pending_ok:'تم إرسال الإعلان! سيظهر بعد مراجعة فريقنا له (عادةً خلال 24 ساعة). سيتم إشعارك بالقرار.',
@@ -685,6 +691,7 @@ const TRANSLATIONS = {
     q_price_high:'سعر المتر المربع أعلى بكثير من العقارات المماثلة: سيراجع فريقنا الإعلان قبل نشره.',
     q_dup_own:'لقد نشرت من قبل إعلاناً مشابهاً جداً («{title}»).',
     q_dup_other:'نص هذا الإعلان مطابق لنص إعلان منشور من قبل: سيراجعه فريقنا قبل نشره.',
+    q_content_bypass:'الوصف يحتوي على معلومات اتصال مباشرة (هاتف أو بريد أو رابط): استخدم فقط نظام التواصل في المنصة. سيراجع فريقنا الإعلان.',
     q_held:'حسابك موثوق، لكن هذا الإعلان يُراجَع قبل النشر بسبب التنبيه أعلاه.',
     q_pending_flag:'قيد المراجعة: سعر غير معتاد أو نص مطابق لإعلان آخر.',
     g_terms:'بالمتابعة عبر Google فإنك توافق على <a href="#" data-p="cgu" onclick="return goLegal(this)">شروط الاستخدام</a> و<a href="#" data-p="confidentialite" onclick="return goLegal(this)">سياسة الخصوصية</a>.',
@@ -851,7 +858,7 @@ const TRANSLATIONS = {
     pr_title:'إبراز إعلانك', pr_intro:'يظهر إعلانك في أعلى الصفحة الرئيسية وصفحة الإعلانات طوال المدة المختارة.',
     pr_extend_note:'إذا كان الإعلان مميزاً بالفعل، تُضاف المدة إلى نهاية الفترة الحالية.', pr_test_note:'وضع تجريبي: لا يُخصم أي مبلغ.',
     pr_pay:'الدفع والإبراز', pr_closed:'الإبراز غير متاح حالياً.', pr_choose:'اختر صيغة.', pr_done:'إعلانك مميز حتى {date}.',
-    st_views:'المشاهدات', st_favs:'المفضّلة', st_clicks:'النقرات', st_calls:'المكالمات', st_wa:'واتساب', st_contacts:'الطلبات',
+    st_views:'المشاهدات', st_favs:'المفضّلة', st_clicks:'النقرات', st_calls:'المكالمات', st_wa:'واتساب', st_contacts:'الطلبات', st_conversion:'معدل التواصل',
     st_favs_total:'{n} في المجموع', st_no_data:'لا توجد زيارات بعد خلال هذه الفترة.', st_advice:'نصائح', st_advice_tip:'نصائح محسوبة انطلاقاً من إحصائيات هذا الإعلان.',
     dash_edit:'✏️ تعديل', pub_edit_heading:'✏️ تعديل الإعلان', pub_edit_submit:'حفظ التعديلات',
     pub_edit_locked:'لا يمكن تغيير نمط الإعلان ونوع العقار والولاية: انشر إعلاناً جديداً لتغييرها.',
@@ -868,6 +875,7 @@ const TRANSLATIONS = {
     adv_no_media:'أضف فيديو أو جولة افتراضية (YouTube أو Vimeo أو Matterport أو Kuula): فهي تطمئن الزوّار.',
     adv_no_features:'لم تُذكر أي تجهيزات (موقف سيارات، مصعد، شرفة…): حدّد ما يتوفر في عقارك، فهي تُستعمل في التصفية.',
     adv_no_floor:'الطابق غير مُدرج: كثير من المشترين والمستأجرين يبحثون بالطابق في الشقق والمكاتب.',
+    adv_low_conversion:'طلب {contacts} فقط من أصل {views} مشاهدة في 30 يوماً (أقل من 2٪): أثروا الوصف وأضيفوا المزايا وتأكدوا من تنافسية السعر.',
     adv_all_good:'إعلانك مكتمل ويثير الاهتمام. أكّده بانتظام ليبقى في مرتبة جيدة.',
     responsive_badge:'⚡ متجاوب',
     pub_estimate_loading:'جارٍ حساب التقدير…',
@@ -4233,6 +4241,8 @@ async function dashTab(tab, more = false) {
           <div class="form-row"><label>${T('prof_bio')}</label><textarea id="p-bio" rows="3">${esc(currentUser.bio || '')}</textarea></div>
           <label class="profile-check"><input type="checkbox" id="p-notify-drop"${currentUser.notify_price_drop === false ? '' : ' checked'}> <span>${T('prof_notify_drop')}</span></label>
           <div class="field-hint">${T('prof_notify_drop_hint')}</div>
+          <button id="push-btn" class="btn btn-outline btn-sm" style="margin-top:.5rem;width:100%" onclick="togglePush(this)">${esc(T('prof_push_enable'))}</button>
+          <div class="field-hint">${T('prof_push_hint')}</div>
           <div style="display:flex;gap:.75rem;margin-top:1rem">
             <button class="btn btn-primary" style="flex:1" onclick="updateProfile()">${T('prof_save')}</button>
             <button class="btn btn-danger btn-sm" onclick="if(confirm(T('prof_logout_confirm'))) logout()">${T('prof_logout')}</button>
@@ -4240,6 +4250,7 @@ async function dashTab(tab, more = false) {
           <button class="btn btn-outline btn-sm" style="margin-top:.75rem;width:100%" onclick="exportData()">⬇ ${T('prof_export')}</button>
         </div>
       </div>`;
+    _initPushBtnState();
   }
 }
 
@@ -4581,7 +4592,7 @@ async function submitProperty() {
       const r = await api('/properties/' + editing, 'PUT', fields);
       const pending = r.status === 'pending';
       sucEl.textContent = (pending ? '⏳ ' : '✅ ') + T(pending ? 'pub_edit_pending' : 'pub_edit_saved');
-      const QWE = { duplicate_own: 'q_dup_own', duplicate_other: 'q_dup_other', price_low: 'q_price_low', price_high: 'q_price_high' };
+      const QWE = { duplicate_own: 'q_dup_own', duplicate_other: 'q_dup_other', price_low: 'q_price_low', price_high: 'q_price_high', content_bypass: 'q_content_bypass' };
       const warnsE = (r.warnings || []).map(w => T(QWE[w.code] || 'q_price_low').replace('{title}', w.title || ''));
       if (warnsE.length) sucEl.innerHTML = esc(sucEl.textContent) + '<ul class="q-list">' + warnsE.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
       sucEl.classList.remove('hidden');
@@ -4599,7 +4610,7 @@ async function submitProperty() {
     const pending = r.status === 'pending';
     sucEl.textContent = pending ? '⏳ ' + T('mod_pending_ok') : '✅ Annonce publiée avec succès !';
     // Avertissements de qualité (prix inhabituel, doublon, texte copié) : lus avant la redirection
-    const QW = { duplicate_own: 'q_dup_own', duplicate_other: 'q_dup_other', price_low: 'q_price_low', price_high: 'q_price_high' };
+    const QW = { duplicate_own: 'q_dup_own', duplicate_other: 'q_dup_other', price_low: 'q_price_low', price_high: 'q_price_high', content_bypass: 'q_content_bypass' };
     const warns = (r.warnings || []).map(w => T(QW[w.code] || 'q_price_low').replace('{title}', w.title || ''));
     if (r.held) warns.push(T('q_held'));
     if (warns.length) sucEl.innerHTML = esc(sucEl.textContent) + '<ul class="q-list">' + warns.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
@@ -4713,6 +4724,32 @@ async function unregisterPush() {
       await api('/push/subscribe', 'DELETE', { endpoint: sub.endpoint }).catch(() => {});
     }
     _pushSub = null;
+  } catch {}
+}
+
+async function togglePush(btn) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    toast(T('prof_push_na')); return;
+  }
+  if (_pushSub) {
+    await unregisterPush();
+    if (btn) btn.textContent = T('prof_push_enable');
+  } else {
+    await registerPush();
+    if (_pushSub && btn) btn.textContent = T('prof_push_disable');
+  }
+}
+
+async function _initPushBtnState() {
+  const btn = document.getElementById('push-btn');
+  if (!btn) return;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    btn.textContent = T('prof_push_na'); btn.disabled = true; return;
+  }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) { _pushSub = sub; btn.textContent = T('prof_push_disable'); }
   } catch {}
 }
 
@@ -5524,6 +5561,7 @@ function statsPanelHTML(stats) {
       ${box('📞 ' + T('st_calls'), t.calls_30d, STAT_COLORS.clicks)}
       ${box('💬 ' + T('st_wa'), t.whatsapps_30d, STAT_COLORS.clicks)}
       ${box('📩 ' + T('st_contacts'), t.contacts_30d, 'var(--text-muted)')}
+      <div style="flex:1;min-width:84px;border:1px solid var(--border);border-radius:8px;padding:.35rem .5rem"><div style="font-size:.72rem;color:var(--text-muted);font-weight:700">${esc('📊 ' + T('st_conversion'))}</div><div style="font-size:1.05rem;font-weight:800">${esc((Number(t.conversion_rate) || 0).toFixed(1) + ' %')}</div></div>
     </div>`;
 
   const empty = !series.views.some(Boolean) && !series.favorites.some(Boolean) && !series.clicks.some(Boolean);

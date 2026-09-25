@@ -2,10 +2,13 @@
   <title>DzImmo</title>
   <rect width="64" height="64" fill="#0C6E4F"/>
   <g transform="translate(32 32) scale(0.72) translate(-32 -32)">
-    <path d="M32 8 L46 20 V32 H18 V20 Z" fill="#ffffff"/>
-    <circle cx="32" cy="22" r="4" fill="#0C6E4F"/>
-    <rect x="29" y="32" width="6" height="24" rx="2" fill="#ffffff"/>
-    <rect x="35" y="42" width="8" height="4" rx="1" fill="#f59e0b"/>
-    <rect x="35" y="50" width="6" height="4" rx="1" fill="#f59e0b"/>
+    <rect x="8" y="36" width="48" height="22" fill="white" opacity="0.95"/>
+    <rect x="8" y="24" width="10" height="34" rx="2" fill="white" opacity="0.95"/>
+    <rect x="46" y="24" width="10" height="34" rx="2" fill="white" opacity="0.95"/>
+    <path d="M8 24 Q8 3 32 2 Q56 3 56 24" fill="white" opacity="0.95"/>
+    <ellipse cx="32" cy="3" rx="5" ry="6" fill="#f59e0b"/>
+    <rect x="12" y="28" width="9" height="14" rx="4.5" fill="#f59e0b" opacity="0.75"/>
+    <rect x="43" y="28" width="9" height="14" rx="4.5" fill="#f59e0b" opacity="0.75"/>
+    <path d="M25 58 L25 46 Q32 38 39 46 L39 58Z" fill="#0C6E4F" opacity="0.85"/>
   </g>
 </svg>
