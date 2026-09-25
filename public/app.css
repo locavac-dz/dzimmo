@@ -1027,4 +1027,11 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .suggest-box { background: var(--card); }
 }
+
+/* Confort de lecture en arabe : taille de police légèrement supérieure (les glyphes arabes sont
+   visuellement plus petits à même taille que les glyphes latins) ; line-height élargi pour les
+   lettres à hampe descendante et les voyelles longues */
+html[lang="ar"] { font-size: 106.25%; }   /* 17 px au lieu de 16 px */
+html[lang="ar"] body, html[lang="ar"] .card-title,
+html[lang="ar"] .detail-desc, html[lang="ar"] p { line-height: 1.85; }
 :root[data-theme="dark"] .suggest-box { background: var(--card); }
