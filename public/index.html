@@ -85,7 +85,7 @@
         <button class="btn btn-outline btn-sm" onclick="showPage('messages')" style="position:relative">
           💬 <span id="msg-count" class="badge hidden">0</span>
         </button>
-        <button class="avatar-btn" id="avatar-btn" onclick="showPage('dashboard')"></button>
+        <button class="avatar-btn" id="avatar-btn" onclick="showPage('compte')"></button>
       </div>
       <button id="menu-btn" class="menu-btn" onclick="toggleMenu()" aria-expanded="false" aria-controls="mobile-menu"
               data-i18n="menu_label" data-i18n-attr="aria-label" aria-label="Menu">☰</button>
@@ -559,6 +559,14 @@
   <div id="main">
     <button class="btn btn-outline" style="margin-bottom:1.5rem;padding:.4rem .9rem;font-size:.88rem" onclick="showPage('agences')" data-i18n="btn_back">← Retour</button>
     <div id="agency-detail-content"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PAGE MON COMPTE ══════════════════ -->
+<div id="page-compte" class="hidden">
+  <div id="main" style="padding-top:1rem">
+    <button class="btn btn-outline btn-sm" style="margin-bottom:1rem" onclick="history.back()" data-i18n="btn_back">← Retour</button>
+    <div id="compte-content"><div class="loading"><div class="spinner"></div></div></div>
   </div>
 </div>
 

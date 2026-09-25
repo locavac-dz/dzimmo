@@ -115,6 +115,7 @@ const AR = {
   'Email ou mot de passe incorrect.': 'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
   'Ce compte a été suspendu. Contactez le support.': 'تم تعليق هذا الحساب. تواصل مع الدعم.',
   'Utilisateur introuvable.': 'المستخدم غير موجود.',
+  "Impossible d'envoyer l'email. Vérifiez la configuration SMTP.": 'تعذّر إرسال البريد الإلكتروني. تحقق من إعداد SMTP.',
   'Aucun champ à modifier.': 'لا يوجد أي حقل للتعديل.',
   'Données du profil invalides.': 'بيانات الملف الشخصي غير صالحة.',
   'Email requis.': 'البريد الإلكتروني مطلوب.',

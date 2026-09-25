@@ -97,7 +97,7 @@ const TRANSLATIONS = {
     prof_push_enable:'🔔 Activer les notifications push', prof_push_disable:'🔕 Désactiver les notifications push',
     prof_push_hint:'Recevez les alertes en temps réel même quand le site est fermé.', prof_push_na:'Notifications push non disponibles sur ce navigateur.',
     prof_save:'Enregistrer', prof_logout:'Déconnexion', prof_logout_confirm:'Déconnexion ?', prof_updated:'✅ Profil mis à jour !',
-    logout_done:'Déconnexion effectuée.', pub_choose:'Choisir…',
+    logout_done:'Déconnexion effectuée.', email_verif_sent:'✅ Lien de vérification envoyé. Consultez votre boite email.', pub_choose:'Choisir…',
     mod_pending_ok:"Annonce envoyée ! Elle sera visible après validation par notre équipe (généralement sous 24 h). Vous serez notifié(e) de la décision.",
     mod_banner_pending:"Votre annonce est en attente de validation : elle n'est visible que par vous et notre équipe.",
     mod_banner_rejected:'Annonce refusée.', dash_reason:'Motif du refus :',
@@ -467,6 +467,15 @@ const TRANSLATIONS = {
     pass_strong:'Fort',
     trust_title:'Fiabilité de l\'annonceur', trust_low:'Peu d\'historique', trust_mid:'Profil établi', trust_high:'Annonceur de confiance',
     evol_title:'Évolution sur', evol_days:'jours', evol_users:'Inscriptions', evol_listings:'Annonces publiées', evol_views:'Vues', evol_contacts:'Demandes',
+    acct_title:'Informations du compte', acct_email:'Email', acct_role:'Rôle', acct_wilaya:'Wilaya', acct_since:'Membre depuis', acct_phone:'Téléphone',
+    acct_role_admin:'Administrateur', acct_role_agent:'Agent', acct_role_member:'Membre',
+    acct_unverified_email:'Email non vérifié.', acct_send_verif:'Envoyer un lien de vérification',
+    acct_no_phone:'Aucun numéro de téléphone enregistré sur votre compte.',
+    acct_identity_none:'Identité non vérifiée.', acct_identity_ok:'Identité vérifiée ✓', acct_business_ok:'Professionnel vérifié ✓',
+    acct_resp_title:'Taux de réactivité', acct_resp_desc:'Calculé sur les messages des 90 derniers jours. Les acheteurs voient un badge « Répond généralement en… » lorsque vous répondez à au moins 80 % des messages, en moins de 24 heures.',
+    acct_resp_active:'✅ Badge actif — vous répondez rapidement.',
+    acct_resp_need:'Il vous faut au moins 5 conversations jugées pour obtenir un badge.',
+    acct_my_listings:'Mes annonces', acct_activity:'Mon activité', acct_offers:'Mes offres', acct_edit_profile:'Modifier mon profil',
     prof_export:'Télécharger mes données (RGPD)',
     push_ask:'Activer les notifications push pour ne rien manquer ?', push_yes:'Oui', push_skip:'Plus tard',
     push_on:'🔔 Push activé', push_off:'🔕 Push désactivé',
@@ -559,7 +568,7 @@ const TRANSLATIONS = {
     prof_push_enable:'🔔 تفعيل الإشعارات الفورية', prof_push_disable:'🔕 إلغاء الإشعارات الفورية',
     prof_push_hint:'استلم التنبيهات حتى عندما يكون المتصفح مغلقاً.', prof_push_na:'الإشعارات الفورية غير متوفرة في هذا المتصفح.',
     prof_save:'حفظ', prof_logout:'تسجيل الخروج', prof_logout_confirm:'هل تريد تسجيل الخروج؟', prof_updated:'✅ تم تحديث الملف الشخصي!',
-    logout_done:'تم تسجيل الخروج.', pub_choose:'اختر…',
+    logout_done:'تم تسجيل الخروج.', email_verif_sent:'✅ تم إرسال رابط التحقق. تفقّد بريدك الإلكتروني.', pub_choose:'اختر…',
     mod_pending_ok:'تم إرسال الإعلان! سيظهر بعد مراجعة فريقنا له (عادةً خلال 24 ساعة). سيتم إشعارك بالقرار.',
     mod_banner_pending:'إعلانك في انتظار المراجعة: لا يراه سواك وفريقنا.',
     mod_banner_rejected:'إعلان مرفوض.', dash_reason:'سبب الرفض:',
@@ -929,6 +938,15 @@ const TRANSLATIONS = {
     pass_strong:'قوية',
     trust_title:'موثوقية المُعلِن', trust_low:'ملف ناشئ', trust_mid:'ملف راسخ', trust_high:'مُعلِن موثوق',
     evol_title:'التطور خلال', evol_days:'يوماً', evol_users:'تسجيلات', evol_listings:'إعلانات منشورة', evol_views:'مشاهدات', evol_contacts:'طلبات',
+    acct_title:'معلومات الحساب', acct_email:'البريد الإلكتروني', acct_role:'الدور', acct_wilaya:'الولاية', acct_since:'عضو منذ', acct_phone:'الهاتف',
+    acct_role_admin:'مدير', acct_role_agent:'وكيل', acct_role_member:'عضو',
+    acct_unverified_email:'البريد الإلكتروني غير مؤكَّد.', acct_send_verif:'إرسال رابط التحقق',
+    acct_no_phone:'لم يُسجَّل أي رقم هاتف في حسابك.',
+    acct_identity_none:'الهوية غير موثَّقة.', acct_identity_ok:'الهوية موثَّقة ✓', acct_business_ok:'محترف موثَّق ✓',
+    acct_resp_title:'معدل الاستجابة', acct_resp_desc:'محسوب على رسائل 90 يوماً الأخيرة. يرى المشترون شارة «يرد عادةً في…» عندما تردّ على 80٪ من الرسائل في أقل من 24 ساعة.',
+    acct_resp_active:'✅ الشارة نشطة — ردودك سريعة.',
+    acct_resp_need:'تحتاج إلى 5 محادثات مقيَّمة على الأقل للحصول على الشارة.',
+    acct_my_listings:'إعلاناتي', acct_activity:'نشاطي', acct_offers:'عروضي', acct_edit_profile:'تعديل الملف الشخصي',
     prof_export:'تنزيل بياناتي (RGPD)',
     push_ask:'تفعيل الإشعارات الفورية لا تفوّت شيئاً؟', push_yes:'نعم', push_skip:'لاحقاً',
     push_on:'🔔 الإشعارات مفعّلة', push_off:'🔕 الإشعارات معطّلة',
@@ -1447,7 +1465,7 @@ async function captchaToken() {
 }
 
 // ── Navigation ────────────────────────────────────
-const PAGES = ['home','annonces','detail','publier','agences','agency-detail','programmes','programme-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats','contrats','newsletter','tendances','favoris-partages'];
+const PAGES = ['home','annonces','detail','publier','agences','agency-detail','programmes','programme-detail','compte','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats','contrats','newsletter','tendances','favoris-partages'];
 
 const defaultTitle = () => T('site_title');   // titre du site dans la langue affichée (identique à celui que le serveur rend pour / et /ar)
 const PRO_PAGES = ['agences', 'agency-detail', 'programmes', 'programme-detail'];
@@ -1790,6 +1808,7 @@ function showPage(page, data = null) {
   if (page === 'programmes')      loadProgrammes();
   if (page === 'publier')         { syncPublishMode(); initPublishAs(); updatePublishScore(); }
   if (page === 'programme-detail' && data) { window._programmeId = data; loadProgrammeDetail(data); }
+  if (page === 'compte')          loadCompte();
   if (page === 'dashboard')       loadDashboard();
   if (page === 'messages')        loadMessages();
   if (page === 'detail' && data)       loadDetail(data);
@@ -4020,6 +4039,98 @@ function buildViewsChart(data) {
         <line x1="${PAD}" y1="${H - 20}" x2="${W - PAD}" y2="${H - 20}" stroke="var(--border)" stroke-width="1"/>
       </svg>
     </div>`;
+}
+
+// ── Page Mon Compte ──────────────────────────────────────────────────────────
+async function loadCompte() {
+  if (!currentUser) { showPage('home'); openModal('login'); return; }
+  const u = currentUser;
+  const c = document.getElementById('compte-content');
+  if (!c) return;
+
+  // Rôle lisible
+  const role = u.is_admin ? T('acct_role_admin') : u.is_agent ? T('acct_role_agent') : T('acct_role_member');
+
+  // Section info compte
+  const rows = [
+    [T('acct_email'),  esc(u.email)],
+    [T('acct_role'),   esc(role)],
+    [T('acct_wilaya'), u.wilaya ? esc(wilayaName(u.wilaya)) : '—'],
+    [T('acct_since'),  new Date(u.created_at).toLocaleDateString('fr-DZ', { year: 'numeric', month: 'long' })],
+    [T('acct_phone'),  u.phone ? esc(u.phone) : '—'],
+  ].map(([label, val]) =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--border)">
+       <span style="font-size:.85rem;color:var(--text-muted)">${label}</span>
+       <span style="font-size:.9rem;font-weight:500">${val}</span>
+     </div>`
+  ).join('');
+
+  // Section statut
+  const emailRow = u.email_verified
+    ? `<div style="color:var(--primary-text);font-size:.88rem">✓ Email vérifié</div>`
+    : `<div>
+         <span style="color:#d97706;font-weight:600;font-size:.88rem">${T('acct_unverified_email')}</span>
+         <br><a href="#" onclick="sendVerifEmail();return false" style="font-size:.82rem;color:var(--primary-text)">${T('acct_send_verif')}</a>
+       </div>`;
+  const phoneRow = u.phone ? '' : `<div style="font-size:.88rem;color:var(--text-muted);margin-top:.4rem">${T('acct_no_phone')}</div>`;
+  const identityRow = u.verified_kind
+    ? `<div style="color:var(--primary-text);font-weight:600;font-size:.88rem;margin-top:.4rem">${T('acct_' + u.verified_kind + '_ok')}</div>`
+    : `<div style="color:#d97706;font-weight:600;font-size:.88rem;margin-top:.4rem">${T('acct_identity_none')}</div>
+       <div style="margin-top:.5rem">
+         <label style="font-size:.82rem;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;color:var(--primary-text)">
+           <input type="file" accept="image/jpeg,image/png,image/webp" id="acct-id-file" style="display:none" onchange="acctQuickVerif(this)">
+           <span style="text-decoration:underline">${T('vf_files')}</span>
+         </label>
+         <button class="btn btn-outline btn-sm" style="margin-top:.4rem" onclick="dashTab('verification');showPage('dashboard')">${T('vf_send')}</button>
+       </div>`;
+
+  // Section réactivité
+  const respRow = u.responsive
+    ? `<p style="font-size:.88rem;color:var(--primary-text)">${T('acct_resp_active')}</p>`
+    : `<p style="font-size:.82rem;color:var(--text-muted);margin-top:.5rem">${T('acct_resp_need')}</p>`;
+
+  c.innerHTML = `
+    <div style="max-width:480px;margin:0 auto;padding:1rem 0 4rem">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:1.5rem">
+        <div style="width:72px;height:72px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700">
+          ${esc((u.name || '?')[0].toUpperCase())}
+        </div>
+        <h2 style="margin:.6rem 0 .1rem;font-size:1.1rem;font-weight:700">${esc(u.name)}</h2>
+        <span style="font-size:.82rem;color:var(--text-muted)">${esc(role)}</span>
+      </div>
+
+      <div style="background:var(--white);border-radius:var(--radius);padding:1rem 1.25rem;box-shadow:var(--shadow);margin-bottom:1rem">
+        <h3 style="font-size:.88rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.25rem">${T('acct_title')}</h3>
+        ${rows}
+      </div>
+
+      <div style="background:var(--white);border-radius:var(--radius);padding:1rem 1.25rem;box-shadow:var(--shadow);margin-bottom:1rem">
+        ${emailRow}${phoneRow}${identityRow}
+      </div>
+
+      <div style="background:var(--white);border-radius:var(--radius);padding:1rem 1.25rem;box-shadow:var(--shadow);margin-bottom:1.5rem">
+        <h3 style="font-size:.88rem;font-weight:700;margin-bottom:.4rem">${T('acct_resp_title')}</h3>
+        <p style="font-size:.82rem;color:var(--text-muted);margin:0">${T('acct_resp_desc')}</p>
+        ${respRow}
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:.75rem">
+        <button class="btn btn-outline btn-sm" style="text-align:center" onclick="showPage('dashboard')">${T('acct_my_listings')}</button>
+        <button class="btn btn-outline btn-sm" style="text-align:center" onclick="dashTab('mes-contacts');showPage('dashboard')">${T('acct_activity')}</button>
+        <button class="btn btn-outline btn-sm" style="text-align:center" onclick="dashTab('mes-contacts');showPage('dashboard')">${T('acct_offers')}</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <a href="#" onclick="dashTab('profil');showPage('dashboard');return false" style="font-size:.88rem;color:var(--primary-text)">${T('acct_edit_profile')}</a>
+        <a href="#" onclick="logout();return false" style="font-size:.88rem;color:var(--text-muted)">${T('prof_logout')}</a>
+      </div>
+    </div>`;
+}
+
+async function sendVerifEmail() {
+  try {
+    await api('/auth/resend-verification', 'POST');
+    toast(T('email_verif_sent'));
+  } catch (e) { toast('❌ ' + e.message); }
 }
 
 let currentDashTab = 'mes-annonces';
