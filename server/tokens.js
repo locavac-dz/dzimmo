@@ -21,8 +21,6 @@ function safe(u) {
     email_verified: u.email_verified || false,
     notify_price_drop: u.notify_price_drop !== false,   // alerte de baisse de prix des favoris (active par défaut)
     verified_kind: u.verified_kind || null,
-    wilaya: u.wilaya || null,
-    responsive: u.responsive || false,
     two_factor: !!u.totp_enabled_at,
     two_factor_required: !!u.is_admin && !u.totp_enabled_at && required(),   // l'administrateur doit configurer la double authentification
     created_at: u.created_at,
