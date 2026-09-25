@@ -40,12 +40,20 @@ async function withOwner(property) {
       `SELECT j.id, j.name, j.status FROM projects j JOIN agencies a ON a.id = j.agency_id
         WHERE j.id = $1 AND COALESCE(a.verified, false) = true`, [property.project_id]) : null,
   ]);
+  // Score de confiance 0-100 : ancienneté (25), réactif (25), vérifié identity (25) ou business (50)
+  const ageDays = owner ? Math.floor((Date.now() - new Date(owner.created_at).getTime()) / 86400000) : 0;
+  const ageScore = ageDays >= 365 ? 25 : ageDays >= 90 ? 18 : ageDays >= 30 ? 10 : 0;
+  const reactScore = owner && owner.responsive ? 25 : 0;
+  const verifScore = owner ? (owner.verified_kind === 'business' ? 50 : owner.verified_kind === 'identity' ? 25 : 0) : 0;
+  const trustScore = Math.min(100, ageScore + reactScore + verifScore);
   return {
     ...property,
     owner_name:   owner ? owner.name   : 'Inconnu',
     owner_phone:  owner ? owner.phone  : null,
     owner_avatar: owner ? owner.avatar : null,
     owner_verified_kind: owner ? owner.verified_kind || null : null,
+    owner_responsive: owner ? !!owner.responsive : false,
+    owner_trust_score: trustScore,
     agency_verified: agency ? !!agency.verified : false,
     agency_name:  agency ? agency.name  : null,
     agency_logo:  agency ? agency.logo  : null,

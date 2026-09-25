@@ -465,6 +465,8 @@ const TRANSLATIONS = {
     pass_fair:'Moyen',
     pass_good:'Bon',
     pass_strong:'Fort',
+    trust_title:'Fiabilité de l\'annonceur', trust_low:'Peu d\'historique', trust_mid:'Profil établi', trust_high:'Annonceur de confiance',
+    evol_title:'Évolution sur', evol_days:'jours', evol_users:'Inscriptions', evol_listings:'Annonces publiées', evol_views:'Vues', evol_contacts:'Demandes',
     prof_export:'Télécharger mes données (RGPD)',
     push_ask:'Activer les notifications push pour ne rien manquer ?', push_yes:'Oui', push_skip:'Plus tard',
     push_on:'🔔 Push activé', push_off:'🔕 Push désactivé',
@@ -925,6 +927,8 @@ const TRANSLATIONS = {
     pass_fair:'متوسطة',
     pass_good:'جيدة',
     pass_strong:'قوية',
+    trust_title:'موثوقية المُعلِن', trust_low:'ملف ناشئ', trust_mid:'ملف راسخ', trust_high:'مُعلِن موثوق',
+    evol_title:'التطور خلال', evol_days:'يوماً', evol_users:'تسجيلات', evol_listings:'إعلانات منشورة', evol_views:'مشاهدات', evol_contacts:'طلبات',
     prof_export:'تنزيل بياناتي (RGPD)',
     push_ask:'تفعيل الإشعارات الفورية لا تفوّت شيئاً؟', push_yes:'نعم', push_skip:'لاحقاً',
     push_on:'🔔 الإشعارات مفعّلة', push_off:'🔕 الإشعارات معطّلة',
@@ -2225,6 +2229,7 @@ function renderDetail(p) {
                   : esc(p.agency_name || p.owner_name)}</div>
                 <div class="owner-agency">${T(p.agency_name ? (p.agency_kind === 'promoteur' ? 'kind_promoteur' : 'det_agency') : 'det_private')}</div>
                 ${advBadgeHTML(advKind(p))}
+                ${ownerTrustHTML(p)}
               </div>
             </div>
             ${p.project ? `<a class="pro-chip pg-lot-chip" href="${esc(progPath(p.project))}" onclick="return proGo(event,'programme-detail',${Number(p.project.id)})">🏗 ${T('pg_lot_of')} ${esc(p.project.name)}</a>` : ''}
@@ -2943,7 +2948,7 @@ function copyPropertyLink(id) {
 // ══════════════════════════════════════════════════
 // PANNEAU ADMIN
 // ══════════════════════════════════════════════════
-const ADMIN_TABS = ['resume','moderation','verifications','users','properties','agencies','signalements','newsletter','audit','security'];
+const ADMIN_TABS = ['resume','moderation','verifications','users','properties','agencies','signalements','newsletter','evolution','audit','security'];
 
 function adminTab(name) {
   document.querySelectorAll('#admin-tabs .tab-btn').forEach((b, i) => {
@@ -2953,7 +2958,7 @@ function adminTab(name) {
   ({ resume: adminLoadResume, moderation: () => adminLoadModeration(), verifications: () => adminLoadVerifications(),
      users: adminLoadUsers, properties: adminLoadProperties,
      agencies: adminLoadAgencies, signalements: adminLoadSignalements,
-     newsletter: adminLoadNewsletter, security: adminLoadSecurity, audit: adminLoadAudit })[name]?.();
+     newsletter: adminLoadNewsletter, evolution: adminLoadEvolution, security: adminLoadSecurity, audit: adminLoadAudit })[name]?.();
 }
 
 async function loadAdmin() {
@@ -3806,6 +3811,60 @@ const _AUDIT_ACTIONS = {
   verify_user:'✅ Vérifier identité', reject_verification:'❌ Refuser vérification',
   revoke_verification:'🔄 Révoquer vérification',
 };
+let _evolDays = 30;
+async function adminLoadEvolution(days) {
+  if (days) _evolDays = days;
+  const box = document.getElementById('admin-content');
+  box.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const d = await api('/stats/evolution?days=' + _evolDays);
+    const series = d.series || [];
+    const keys = ['new_users','new_listings','views','contacts'];
+    const colors = ['#6366f1','var(--primary-text)','#f59e0b','#ef4444'];
+    const labels = [T('evol_users'), T('evol_listings'), T('evol_views'), T('evol_contacts')];
+
+    function sparkline(key, color) {
+      const W = 340, H = 80, pad = { t:8, b:16, l:32, r:8 };
+      const vals = series.map(r => Number(r[key]) || 0);
+      const maxV = Math.max(...vals, 1);
+      const n = vals.length || 1;
+      const px = i => pad.l + (i / Math.max(n-1,1)) * (W - pad.l - pad.r);
+      const py = v => pad.t + (1 - v / maxV) * (H - pad.t - pad.b);
+      const pts = vals.map((v, i) => `${px(i).toFixed(1)},${py(v).toFixed(1)}`).join(' ');
+      const area = `M${px(0).toFixed(1)},${H-pad.b} ${vals.map((v,i) => `L${px(i).toFixed(1)},${py(v).toFixed(1)}`).join(' ')} L${px(n-1).toFixed(1)},${H-pad.b} Z`;
+      const total = vals.reduce((a,b) => a+b, 0);
+      const last  = vals[vals.length-1] || 0;
+      return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block">
+        <defs><linearGradient id="eg-${key}" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stop-color="${color}" stop-opacity=".25"/>
+          <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+        </linearGradient></defs>
+        <path d="${area}" fill="url(#eg-${key})"/>
+        <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>
+        <text x="${pad.l-2}" y="${H-4}" font-size="9" fill="var(--text-muted)">0</text>
+        <text x="${pad.l-2}" y="${pad.t+4}" font-size="9" fill="var(--text-muted)">${maxV.toLocaleString()}</text>
+      </svg>
+      <div style="font-size:.75rem;color:var(--text-muted);margin-top:.1rem">Total : <b>${total.toLocaleString()}</b> · Hier : <b>${last.toLocaleString()}</b></div>`;
+    }
+
+    const btnRow = [30,60,90].map(n =>
+      `<button class="btn btn-sm ${_evolDays===n?'btn-primary':'btn-outline'}" style="padding:.25rem .7rem" onclick="adminLoadEvolution(${n})">${n} ${T('evol_days')}</button>`
+    ).join('');
+    const cards = keys.map((k,i) =>
+      `<div style="background:var(--bg-alt);border-radius:12px;padding:1rem">
+        <div style="font-size:.8rem;font-weight:600;margin-bottom:.4rem;color:${colors[i]}">${esc(labels[i])}</div>
+        ${sparkline(k, colors[i])}
+      </div>`
+    ).join('');
+
+    box.innerHTML = `<div style="margin-bottom:1rem">
+      <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:.75rem">${T('evol_title')} ${_evolDays} ${T('evol_days')}</h2>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">${btnRow}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem">${cards}</div>
+    </div>`;
+  } catch (e) { box.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message)}</p>`; }
+}
+
 async function adminLoadAudit(page = 1) {
   const box = document.getElementById('admin-content');
   box.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
@@ -4058,6 +4117,21 @@ function advKind(p) {
 }
 function advBadgeHTML(kind) {
   return kind ? `<span class="adv-badge adv-${kind}" title="${esc(T('adv_' + kind + '_tip'))}">🛡️ ${T('adv_' + kind)}</span>` : '';
+}
+function ownerTrustHTML(p) {
+  const score = Number(p.owner_trust_score) || 0;
+  if (score === 0) return '';
+  const color = score >= 75 ? 'var(--primary-text)' : score >= 40 ? '#d97706' : 'var(--text-muted)';
+  const label = score >= 75 ? T('trust_high') : score >= 40 ? T('trust_mid') : T('trust_low');
+  const filled = Math.round(score / 20);
+  const dots = Array.from({length: 5}, (_, i) =>
+    `<span style="display:inline-block;width:10px;height:6px;border-radius:2px;background:${i < filled ? color : 'var(--border)'}"></span>`
+  ).join('');
+  const reactif = p.owner_responsive ? `<span class="responsive-badge" style="margin-left:.4rem">${T('responsive_badge')}</span>` : '';
+  return `<div style="margin-top:.4rem;display:flex;align-items:center;gap:.35rem;flex-wrap:wrap">
+    <span style="display:inline-flex;gap:2px">${dots}</span>
+    <span style="font-size:.75rem;color:${color}">${esc(label)}</span>${reactif}
+  </div>`;
 }
 
 const VF_DOCS = { identity: ['cni', 'passeport', 'permis'], business: ['registre_commerce', 'agrement'] };

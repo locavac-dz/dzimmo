@@ -175,4 +175,43 @@ router.get('/market', async (req, res) => {
   res.json({ wilayas: result.rows, mode: modeFilter, type_bien: typeFilter });
 });
 
+// GET /api/stats/evolution?days=30|60|90 — courbes temporelles (admin)
+// Retourne des séries journalières (GENERATE_SERIES) pour : inscriptions, annonces publiées, vues, demandes.
+router.get('/evolution', admin, async (req, res) => {
+  const days = Math.min(90, Math.max(7, parseInt(req.query.days) || 30));
+  res.set('Cache-Control', 'no-cache');
+  const { pool } = db;
+  const { rows } = await pool.query(`
+    WITH dates AS (
+      SELECT d::date AS day
+        FROM generate_series(CURRENT_DATE - $1 + 1, CURRENT_DATE, interval '1 day') d
+    )
+    SELECT
+      d.day::text,
+      COALESCE(u.cnt, 0)::int   AS new_users,
+      COALESCE(p.cnt, 0)::int   AS new_listings,
+      COALESCE(v.cnt, 0)::bigint AS views,
+      COALESCE(c.cnt, 0)::int   AS contacts
+    FROM dates d
+    LEFT JOIN (
+      SELECT created_at::date AS day, COUNT(*)::int AS cnt
+        FROM users GROUP BY 1
+    ) u ON u.day = d.day
+    LEFT JOIN (
+      SELECT created_at::date AS day, COUNT(*)::int AS cnt
+        FROM properties GROUP BY 1
+    ) p ON p.day = d.day
+    LEFT JOIN (
+      SELECT day, SUM(views)::bigint AS cnt
+        FROM property_views_daily GROUP BY 1
+    ) v ON v.day = d.day
+    LEFT JOIN (
+      SELECT created_at::date AS day, COUNT(*)::int AS cnt
+        FROM contact_requests GROUP BY 1
+    ) c ON c.day = d.day
+    ORDER BY d.day
+  `, [days]);
+  res.json({ days, series: rows });
+});
+
 module.exports = router;
