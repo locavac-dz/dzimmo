@@ -4,6 +4,7 @@ const admin  = require('../middleware/admin');
 const moderation = require('../moderation');
 const mailer = require('../mailer');
 const newsletter = require('../newsletter');
+const audit  = require('../audit');
 const { pool, toId } = require('../db');
 const { paginate, likePattern } = require('../pagination');
 
@@ -33,7 +34,9 @@ router.get('/users', admin, async (req, res) => {
 // PUT /api/admin/users/:id/ban
 router.put('/users/:id/ban', admin, async (req, res) => {
   const { banned } = req.body;
-  await db.users.update({ id: toId(req.params.id) ?? 0 }, { banned: !!banned });
+  const uid = toId(req.params.id) ?? 0;
+  await db.users.update({ id: uid }, { banned: !!banned });
+  audit.log(req.user.id, banned ? 'ban_user' : 'unban_user', 'user', uid).catch(() => {});
   res.json({ ok: true });
 });
 
@@ -95,14 +98,16 @@ router.put('/properties/:id/status', admin, async (req, res) => {
   const { status } = req.body;
   const VALIDES = ['active','sold','rented','archived'];
   if (!VALIDES.includes(status)) return res.status(400).json({ error: 'Statut invalide.' });
+  const pid = toId(req.params.id) ?? 0;
   if (status === 'active') {
     // Publication manuelle : on date la publication (alertes email) et on lève un éventuel refus
     await pool.query(
       `UPDATE properties SET status = 'active', published_at = COALESCE(published_at, NOW()),
-              moderation_reason = NULL WHERE id = $1`, [toId(req.params.id) ?? 0]);
+              moderation_reason = NULL WHERE id = $1`, [pid]);
   } else {
-    await db.properties.update({ id: toId(req.params.id) ?? 0 }, { status });
+    await db.properties.update({ id: pid }, { status });
   }
+  audit.log(req.user.id, 'status_property', 'property', pid, { status }).catch(() => {});
   res.json({ ok: true });
 });
 
@@ -111,8 +116,10 @@ router.put('/properties/:id/une', admin, async (req, res) => {
   const featured = require('../featured');
   const days = req.body && req.body.days;
   if (!Number.isInteger(days) || days < 0 || days > featured.MAX_DAYS) return res.status(400).json({ error: 'Durée invalide.' });
-  const r = await featured.grant(toId(req.params.id) ?? 0, days);
+  const pid = toId(req.params.id) ?? 0;
+  const r = await featured.grant(pid, days);
   if (!r) return res.status(404).json({ error: 'Annonce introuvable.' });
+  audit.log(req.user.id, days > 0 ? 'feature_property' : 'unfeature_property', 'property', pid, days > 0 ? { days } : {}).catch(() => {});
   res.json({ ok: true, featured_until: r.featured_until });
 });
 
@@ -124,7 +131,9 @@ router.put('/properties/:id/verify', admin, async (req, res) => {
 
 // DELETE /api/admin/properties/:id
 router.delete('/properties/:id', admin, async (req, res) => {
-  await db.properties.delete({ id: toId(req.params.id) ?? 0 });
+  const pid = toId(req.params.id) ?? 0;
+  await db.properties.delete({ id: pid });
+  audit.log(req.user.id, 'delete_property', 'property', pid).catch(() => {});
   res.json({ ok: true });
 });
 
@@ -182,6 +191,8 @@ router.put('/signalements/:id/resolve', admin, async (req, res) => {
   await pool.query(
     `UPDATE signalements SET status = $1, resolved_at = COALESCE(resolved_at, NOW()), resolved_by = COALESCE(resolved_by, $2)
       WHERE id = $3 AND status = 'pending'`, [status, req.user.id, sid]);
+  audit.log(req.user.id, status === 'resolved' ? 'resolve_report' : 'dismiss_report', 'signalement', sid,
+    action === 'reject' ? { action: 'reject' } : {}).catch(() => {});
   res.json({ ok: true });
 });
 
@@ -206,7 +217,7 @@ router.get('/newsletter/campaigns', admin, async (req, res) => {
 router.post('/newsletter/campaigns', admin, async (req, res) => {
   const { campaign, error } = newsletter.parseCampaign(req.body);
   if (error) return res.status(400).json({ error });
-  if (!mailer.configured()) return res.status(503).json({ error: 'Envoi d’emails non configuré sur le serveur.' });
+  if (!mailer.configured()) return res.status(503).json({ error: "Envoi d'emails non configuré sur le serveur." });
   if (!(await pool.query('SELECT 1 FROM newsletter_subscribers WHERE confirmed_at IS NOT NULL LIMIT 1')).rowCount)
     return res.status(400).json({ error: 'Aucun abonné confirmé.' });
   const r = await newsletter.createCampaign(campaign, req.user.id);
@@ -223,11 +234,23 @@ router.post('/newsletter/campaigns/:id/cancel', admin, async (req, res) => {
 router.post('/newsletter/test', admin, async (req, res) => {
   const { campaign, error } = newsletter.parseCampaign(req.body);
   if (error) return res.status(400).json({ error });
-  if (!mailer.configured()) return res.status(503).json({ error: 'Envoi d’emails non configuré sur le serveur.' });
+  if (!mailer.configured()) return res.status(503).json({ error: "Envoi d'emails non configuré sur le serveur." });
   const me = await db.users.findById(req.user.id);
   const ok = me && await newsletter.sendTest(campaign, me.email, me.lang === 'ar' ? 'ar' : 'fr');
-  if (!ok) return res.status(503).json({ error: "L’email de test n’a pas pu être envoyé." });
+  if (!ok) return res.status(503).json({ error: "L'email de test n'a pas pu être envoyé." });
   res.json({ ok: true });
+});
+
+// GET /api/admin/audit?page=1&per_page=25 — journal d'audit paginé (les plus récentes d'abord)
+router.get('/audit', admin, async (req, res) => {
+  res.json(await paginate(pool, {
+    columns: `l.id, l.action, l.target_type, l.target_id, l.details, l.created_at,
+              u.name AS admin_name`,
+    from: `admin_logs l LEFT JOIN users u ON u.id = l.admin_id`,
+    countFrom: 'admin_logs l',
+    orderBy: 'l.created_at DESC, l.id DESC',
+    query: req.query,
+  }));
 });
 
 module.exports = router;

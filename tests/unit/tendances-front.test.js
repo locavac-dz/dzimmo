@@ -34,7 +34,7 @@ test('marketTrend : définie et lit trend_pct', () => {
 
 test('loadMarket : définie et appelle /stats/market', () => {
   assert.ok(app.includes('async function loadMarket()'),    'loadMarket non définie');
-  assert.ok(app.includes("api('/stats/market')"),           '/stats/market absent');
+  assert.ok(app.includes("api('/stats/market'"),            '/stats/market absent');
 });
 
 test('marketHTML : fonction pure → chaîne HTML, utilise esc() et wilayaName()', () => {

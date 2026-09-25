@@ -810,7 +810,7 @@ router.post('/:id/signaler', auth, async (req, res) => {
   // Dépôt, plafond quotidien, retrait automatique au seuil : voir server/reports.js
   const r = await reports.file(req.user, prop, motif.slice(0, 200), typeof message === 'string' ? message.slice(0, 2000) || null : null);
   if (r.result === 'own') return res.status(400).json({ error: 'Vous ne pouvez pas signaler votre propre annonce.' });
-  if (r.result === 'limit') return res.status(429).json({ error: 'Trop de signalements aujourd’hui. Réessayez demain.' });
+  if (r.result === 'limit') return res.status(429).json({ error: "Trop de signalements aujourd'hui. Réessayez demain." });
   res.json({ ok: true });
 });
 

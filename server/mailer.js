@@ -601,6 +601,31 @@ function buildWeeklyDigest(lang, { name, properties, totals }) {
   };
 }
 
+// Rapport mensuel pour les administrateurs (server/monthly-report.js).
+// `month` : nom du mois précédent (localisé), stats du mois écoulé.
+function buildMonthlyReport(lang, { month, new_users, new_listings, sold_rented, reports_closed, featured_revenue, total_views }) {
+  const stat = (icon, label, val) =>
+    `<div style="text-align:center;padding:.9rem .5rem"><div style="font-size:1.7rem;font-weight:900;color:#0C6E4F">${Number(val || 0).toLocaleString('fr-DZ')}</div><div style="font-size:.8rem;color:#666;margin-top:.2rem">${icon} ${esc(label)}</div></div>`;
+  return {
+    subject: pick(lang, `📊 Rapport mensuel ${esc(month)} — DzImmo`, `📊 التقرير الشهري ${esc(month)} — DzImmo`),
+    html: wrap(`
+      <h2 style="color:#222;margin-top:0">${pick(lang, `Rapport mensuel — ${esc(month)} 📊`, `التقرير الشهري — ${esc(month)} 📊`)}</h2>
+      <p>${pick(lang, 'Voici le résumé de l\'activité du mois écoulé :', 'إليك ملخص نشاط الشهر المنصرم:')}</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);background:#f0fdf4;border-radius:12px;padding:.25rem;margin:1rem 0">
+        ${stat('👤', pick(lang, 'Nouveaux membres', 'أعضاء جدد'), new_users)}
+        ${stat('🏠', pick(lang, 'Nouvelles annonces', 'إعلانات جديدة'), new_listings)}
+        ${stat('✅', pick(lang, 'Vendus / Loués', 'مباعة / مؤجرة'), sold_rented)}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);background:#fff7ed;border-radius:12px;padding:.25rem;margin:1rem 0">
+        ${stat('🚩', pick(lang, 'Signalements traités', 'بلاغات تمت معالجتها'), reports_closed)}
+        ${stat('⭐', pick(lang, 'Revenus à la une (DZD)', 'إيرادات التمييز (د.ج)'), featured_revenue)}
+        ${stat('👁', pick(lang, 'Vues totales', 'إجمالي المشاهدات'), total_views)}
+      </div>
+      ${centered(button(siteUrl() + '/#admin', pick(lang, 'Ouvrir le tableau de bord', 'فتح لوحة التحكم'), lang))}
+    `, lang),
+  };
+}
+
 // ── Envoi ────────────────────────────────────────────────────────────────────
 // Chaque fonction reçoit `lang` (langue du destinataire) ; sans lang : français.
 const send = (to, built) => sendMail({ to, ...built });
@@ -724,10 +749,11 @@ module.exports = {
   mailExpiryReminder, mailListingExpired, mailListingReported, mailAdminReported, mailAlert, mailPriceDrop, mailSecurityNotice, mailSiteContact, mailNewsletterConfirm, mailNewsletter, CONTACT_SUBJECTS,
   mailFeaturedReceipt, mailFeaturedRefundAlert, mailPriceDropDigest,
   mailWeeklyDigest: d => send(d.email, buildWeeklyDigest(d.lang, d)),
+  buildMonthlyReport,
   // gabarits purs (tests)
   build: { buildWelcome, buildVerifyEmail, buildPasswordReset, buildContactRequest, buildNewMessage,
            buildSearchAlert, buildModerationDecision, buildAdminPending,
            buildVerificationDecision, buildAdminVerificationPending, buildExpiryReminder, buildListingExpired, buildSiteContact, buildNewsletterConfirm, buildNewsletter,
            buildListingReported, buildAdminReported, buildAlert, buildPriceDrop, buildSecurityNotice, buildVisitReminder,
-           buildFeaturedReceipt, buildFeaturedRefundAlert, buildPriceDropDigest, buildWeeklyDigest },
+           buildFeaturedReceipt, buildFeaturedRefundAlert, buildPriceDropDigest, buildWeeklyDigest, buildMonthlyReport },
 };

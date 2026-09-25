@@ -86,6 +86,12 @@ cron.schedule('30 8 * * 1', guard('bilan hebdomadaire', async () => {
   if (n) console.log(`[cron] ${n} bilan(s) hebdomadaire(s) envoyé(s).`);
 }));
 
+// Rapport mensuel pour les admins : le 1er de chaque mois à 09:00
+cron.schedule('0 9 1 * *', guard('rapport mensuel', async () => {
+  const n = await require('./monthly-report').sendMonthlyReport();
+  if (n) console.log(`[cron] ${n} rapport(s) mensuel(s) envoyé(s).`);
+}));
+
 // Envoi des alertes email — toutes les heures
 cron.schedule('0 * * * *', guard('alertes de recherche', () => sendSearchAlerts()));
 

@@ -6,6 +6,7 @@
 const db     = require('./db');
 const ws     = require('./ws');
 const mailer = require('./mailer');
+const audit  = require('./audit');
 const { notif, translateReason } = require('./messages');
 
 const enabled = () => String(process.env.MODERATION || 'on').toLowerCase() !== 'off';
@@ -108,6 +109,8 @@ async function decide(property, approve, motif, adminId) {
   // Mise à la une payante encore active sur une annonce refusée → alerter les admins pour le remboursement
   if (!approve && property.featured_until && new Date(property.featured_until) > new Date())
     notifyAdminsFeaturedRefund(property).catch(() => {});
+  audit.log(adminId, approve ? 'moderate_approve' : 'moderate_reject', 'property', property.id,
+    approve ? {} : { reason: motif }).catch(() => {});
   return status;
 }
 

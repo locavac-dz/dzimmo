@@ -5,6 +5,7 @@ const fs     = require('fs');
 const db     = require('../db');
 const admin  = require('../middleware/admin');
 const V      = require('../verification');
+const audit  = require('../audit');
 const { paginate } = require('../pagination');
 
 // GET /api/admin/verifications?status=pending|approved|rejected — file paginée (les plus anciennes d'abord en attente)
@@ -63,13 +64,17 @@ router.put('/:id/decision', admin, async (req, res) => {
       : res.status(404).json({ error: 'Demande introuvable.' });
   }
   V.notifyUserDecision(request, approve, reason).catch(() => {});
+  audit.log(req.user.id, approve ? 'verify_user' : 'reject_verification', 'user', request.user_id,
+    approve ? { kind: request.kind } : { kind: request.kind, reason }).catch(() => {});
   res.json({ ok: true, status: request.status });
 });
 
 // PUT /api/admin/verifications/revoke/:userId — retire la vérification d'un compte (fraude constatée après coup)
 router.put('/revoke/:userId', admin, async (req, res) => {
-  const ok = await V.revoke(db.toId(req.params.userId) ?? 0);
+  const uid = db.toId(req.params.userId) ?? 0;
+  const ok = await V.revoke(uid);
   if (!ok) return res.status(404).json({ error: 'Ce compte n\'est pas vérifié.' });
+  audit.log(req.user.id, 'revoke_verification', 'user', uid).catch(() => {});
   res.json({ ok: true });
 });
 

@@ -122,17 +122,33 @@ router.get('/me', require('../middleware/auth'), async (req, res) => {
   res.json({ ...props.rows[0], ...contacts.rows[0], ...(await require('../clicks').totalsForOwner(uid)) });
 });
 
-// GET /api/stats/market — tendances du marché : médiane prix/m² par wilaya (public, cache 10 min)
+// GET /api/stats/market?mode=&type_bien= — tendances du marché : médiane prix/m² par wilaya (public, cache 5 min)
 // trend_pct : variation vs la médiane observée 30-60 jours plus tôt (NULL si pas d'historique).
+const VALID_MODES = ['vente','location_longue','location_courte'];
+const VALID_TYPES = ['appartement','villa','maison','bureau','local_commercial','terrain','ferme','entrepot'];
 router.get('/market', async (req, res) => {
-  res.set('Cache-Control', 'public, max-age=600');
+  res.set('Cache-Control', 'public, max-age=300');
+  const modeFilter = VALID_MODES.includes(req.query.mode) ? req.query.mode : null;
+  const typeFilter = VALID_TYPES.includes(req.query.type_bien) ? req.query.type_bien : null;
+  const params = [];
+  let extraCurr = '', extraHist = '';
+  if (modeFilter) {
+    params.push(modeFilter);
+    extraCurr += ` AND mode = $${params.length}`;
+    extraHist += ` AND p.mode = $${params.length}`;
+  }
+  if (typeFilter) {
+    params.push(typeFilter);
+    extraCurr += ` AND type_bien = $${params.length}`;
+    extraHist += ` AND p.type_bien = $${params.length}`;
+  }
   const result = await db.pool.query(`
     WITH current AS (
       SELECT wilaya,
              COUNT(*)::int AS count,
              PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY price::numeric / surface_m2) AS med_now
         FROM properties
-       WHERE status = 'active' AND surface_m2 > 0 AND price > 0
+       WHERE status = 'active' AND surface_m2 > 0 AND price > 0 ${extraCurr}
        GROUP BY wilaya
       HAVING COUNT(*) >= 3
     ),
@@ -142,7 +158,7 @@ router.get('/market', async (req, res) => {
         FROM price_history h
         JOIN properties p ON p.id = h.property_id
        WHERE h.changed_at BETWEEN NOW() - INTERVAL '60 days' AND NOW() - INTERVAL '30 days'
-         AND p.surface_m2 > 0 AND h.price > 0
+         AND p.surface_m2 > 0 AND h.price > 0 ${extraHist}
        GROUP BY p.wilaya
     )
     SELECT c.wilaya,
@@ -155,8 +171,8 @@ router.get('/market', async (req, res) => {
       FROM current c
       LEFT JOIN hist h ON h.wilaya = c.wilaya
      ORDER BY c.med_now DESC
-     LIMIT 20`);
-  res.json({ wilayas: result.rows });
+     LIMIT 20`, params);
+  res.json({ wilayas: result.rows, mode: modeFilter, type_bien: typeFilter });
 });
 
 module.exports = router;

@@ -452,6 +452,19 @@ const TRANSLATIONS = {
     mkt_down:'↓ baisse',
     mkt_stable:'→ stable',
     mkt_no_data:'Données insuffisantes.',
+    mkt_filter_mode:'Mode',
+    mkt_filter_type:'Type',
+    mkt_filter_all:'Tous',
+    audit_title:'Journal d\'audit',
+    audit_date:'Date',
+    audit_admin:'Administrateur',
+    audit_action:'Action',
+    audit_target:'Cible',
+    audit_details:'Détails',
+    pass_weak:'Faible',
+    pass_fair:'Moyen',
+    pass_good:'Bon',
+    pass_strong:'Fort',
     prof_export:'Télécharger mes données (RGPD)',
     push_ask:'Activer les notifications push pour ne rien manquer ?', push_yes:'Oui', push_skip:'Plus tard',
     push_on:'🔔 Push activé', push_off:'🔕 Push désactivé',
@@ -899,6 +912,19 @@ const TRANSLATIONS = {
     mkt_down:'↓ انخفاض',
     mkt_stable:'→ مستقر',
     mkt_no_data:'بيانات غير كافية.',
+    mkt_filter_mode:'الوضع',
+    mkt_filter_type:'النوع',
+    mkt_filter_all:'الكل',
+    audit_title:'سجل التدقيق',
+    audit_date:'التاريخ',
+    audit_admin:'المشرف',
+    audit_action:'الإجراء',
+    audit_target:'الهدف',
+    audit_details:'التفاصيل',
+    pass_weak:'ضعيفة',
+    pass_fair:'متوسطة',
+    pass_good:'جيدة',
+    pass_strong:'قوية',
     prof_export:'تنزيل بياناتي (RGPD)',
     push_ask:'تفعيل الإشعارات الفورية لا تفوّت شيئاً؟', push_yes:'نعم', push_skip:'لاحقاً',
     push_on:'🔔 الإشعارات مفعّلة', push_off:'🔕 الإشعارات معطّلة',
@@ -1302,6 +1328,31 @@ async function doMfaLogin() {
   } catch (e) { showError('login-mfa-error', e.message); }
 }
 
+function passStrength(p) {
+  if (!p) return 0;
+  let s = 0;
+  if (p.length >= 8) s++;
+  if (p.length >= 12) s++;
+  if (/[a-z]/.test(p) && /[A-Z]/.test(p)) s++;
+  if (/\d/.test(p)) s++;
+  if (/[^a-zA-Z0-9]/.test(p)) s++;
+  return Math.min(s, 4);
+}
+
+function updatePassMeter(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (!val) { el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  const n = passStrength(val);
+  const labels = [T('pass_weak'), T('pass_weak'), T('pass_fair'), T('pass_good'), T('pass_strong')];
+  const colors = ['#dc2626','#dc2626','#d97706','#16a34a','#0C6E4F'];
+  el.innerHTML = `<div style="display:flex;gap:.3rem;align-items:center;margin-top:.3rem">
+    ${[1,2,3,4].map(i => `<div style="height:4px;flex:1;border-radius:2px;background:${i<=n?colors[n]:'var(--border)'}"></div>`).join('')}
+    <span style="font-size:.75rem;color:${colors[n]};min-width:4rem;margin-inline-start:.35rem">${labels[n]}</span>
+  </div>`;
+}
+
 async function doRegister() {
   const name  = document.getElementById('reg-name').value;
   const email = document.getElementById('reg-email').value;
@@ -1637,7 +1688,13 @@ async function loadMarket() {
   if (!el) return;
   el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
-    const data = await api('/stats/market');
+    const mode      = document.getElementById('mkt-mode')  ?.value || '';
+    const type_bien = document.getElementById('mkt-type')  ?.value || '';
+    const qs = new URLSearchParams();
+    if (mode)      qs.set('mode', mode);
+    if (type_bien) qs.set('type_bien', type_bien);
+    const q = qs.toString();
+    const data = await api('/stats/market' + (q ? '?' + q : ''));
     el.innerHTML = marketHTML(data);
   } catch (e) { el.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message)}</p>`; }
 }
@@ -1662,8 +1719,16 @@ function marketTrend(t) {
   return `<span style="color:#b91c1c">${esc(T('trend_down').replace('{n}', Math.abs(n)))}</span>`;
 }
 function marketHTML(data) {
+  const modeOpts = [['','s_all_modes'],['vente','s_vente'],['location_longue','s_loc_longue'],['location_courte','s_loc_courte']];
+  const typeOpts = [['','s_all_types'],['appartement','s_appart'],['villa','s_villa'],['maison','s_maison'],
+    ['bureau','s_bureau'],['local_commercial','s_local'],['terrain','s_terrain'],['ferme','s_ferme'],['entrepot','s_entrepot']];
+  const sel = (id, opts, val) => `<select id="${id}" style="padding:.3rem .6rem;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;background:var(--bg);color:var(--text);cursor:pointer" onchange="loadMarket()">${opts.map(([v,k]) => `<option value="${v}"${v===val?' selected':''}>${T(k)}</option>`).join('')}</select>`;
+  const filters = `<div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1.1rem;align-items:center">
+    <span style="font-size:.82rem;color:var(--text-muted)">${esc(T('mkt_filter_mode'))} :</span>${sel('mkt-mode', modeOpts, data.mode || '')}
+    <span style="font-size:.82rem;color:var(--text-muted)">${esc(T('mkt_filter_type'))} :</span>${sel('mkt-type', typeOpts, data.type_bien || '')}
+  </div>`;
   const rows = data.wilayas;
-  if (!rows || !rows.length) return `<p style="padding:2rem;color:var(--text-muted)">${esc(T('market_no_data'))}</p>`;
+  if (!rows || !rows.length) return filters + `<p style="padding:2rem;color:var(--text-muted)">${esc(T('market_no_data'))}</p>`;
   const max = rows[0].median_price_m2;
   const bars = rows.map(r => {
     const pct    = max > 0 ? Math.round((r.median_price_m2 / max) * 100) : 0;
@@ -1679,7 +1744,7 @@ function marketHTML(data) {
       <td style="white-space:nowrap;padding:.4rem .6rem;font-size:.8rem">${marketTrend(r.trend_pct)}</td>
     </tr>`;
   }).join('');
-  return `<p style="font-size:.88rem;color:var(--text-muted);margin-bottom:1.2rem">${esc(T('market_sub'))}</p>
+  return `${filters}<p style="font-size:.88rem;color:var(--text-muted);margin-bottom:1.2rem">${esc(T('market_sub'))}</p>
     <div style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse">${bars}</table>
     </div>`;
@@ -2878,7 +2943,7 @@ function copyPropertyLink(id) {
 // ══════════════════════════════════════════════════
 // PANNEAU ADMIN
 // ══════════════════════════════════════════════════
-const ADMIN_TABS = ['resume','moderation','verifications','users','properties','agencies','signalements','newsletter','security'];
+const ADMIN_TABS = ['resume','moderation','verifications','users','properties','agencies','signalements','newsletter','audit','security'];
 
 function adminTab(name) {
   document.querySelectorAll('#admin-tabs .tab-btn').forEach((b, i) => {
@@ -2888,7 +2953,7 @@ function adminTab(name) {
   ({ resume: adminLoadResume, moderation: () => adminLoadModeration(), verifications: () => adminLoadVerifications(),
      users: adminLoadUsers, properties: adminLoadProperties,
      agencies: adminLoadAgencies, signalements: adminLoadSignalements,
-     newsletter: adminLoadNewsletter, security: adminLoadSecurity })[name]?.();
+     newsletter: adminLoadNewsletter, security: adminLoadSecurity, audit: adminLoadAudit })[name]?.();
 }
 
 async function loadAdmin() {
@@ -3728,6 +3793,51 @@ async function adminNlSubs(page = 1) {
       </div>
       ${subs.length ? '' : adminNoResult}
       ${adminPager(r, n => `adminNlSubs(${n})`)}`;
+  } catch (e) { box.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message)}</p>`; }
+}
+
+// ── Journal d'audit admin ─────────────────────────
+const _AUDIT_ACTIONS = {
+  moderate_approve:'✅ Approuver annonce', moderate_reject:'❌ Refuser annonce',
+  ban_user:'🚫 Bannir', unban_user:'✅ Débannir',
+  feature_property:'⭐ Mettre à la une', unfeature_property:'✗ Retirer à la une',
+  delete_property:'🗑️ Supprimer annonce', status_property:'🔄 Changer statut',
+  resolve_report:'✅ Résoudre signalement', dismiss_report:'✗ Ignorer signalement',
+  verify_user:'✅ Vérifier identité', reject_verification:'❌ Refuser vérification',
+  revoke_verification:'🔄 Révoquer vérification',
+};
+async function adminLoadAudit(page = 1) {
+  const box = document.getElementById('admin-content');
+  box.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const r = await api('/admin/audit' + adminQuery({ page }));
+    box.innerHTML = `
+      <h3 style="margin:0 0 1rem">${esc(T('audit_title'))}</h3>
+      <div style="overflow-x:auto">
+        <table class="admin-table">
+          <thead><tr>
+            <th>${esc(T('audit_date'))}</th>
+            <th>${esc(T('audit_admin'))}</th>
+            <th>${esc(T('audit_action'))}</th>
+            <th>${esc(T('audit_target'))}</th>
+            <th>${esc(T('audit_details'))}</th>
+          </tr></thead>
+          <tbody>${(r.items || []).map(l => {
+            const dets = l.details || {};
+            const detStr = Object.entries(dets).filter(([,v]) => v !== null && v !== undefined && v !== '' && v !== false).map(([k,v]) => `${k}: ${esc(String(v))}`).join(', ');
+            return `<tr>
+              <td style="white-space:nowrap;font-size:.82rem">${esc(new Date(l.created_at).toLocaleString('fr-DZ'))}</td>
+              <td>${esc(l.admin_name || '#' + Number(l.admin_id))}</td>
+              <td>${esc(_AUDIT_ACTIONS[l.action] || l.action)}</td>
+              <td style="font-size:.82rem">${esc(l.target_type)} #${Number(l.target_id || 0)}</td>
+              <td style="font-size:.82rem;color:var(--text-muted)">${esc(detStr)}</td>
+            </tr>`;
+          }).join('')}
+          </tbody>
+        </table>
+      </div>
+      ${r.items && !r.items.length ? `<p style="color:var(--text-muted);padding:1.5rem">Aucune action enregistrée.</p>` : ''}
+      ${adminPager(r, n => `adminLoadAudit(${n})`)}`;
   } catch (e) { box.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message)}</p>`; }
 }
 

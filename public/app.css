@@ -1035,3 +1035,4 @@ html[lang="ar"] { font-size: 106.25%; }   /* 17 px au lieu de 16 px */
 html[lang="ar"] body, html[lang="ar"] .card-title,
 html[lang="ar"] .detail-desc, html[lang="ar"] p { line-height: 1.85; }
 :root[data-theme="dark"] .suggest-box { background: var(--card); }
+.pass-meter { margin-top: .2rem; }
