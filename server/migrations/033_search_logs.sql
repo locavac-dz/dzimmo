@@ -8,5 +8,5 @@ CREATE TABLE IF NOT EXISTS search_logs (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_search_logs_created ON search_logs(created_at DESC);
-CREATE INDEX idx_search_logs_query ON search_logs(query text_pattern_ops);
+CREATE INDEX IF NOT EXISTS idx_search_logs_created ON search_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_search_logs_query ON search_logs(query text_pattern_ops);

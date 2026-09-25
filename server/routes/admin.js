@@ -244,7 +244,7 @@ router.post('/newsletter/test', admin, async (req, res) => {
 // GET /api/admin/audit?page=1&per_page=25 — journal d'audit paginé (les plus récentes d'abord)
 router.get('/audit', admin, async (req, res) => {
   res.json(await paginate(pool, {
-    columns: `l.id, l.action, l.target_type, l.target_id, l.details, l.created_at,
+    columns: `l.id, l.admin_id, l.action, l.target_type, l.target_id, l.details, l.created_at,
               u.name AS admin_name`,
     from: `admin_logs l LEFT JOIN users u ON u.id = l.admin_id`,
     countFrom: 'admin_logs l',

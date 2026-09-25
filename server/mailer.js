@@ -604,8 +604,9 @@ function buildWeeklyDigest(lang, { name, properties, totals }) {
 // Rapport mensuel pour les administrateurs (server/monthly-report.js).
 // `month` : nom du mois précédent (localisé), stats du mois écoulé.
 function buildMonthlyReport(lang, { month, new_users, new_listings, sold_rented, reports_closed, featured_revenue, total_views }) {
+  const loc = lang === 'ar' ? 'ar-DZ' : 'fr-DZ';
   const stat = (icon, label, val) =>
-    `<div style="text-align:center;padding:.9rem .5rem"><div style="font-size:1.7rem;font-weight:900;color:#0C6E4F">${Number(val || 0).toLocaleString('fr-DZ')}</div><div style="font-size:.8rem;color:#666;margin-top:.2rem">${icon} ${esc(label)}</div></div>`;
+    `<div style="text-align:center;padding:.9rem .5rem"><div style="font-size:1.7rem;font-weight:900;color:#0C6E4F">${Number(val || 0).toLocaleString(loc)}</div><div style="font-size:.8rem;color:#666;margin-top:.2rem">${icon} ${esc(label)}</div></div>`;
   return {
     subject: pick(lang, `📊 Rapport mensuel ${month} — DzImmo`, `📊 التقرير الشهري ${month} — DzImmo`),
     html: wrap(`

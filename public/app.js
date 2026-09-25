@@ -465,7 +465,7 @@ const TRANSLATIONS = {
     pass_fair:'Moyen',
     pass_good:'Bon',
     pass_strong:'Fort',
-    trust_title:'Fiabilité de l\'annonceur', trust_low:'Peu d\'historique', trust_mid:'Profil établi', trust_high:'Annonceur de confiance',
+    trust_low:'Peu d\'historique', trust_mid:'Profil établi', trust_high:'Annonceur de confiance',
     evol_title:'Évolution sur', evol_days:'jours', evol_users:'Inscriptions', evol_listings:'Annonces publiées', evol_views:'Vues', evol_contacts:'Demandes',
     prof_export:'Télécharger mes données (RGPD)',
     push_ask:'Activer les notifications push pour ne rien manquer ?', push_yes:'Oui', push_skip:'Plus tard',
@@ -935,7 +935,7 @@ const TRANSLATIONS = {
     pass_fair:'متوسطة',
     pass_good:'جيدة',
     pass_strong:'قوية',
-    trust_title:'موثوقية المُعلِن', trust_low:'ملف ناشئ', trust_mid:'ملف راسخ', trust_high:'مُعلِن موثوق',
+    trust_low:'ملف ناشئ', trust_mid:'ملف راسخ', trust_high:'مُعلِن موثوق',
     evol_title:'التطور خلال', evol_days:'يوماً', evol_users:'تسجيلات', evol_listings:'إعلانات منشورة', evol_views:'مشاهدات', evol_contacts:'طلبات',
     prof_export:'تنزيل بياناتي (RGPD)',
     push_ask:'تفعيل الإشعارات الفورية لا تفوّت شيئاً؟', push_yes:'نعم', push_skip:'لاحقاً',
@@ -1368,7 +1368,7 @@ function updatePassMeter(id, val) {
   el.classList.remove('hidden');
   const n = passStrength(val);
   const labels = [T('pass_weak'), T('pass_weak'), T('pass_fair'), T('pass_good'), T('pass_strong')];
-  const colors = ['#dc2626','#dc2626','#d97706','#16a34a','var(--primary-text)'];
+  const colors = ['#dc2626','#dc2626','var(--gold-text)','var(--primary-text)','var(--primary-text)'];
   el.innerHTML = `<div style="display:flex;gap:.3rem;align-items:center;margin-top:.3rem">
     ${[1,2,3,4].map(i => `<div style="height:4px;flex:1;border-radius:2px;background:${i<=n?colors[n]:'var(--border)'}"></div>`).join('')}
     <span style="font-size:.75rem;color:${colors[n]};min-width:4rem;margin-inline-start:.35rem">${labels[n]}</span>
