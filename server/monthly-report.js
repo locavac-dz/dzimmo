@@ -34,7 +34,7 @@ async function sendMonthlyReport() {
 
   const d = new Date();
   d.setMonth(d.getMonth() - 1);
-  const month = d.toLocaleString('fr-FR', { month: 'long', year: 'numeric' });
+  const month = d.toLocaleString('fr-DZ', { month: 'long', year: 'numeric' });
   const monthAr = d.toLocaleString('ar-DZ', { month: 'long', year: 'numeric' });
 
   let sent = 0;

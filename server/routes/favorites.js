@@ -54,7 +54,7 @@ router.put('/:property_id/note', auth, async (req, res) => {
   const propId = db.toId(req.params.property_id);
   if (propId === null) return res.status(404).json({ error: 'Favori introuvable.' });
   const { note } = req.body;
-  if (note !== null && note !== undefined && (typeof note !== 'string' || note.length > 500))
+  if (note === undefined || (note !== null && (typeof note !== 'string' || note.length > 500)))
     return res.status(400).json({ error: 'Note invalide (500 caractères maximum).' });
   const r = await db.pool.query(
     `UPDATE favorites SET note = $1 WHERE user_id = $2 AND property_id = $3 RETURNING id`,

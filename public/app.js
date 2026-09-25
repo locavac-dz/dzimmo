@@ -2249,7 +2249,7 @@ function renderDetail(p) {
                 <div class="owner-agency">${T(p.agency_name ? (p.agency_kind === 'promoteur' ? 'kind_promoteur' : 'det_agency') : 'det_private')}</div>
                 ${advBadgeHTML(advKind(p))}
                 ${ownerTrustHTML(p)}
-                ${!p.agency_id ? `<a href="/vendeur/${Number(p.owner_id)}" class="btn btn-outline btn-sm" style="margin-top:.5rem;font-size:.8rem;display:block;text-align:center" data-id="${Number(p.owner_id)}" onclick="return showVendeur(event,this.dataset.id)">${T('vd_profile')}</a>` : ''}
+                ${!p.agency_id ? `<a href="/vendeur/${Number(p.owner_id)}" class="btn btn-outline btn-sm" style="margin-top:.5rem;font-size:.8rem;display:block;text-align:center" data-id="${Number(p.owner_id)}" onclick="showVendeur(event,this.dataset.id)">${T('vd_profile')}</a>` : ''}
               </div>
             </div>
             ${p.project ? `<a class="pro-chip pg-lot-chip" href="${esc(progPath(p.project))}" onclick="return proGo(event,'programme-detail',${Number(p.project.id)})">🏗 ${T('pg_lot_of')} ${esc(p.project.name)}</a>` : ''}
@@ -2976,7 +2976,6 @@ function shareNative(btn) {
 function showVendeur(event, id) {
   event.preventDefault();
   showPage('vendeur', Number(id));
-  return false;
 }
 
 async function loadVendeur(id) {
@@ -3899,7 +3898,7 @@ async function adminLoadEvolution(days) {
     const d = await api('/stats/evolution?days=' + _evolDays);
     const series = d.series || [];
     const keys = ['new_users','new_listings','views','contacts'];
-    const colors = ['#6366f1','var(--primary-text)','#f59e0b','#ef4444'];
+    const colors = ['#6366f1','var(--primary-text)','var(--gold-text)','#ef4444'];
     const labels = [T('evol_users'), T('evol_listings'), T('evol_views'), T('evol_contacts')];
 
     function sparkline(key, color) {

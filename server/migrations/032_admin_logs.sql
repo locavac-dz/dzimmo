@@ -2,7 +2,7 @@
 -- Chaque action sensible (modération, suspension, vérification, mise à la une, suppression) est tracée.
 CREATE TABLE IF NOT EXISTS admin_logs (
   id          BIGSERIAL PRIMARY KEY,
-  admin_id    INTEGER NOT NULL REFERENCES users(id),
+  admin_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
   action      TEXT NOT NULL,
   target_type TEXT NOT NULL,
   target_id   INTEGER,
