@@ -414,6 +414,7 @@ const TRANSLATIONS = {
     pr_pay:'Payer et mettre à la une', pr_closed:'Les mises à la une ne sont pas ouvertes pour le moment.', pr_choose:'Choisissez une formule.', pr_done:"Votre annonce est à la une jusqu'au {date}.",
     st_views:'Vues', st_favs:'Favoris', st_clicks:'Clics', st_calls:'Appels', st_wa:'WhatsApp', st_contacts:'Demandes', st_conversion:'Taux de contact',
     st_favs_total:'{n} au total', st_no_data:"Pas encore de visite sur cette période.", st_advice:'Conseils', st_advice_tip:"Conseils calculés d'après les statistiques de cette annonce.",
+    st_export_csv:'⬇ CSV',
     dash_edit:'✏️ Modifier', pub_edit_heading:"✏️ Modifier l'annonce", pub_edit_submit:'Enregistrer les modifications',
     pub_edit_locked:"Le mode, le type de bien et la wilaya ne se modifient pas : republiez une annonce pour les changer.",
     pub_edit_saved:'Modifications enregistrées.', pub_edit_pending:"Modifications enregistrées. L'annonce repasse en validation avant de reparaître sur le site.",
@@ -860,6 +861,7 @@ const TRANSLATIONS = {
     pr_pay:'الدفع والإبراز', pr_closed:'الإبراز غير متاح حالياً.', pr_choose:'اختر صيغة.', pr_done:'إعلانك مميز حتى {date}.',
     st_views:'المشاهدات', st_favs:'المفضّلة', st_clicks:'النقرات', st_calls:'المكالمات', st_wa:'واتساب', st_contacts:'الطلبات', st_conversion:'معدل التواصل',
     st_favs_total:'{n} في المجموع', st_no_data:'لا توجد زيارات بعد خلال هذه الفترة.', st_advice:'نصائح', st_advice_tip:'نصائح محسوبة انطلاقاً من إحصائيات هذا الإعلان.',
+    st_export_csv:'⬇ تصدير CSV',
     dash_edit:'✏️ تعديل', pub_edit_heading:'✏️ تعديل الإعلان', pub_edit_submit:'حفظ التعديلات',
     pub_edit_locked:'لا يمكن تغيير نمط الإعلان ونوع العقار والولاية: انشر إعلاناً جديداً لتغييرها.',
     pub_edit_saved:'تم حفظ التعديلات.', pub_edit_pending:'تم حفظ التعديلات. سيخضع الإعلان للمراجعة من جديد قبل ظهوره على الموقع.',
@@ -2687,6 +2689,7 @@ document.addEventListener('keydown', e => {
 // ── Comparateur ────────────────────────────────────
 const _compareList = [];  // max 3 objets {id, title, price, image, ...}
 window._propCache = {};   // id → objet bien (peuplé par renderGrid/cardHTML)
+const _statsCache  = {};  // id → stats 30j (peuplé par showPropertyStats pour l'export CSV)
 
 function toggleCompare(id) {
   const p = window._propCache[id];
@@ -5585,7 +5588,10 @@ function statsPanelHTML(stats) {
 
   return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;gap:.5rem;flex-wrap:wrap">
       <span style="font-size:.83rem;font-weight:700;color:var(--text-muted)">${esc(T('dash_stats_title'))}</span>
-      <span style="font-size:.78rem;color:var(--text-muted)"><span style="color:${STAT_COLORS.views}">— ${esc(T('st_views'))}</span> &nbsp; <span style="color:${STAT_COLORS.favorites}">— ${esc(T('st_favs'))}</span> &nbsp; <span style="color:${STAT_COLORS.clicks}">— ${esc(T('st_clicks'))}</span></span>
+      <span style="display:flex;align-items:center;gap:.5rem">
+        <span style="font-size:.78rem;color:var(--text-muted)"><span style="color:${STAT_COLORS.views}">— ${esc(T('st_views'))}</span> &nbsp; <span style="color:${STAT_COLORS.favorites}">— ${esc(T('st_favs'))}</span> &nbsp; <span style="color:${STAT_COLORS.clicks}">— ${esc(T('st_clicks'))}</span></span>
+        <button class="btn btn-outline btn-sm" style="font-size:.72rem;padding:.12rem .42rem;border-color:var(--text-muted);color:var(--text-muted)" data-statsid="${Number(stats._propId||0)}" onclick="downloadStatsCsv(Number(this.dataset.statsid))">${esc(T('st_export_csv'))}</button>
+      </span>
     </div>${totals}${chart}${advice}`;
 }
 
@@ -5606,9 +5612,24 @@ async function showPropertyStats(id, triggerBtn) {
   card.parentElement.insertBefore(panel, card.nextSibling);
 
   try {
-    panel.innerHTML = statsPanelHTML(await api('/properties/' + id + '/stats'));
+    const statsData = await api('/properties/' + id + '/stats');
+    statsData._propId = id;
+    _statsCache[id] = statsData;
+    panel.innerHTML = statsPanelHTML(statsData);
   } catch {
     panel.innerHTML = `<div style="font-size:.83rem;color:#dc2626;padding:.5rem">${T('dash_error')}</div>`;
     if (triggerBtn) triggerBtn.style.opacity = '';
   }
+}
+
+function downloadStatsCsv(id) {
+  const stats = _statsCache[id];
+  if (!stats) return;
+  const { days, views = [], favorites = [], clicks = [] } = stats;
+  const viewAt  = d => views.filter(v => v.day === d).reduce((s, v) => s + Number(v.views || 0), 0);
+  const favAt   = d => favorites.filter(f => f.day === d).reduce((s, f) => s + Number(f.n || 0), 0);
+  const callAt  = d => clicks.filter(c => c.channel === 'call' && c.day === d).reduce((s, c) => s + Number(c.n || 0), 0);
+  const waAt    = d => clicks.filter(c => c.channel === 'whatsapp' && c.day === d).reduce((s, c) => s + Number(c.n || 0), 0);
+  const rows = (days || []).map(d => ({ date: d, vues: viewAt(d), favoris: favAt(d), appels: callAt(d), whatsapp: waAt(d) }));
+  exportCSV(rows, `dzimmo-stats-${new Date().toISOString().slice(0, 10)}.csv`);
 }

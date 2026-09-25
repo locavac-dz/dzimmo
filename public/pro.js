@@ -435,7 +435,7 @@ async function dashVitrine(c) {
   let mine = null, agStats = null;
   try { mine = await api('/agencies/mine/info'); }
   catch (e) { if (e.status !== 404) { c.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message)}</p>`; return; } }
-  if (mine) { try { agStats = await api('/agencies/me/stats'); } catch {} }
+  if (mine) { try { agStats = await api('/agencies/me/stats'); window._agenceStats = agStats; } catch {} }
   Object.assign(_vt, { mine, logo: mine ? mine.logo || '' : '', cover: mine ? mine.cover || '' : '',
     services: mine ? [...(mine.services || [])] : [], coverage: mine ? [...(mine.coverage || [])] : [] });
   vtRender(c, agStats);
@@ -492,10 +492,25 @@ function agenceStatsHTML(stats) {
   return `<div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem;box-shadow:var(--shadow)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;gap:.5rem;flex-wrap:wrap">
       <span style="font-size:.9rem;font-weight:700">${esc(T('vt_stats_title'))}</span>
-      <span style="font-size:.78rem;color:var(--text-muted)"><span style="color:${STAT_COLORS.views}">— ${esc(T('st_views'))}</span> &nbsp; <span style="color:${STAT_COLORS.favorites}">— ${esc(T('st_favs'))}</span> &nbsp; <span style="color:${STAT_COLORS.clicks}">— ${esc(T('st_clicks'))}</span></span>
+      <span style="display:flex;align-items:center;gap:.5rem">
+        <span style="font-size:.78rem;color:var(--text-muted)"><span style="color:${STAT_COLORS.views}">— ${esc(T('st_views'))}</span> &nbsp; <span style="color:${STAT_COLORS.favorites}">— ${esc(T('st_favs'))}</span> &nbsp; <span style="color:${STAT_COLORS.clicks}">— ${esc(T('st_clicks'))}</span></span>
+        <button class="btn btn-outline btn-sm" style="font-size:.72rem;padding:.12rem .42rem;border-color:var(--text-muted);color:var(--text-muted)" onclick="downloadAgenceStatsCsv()">${esc(T('st_export_csv'))}</button>
+      </span>
     </div>
     ${totals}${chart}${topHTML}
   </div>`;
+}
+
+function downloadAgenceStatsCsv() {
+  const stats = window._agenceStats;
+  if (!stats) return;
+  const { days, views = [], favorites = [], clicks = [] } = stats;
+  const viewAt = d => views.filter(v => v.day === d).reduce((s, v) => s + Number(v.views || 0), 0);
+  const favAt  = d => favorites.filter(f => f.day === d).reduce((s, f) => s + Number(f.n || 0), 0);
+  const callAt = d => clicks.filter(c => c.channel === 'call' && c.day === d).reduce((s, c) => s + Number(c.n || 0), 0);
+  const waAt   = d => clicks.filter(c => c.channel === 'whatsapp' && c.day === d).reduce((s, c) => s + Number(c.n || 0), 0);
+  const rows = (days || []).map(d => ({ date: d, vues: viewAt(d), favoris: favAt(d), appels: callAt(d), whatsapp: waAt(d) }));
+  exportCSV(rows, `dzimmo-agence-stats-${new Date().toISOString().slice(0, 10)}.csv`);
 }
 
 function vtRender(c = document.getElementById('dash-tab-content'), agStats = null) {

@@ -35,7 +35,7 @@ test('chaque conseil du serveur a son texte en français et en arabe, avec ses p
 });
 
 test('les autres textes du panneau existent dans les deux langues', () => {
-  for (const key of ['dash_stats_title', 'st_views', 'st_favs', 'st_clicks', 'st_calls', 'st_wa', 'st_contacts', 'st_conversion', 'st_favs_total', 'st_no_data', 'st_advice', 'st_advice_tip']) {
+  for (const key of ['dash_stats_title', 'st_views', 'st_favs', 'st_clicks', 'st_calls', 'st_wa', 'st_contacts', 'st_conversion', 'st_favs_total', 'st_no_data', 'st_advice', 'st_advice_tip', 'st_export_csv']) {
     for (const lang of ['fr', 'ar']) {
       const t = text(lang, key);
       assert.ok(t, `${lang}.${key}`);
@@ -47,7 +47,7 @@ test('les autres textes du panneau existent dans les deux langues', () => {
 
 // Panneau exécuté avec de vraies traductions extraites de la page
 function panel(stats, lang = 'fr') {
-  const keys = ['dash_stats_title', 'st_views', 'st_favs', 'st_clicks', 'st_calls', 'st_wa', 'st_contacts', 'st_conversion', 'st_favs_total', 'st_no_data', 'st_advice', 'st_advice_tip',
+  const keys = ['dash_stats_title', 'st_views', 'st_favs', 'st_clicks', 'st_calls', 'st_wa', 'st_contacts', 'st_conversion', 'st_favs_total', 'st_no_data', 'st_advice', 'st_advice_tip', 'st_export_csv',
                 ...CODES.map(c => 'adv_' + c)];
   const tr = { fr: {}, ar: {} };
   for (const l of ['fr', 'ar']) for (const k of keys) tr[l][k] = text(l, k);
@@ -115,10 +115,15 @@ test('échappement : ni HTML ni balise ne passe depuis les paramètres ou les jo
   assert.ok(html.includes('n\'a que 0 photo(s)'), 'un paramètre non numérique devient 0');
 });
 
-test('le panneau se ferme au deuxième clic et n\'insère aucune donnée dans un onclick', () => {
-  const fn = app.slice(app.indexOf('async function showPropertyStats'), app.indexOf('\n}\n', app.indexOf('async function showPropertyStats')));
+test('le panneau se ferme au deuxième clic et n\'insère aucune donnée brute dans un onclick', () => {
+  const fn = app.slice(app.indexOf('async function showPropertyStats'), app.indexOf('\nfunction downloadStatsCsv'));
   assert.match(fn, /existing\.remove\(\)/);
-  assert.match(fn, /statsPanelHTML\(await api\('\/properties\/' \+ id \+ '\/stats'\)\)/);
+  assert.match(fn, /statsData\._propId\s*=\s*id/);
+  assert.match(fn, /_statsCache\[id\]\s*=\s*statsData/);
+  assert.match(fn, /statsPanelHTML\(statsData\)/);
   const html = panel({ ...base, advice: [{ code: 'no_phone', level: 'warn', params: {} }] });
-  assert.doesNotMatch(html, /onclick=/);
+  // Le bouton CSV utilise data-statsid + this.dataset (pattern approuvé) ; les conseils n'ont pas d'onclick
+  assert.doesNotMatch(html, /onclick="[^"]*(?:title|name|email|description)[^"]*"/i);
+  const onclicks = [...html.matchAll(/onclick="([^"]*)"/g)].map(m => m[1]);
+  for (const o of onclicks) assert.match(o, /^downloadStatsCsv\(Number\(this\.dataset\.statsid\)\)$/);
 });
