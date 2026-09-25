@@ -50,6 +50,7 @@ const fr = {
   marketTitle: 'Tendances du marché immobilier en Algérie | DzImmo',
   marketDesc: 'Prix médians au m² par wilaya, évolution sur 30 jours et tendances du marché immobilier algérien.',
   sharedFavsTitle: 'Liste de favoris partagée | DzImmo',
+  vendeurTitle: 'Profil du vendeur | DzImmo',
 };
 
 const ar = {
@@ -97,6 +98,7 @@ const ar = {
   marketTitle: 'توجهات سوق العقارات في الجزائر | DzImmo',
   marketDesc: 'متوسطات الأسعار بالمتر المربع حسب الولاية، التطور خلال 30 يوماً واتجاهات السوق العقاري الجزائري.',
   sharedFavsTitle: 'قائمة مشتركة من المفضلة | DzImmo',
+  vendeurTitle: 'ملف البائع | DzImmo',
 };
 
 const TEXT = { fr, ar };

@@ -6,7 +6,7 @@ const auth   = require('../middleware/auth');
 // GET /api/favorites — favoris de l'utilisateur (les annonces en attente ou refusées n'y apparaissent pas)
 router.get('/', auth, async (req, res) => {
   const r = await db.pool.query(
-    `SELECT f.id AS fav_id, f.created_at, p.*
+    `SELECT f.id AS fav_id, f.created_at, f.note, p.*
        FROM favorites f
        JOIN properties p ON p.id = f.property_id
       WHERE f.user_id = $1 AND p.status NOT IN ('pending', 'rejected')
@@ -46,6 +46,21 @@ router.post('/share', auth, async (req, res) => {
 // DELETE /api/favorites/share — révoque le lien de partage (doit être avant DELETE /:property_id)
 router.delete('/share', auth, async (req, res) => {
   await db.pool.query('UPDATE users SET favorites_share_token = NULL WHERE id = $1', [req.user.id]);
+  res.json({ ok: true });
+});
+
+// PUT /api/favorites/:property_id/note — ajouter ou modifier la note privée d'un favori
+router.put('/:property_id/note', auth, async (req, res) => {
+  const propId = db.toId(req.params.property_id);
+  if (propId === null) return res.status(404).json({ error: 'Favori introuvable.' });
+  const { note } = req.body;
+  if (note !== null && note !== undefined && (typeof note !== 'string' || note.length > 500))
+    return res.status(400).json({ error: 'Note invalide (500 caractères maximum).' });
+  const r = await db.pool.query(
+    `UPDATE favorites SET note = $1 WHERE user_id = $2 AND property_id = $3 RETURNING id`,
+    [note || null, req.user.id, propId]
+  );
+  if (!r.rowCount) return res.status(404).json({ error: 'Favori introuvable.' });
   res.json({ ok: true });
 });
 

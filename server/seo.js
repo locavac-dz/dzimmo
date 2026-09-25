@@ -673,6 +673,14 @@ function mount(app) {
     });
   });
 
+  // Profil public d'un vendeur — jamais indexé (contenu utilisateur, page SPA)
+  app.get(bothLangs(['/vendeur/:id']), (req, res) => {
+    const lang = langOfReq(req);
+    res.set('Referrer-Policy', 'no-referrer');
+    return send(res, { lang, title: textOf(lang).vendeurTitle, description: textOf(lang).homeDesc,
+                       canonical: baseUrl(req) + localized(lang, '/'), robots: 'noindex,nofollow' });
+  });
+
   // Favoris partagés — jamais indexés (contenu utilisateur, token dans l'URL)
   app.get(bothLangs(['/favoris-partages/:token']), (req, res) => {
     const lang = langOfReq(req), t = textOf(lang);

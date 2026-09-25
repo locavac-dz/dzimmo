@@ -154,6 +154,8 @@ const AR = {
   'property_id requis.': 'معرّف الإعلان مطلوب.',
   'Déjà dans les favoris.': 'موجود بالفعل في المفضلة.',
   'Lien invalide.': 'الرابط غير صالح.',
+  'Favori introuvable.': 'المفضلة غير موجودة.',
+  'Note invalide (500 caractères maximum).': 'الملاحظة غير صالحة (500 حرف كحد أقصى).',
 
   // Page Contact (visiteur → équipe du site)
   'Nom et message requis.': 'الاسم والرسالة مطلوبان.',

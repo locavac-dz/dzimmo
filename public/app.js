@@ -483,6 +483,14 @@ const TRANSLATIONS = {
     est_scope_wilaya:'Source : annonces de la wilaya.', est_scope_national:'Source : annonces nationales (données wilaya insuffisantes).',
     est_no_data:'Pas assez d\'annonces comparables. Élargissez les critères.',
     est_count:'{n} annonces comparables',
+    share_native:'📤 Partager',
+    vd_member_since:'Membre depuis', vd_listings:'annonces actives', vd_profile:'Voir le profil du vendeur',
+    vd_see_listings:'Voir ses annonces', vd_no_listings:'Aucune annonce active.',
+    src_title:'Requêtes de recherche (30 derniers jours)', src_top:'Les plus recherchées',
+    src_daily:'Volume journalier', src_count:'recherche(s)', src_no_data:'Aucune recherche texte enregistrée.',
+    src_avg:'résultats moy.',
+    fav_note_ph:'Ma note privée (500 car. max.)…', fav_note_save:'Enregistrer', fav_note_saved:'✅ Note enregistrée.',
+    fav_note_del:'Effacer la note',
   },
   ar: {
     site_title:'DzImmo — العقارات في الجزائر',
@@ -945,6 +953,14 @@ const TRANSLATIONS = {
     est_scope_wilaya:'المصدر: إعلانات الولاية.', est_scope_national:'المصدر: إعلانات وطنية (بيانات الولاية غير كافية).',
     est_no_data:'إعلانات مقارنة غير كافية. وسّع المعايير.',
     est_count:'{n} إعلان مقارن',
+    share_native:'📤 مشاركة',
+    vd_member_since:'عضو منذ', vd_listings:'إعلانات نشطة', vd_profile:'عرض ملف البائع',
+    vd_see_listings:'عرض إعلاناته', vd_no_listings:'لا توجد إعلانات نشطة.',
+    src_title:'استعلامات البحث (آخر 30 يوماً)', src_top:'الأكثر بحثاً',
+    src_daily:'الحجم اليومي', src_count:'بحث', src_no_data:'لا توجد عمليات بحث مسجَّلة.',
+    src_avg:'متوسط النتائج',
+    fav_note_ph:'ملاحظة خاصة (500 حرف كحد أقصى)…', fav_note_save:'حفظ', fav_note_saved:'✅ تم حفظ الملاحظة.',
+    fav_note_del:'حذف الملاحظة',
   }
 };
 
@@ -1148,6 +1164,8 @@ async function init() {
     showNewsletterLink(path === '/newsletter/confirmation' ? 'confirm' : 'unsub', params);
   const sharedFavMatch = path.match(/^\/favoris-partages\/([0-9a-f]{64})$/);
   if (sharedFavMatch) showPage('favoris-partages', sharedFavMatch[1]);
+  const vendeurMatch = path.match(/^\/vendeur\/(\d+)$/);
+  if (vendeurMatch) showPage('vendeur', Number(vendeurMatch[1]));
   const annonceMatch = routePath().match(/^\/annonce\/(\d+)/);
   // Lien de l'email de rappel (?renew=jeton) : mémorisé avant que la fiche ne réécrive l'adresse
   if (annonceMatch && params.get('renew')) { window._renewToken = params.get('renew'); window._renewFor = Number(annonceMatch[1]); }
@@ -1447,7 +1465,7 @@ async function captchaToken() {
 }
 
 // ── Navigation ────────────────────────────────────
-const PAGES = ['home','annonces','detail','publier','agences','agency-detail','programmes','programme-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats','contrats','newsletter','tendances','favoris-partages'];
+const PAGES = ['home','annonces','detail','publier','agences','agency-detail','programmes','programme-detail','dashboard','messages','admin','cgu','confidentialite','mentions','contact','sim-prix','sim-estimation','sim-notaire','sim-credit','sim-rentabilite','carte','stats','contrats','newsletter','tendances','favoris-partages','vendeur'];
 
 const defaultTitle = () => T('site_title');   // titre du site dans la langue affichée (identique à celui que le serveur rend pour / et /ar)
 const PRO_PAGES = ['agences', 'agency-detail', 'programmes', 'programme-detail'];
@@ -1801,6 +1819,7 @@ function showPage(page, data = null) {
   if (page === 'tendances')       loadMarket();
   if (page === 'favoris-partages' && data) loadSharedFavorites(data);
   if (page === 'contrats' && window.MC) MC.open();
+  if (page === 'vendeur' && data) loadVendeur(data);
 }
 
 function goBack() { showPage(currentPage === 'detail' ? 'annonces' : 'home'); }
@@ -2230,6 +2249,7 @@ function renderDetail(p) {
                 <div class="owner-agency">${T(p.agency_name ? (p.agency_kind === 'promoteur' ? 'kind_promoteur' : 'det_agency') : 'det_private')}</div>
                 ${advBadgeHTML(advKind(p))}
                 ${ownerTrustHTML(p)}
+                ${!p.agency_id ? `<a href="/vendeur/${Number(p.owner_id)}" class="btn btn-outline btn-sm" style="margin-top:.5rem;font-size:.8rem;display:block;text-align:center" data-id="${Number(p.owner_id)}" onclick="return showVendeur(event,this.dataset.id)">${T('vd_profile')}</a>` : ''}
               </div>
             </div>
             ${p.project ? `<a class="pro-chip pg-lot-chip" href="${esc(progPath(p.project))}" onclick="return proGo(event,'programme-detail',${Number(p.project.id)})">🏗 ${T('pg_lot_of')} ${esc(p.project.name)}</a>` : ''}
@@ -2271,6 +2291,7 @@ function renderDetail(p) {
                 ? `<br>✔ ${T('det_confirmed')} ${new Date(p.last_confirmed_at).toLocaleDateString('fr-DZ')}` : ''}
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.75rem">
+              ${navigator.share ? `<button class="btn btn-outline btn-sm" style="flex:1;min-width:calc(50% - .25rem)" data-id="${p.id}" data-title="${esc(p.title)}" data-price="${Number(p.price)||0}" onclick="shareNative(this)">${T('share_native')}</button>` : ''}
               <button class="btn btn-outline btn-sm" style="flex:1;min-width:calc(50% - .25rem);display:flex;align-items:center;justify-content:center;gap:.4rem" data-title="${esc(p.title)}" onclick="shareWhatsApp(${p.id}, this.dataset.title, ${Number(p.price) || 0})">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                 WhatsApp
@@ -2945,10 +2966,67 @@ function copyPropertyLink(id) {
   });
 }
 
+function shareNative(btn) {
+  const id    = Number(btn.dataset.id);
+  const title = btn.dataset.title;
+  const url   = location.origin + '/annonce/' + id;
+  navigator.share({ title, text: '🏠 ' + title + ' — DzImmo', url }).catch(() => {});
+}
+
+function showVendeur(event, id) {
+  event.preventDefault();
+  showPage('vendeur', Number(id));
+  return false;
+}
+
+async function loadVendeur(id) {
+  const container = document.getElementById('vendeur-content');
+  container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  history.replaceState(null, '', langPath('/vendeur/' + id));
+  document.title = T('site_title');
+  try {
+    const [u, propsRes] = await Promise.all([
+      api('/auth/users/' + id),
+      api('/properties/user/' + id + '?limit=6'),
+    ]);
+    const since = new Date(u.created_at).toLocaleDateString(T('site_title').startsWith('Dz') ? 'fr-DZ' : 'ar-DZ', { year: 'numeric', month: 'long' });
+    const avatarLetter = (u.name || '?')[0].toUpperCase();
+    const avatarHTML = u.avatar
+      ? `<img src="${esc(u.avatar)}" alt="" style="width:80px;height:80px;border-radius:50%;object-fit:cover">`
+      : `<div style="width:80px;height:80px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700">${esc(avatarLetter)}</div>`;
+    const verif = u.verified_kind === 'business'
+      ? `<span style="color:var(--primary-text);font-size:.85rem">✓ ${T('adv_business')}</span>`
+      : u.verified_kind === 'identity'
+      ? `<span style="color:var(--primary-text);font-size:.85rem">✓ ${T('adv_identity')}</span>`
+      : '';
+    const props = Array.isArray(propsRes) ? propsRes : (propsRes.data || []);
+    const listingsHTML = props.length
+      ? `<div class="grid">${props.map(p => cardHTML(p)).join('')}</div>`
+      : `<p style="color:var(--text-muted)">${T('vd_no_listings')}</p>`;
+    container.innerHTML = `
+      <div style="background:var(--white);border-radius:14px;padding:1.5rem;box-shadow:var(--shadow);max-width:700px;margin:0 auto 1.5rem">
+        <div style="display:flex;align-items:center;gap:1.2rem;margin-bottom:1rem">
+          ${avatarHTML}
+          <div>
+            <div style="font-size:1.3rem;font-weight:800">${esc(u.name)}</div>
+            ${verif}
+            <div style="font-size:.83rem;color:var(--text-muted);margin-top:.3rem">${T('vd_member_since')} ${esc(since)}</div>
+            <div style="font-size:.83rem;color:var(--text-muted)">${u.property_count} ${T('vd_listings')}</div>
+          </div>
+        </div>
+        ${u.bio ? `<p style="font-size:.9rem;color:var(--text-secondary);white-space:pre-line">${esc(u.bio)}</p>` : ''}
+      </div>
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:.75rem">${T('vd_see_listings')}</h3>
+      ${listingsHTML}`;
+  } catch (e) {
+    container.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message || T('err_server'))}</p>`;
+  }
+}
+
 // ══════════════════════════════════════════════════
 // PANNEAU ADMIN
 // ══════════════════════════════════════════════════
-const ADMIN_TABS = ['resume','moderation','verifications','users','properties','agencies','signalements','newsletter','evolution','audit','security'];
+const ADMIN_TABS = ['resume','moderation','verifications','users','properties','agencies','signalements','newsletter','evolution','audit','recherches','security'];
 
 function adminTab(name) {
   document.querySelectorAll('#admin-tabs .tab-btn').forEach((b, i) => {
@@ -2958,7 +3036,8 @@ function adminTab(name) {
   ({ resume: adminLoadResume, moderation: () => adminLoadModeration(), verifications: () => adminLoadVerifications(),
      users: adminLoadUsers, properties: adminLoadProperties,
      agencies: adminLoadAgencies, signalements: adminLoadSignalements,
-     newsletter: adminLoadNewsletter, evolution: adminLoadEvolution, security: adminLoadSecurity, audit: adminLoadAudit })[name]?.();
+     newsletter: adminLoadNewsletter, evolution: adminLoadEvolution, security: adminLoadSecurity, audit: adminLoadAudit,
+     recherches: adminLoadRecherches })[name]?.();
 }
 
 async function loadAdmin() {
@@ -3865,6 +3944,56 @@ async function adminLoadEvolution(days) {
   } catch (e) { box.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message)}</p>`; }
 }
 
+async function adminLoadRecherches() {
+  const box = document.getElementById('admin-content');
+  box.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const r = await api('/stats/searches');
+    if (!r.top.length && !r.daily.some(d => d.searches > 0)) {
+      box.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-muted)">${T('src_no_data')}</div>`; return;
+    }
+    // Courbe journalière
+    const maxD = Math.max(1, ...r.daily.map(d => d.searches));
+    const barW = Math.max(1, Math.floor(320 / r.daily.length));
+    const bars = r.daily.map(d => {
+      const h = Math.round((d.searches / maxD) * 80);
+      return `<rect x="${r.daily.indexOf(d) * barW}" y="${80 - h}" width="${Math.max(1, barW - 1)}" height="${h}" fill="var(--primary)" opacity=".7" title="${esc(d.day)}: ${d.searches}"/>`;
+    }).join('');
+    const chartW = r.daily.length * barW;
+    // Tableau top requêtes
+    const rows = r.top.map(q => `
+      <tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:.5rem .75rem;font-size:.88rem">${esc(q.query)}</td>
+        <td style="padding:.5rem .75rem;text-align:right;font-size:.88rem;font-weight:700">${q.total}</td>
+        <td style="padding:.5rem .75rem;text-align:right;font-size:.83rem;color:var(--text-muted)">${q.avg_results} ${T('src_avg')}</td>
+      </tr>`).join('');
+    box.innerHTML = `
+      <div style="padding:1rem">
+        <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:1.5rem">${T('src_title')}</h2>
+        <div style="background:var(--white);border-radius:12px;padding:1.25rem;box-shadow:var(--shadow);margin-bottom:1.5rem">
+          <h3 style="font-size:.95rem;font-weight:700;margin:0 0 1rem">${T('src_daily')}</h3>
+          <svg viewBox="0 0 ${chartW} 90" preserveAspectRatio="none" style="width:100%;height:90px;display:block">${bars}</svg>
+          <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-muted);margin-top:.25rem">
+            <span>${esc(r.daily[0]?.day || '')}</span><span>${esc(r.daily[r.daily.length - 1]?.day || '')}</span>
+          </div>
+        </div>
+        <div style="background:var(--white);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+          <div style="padding:.75rem 1rem;font-size:.95rem;font-weight:700;border-bottom:1px solid var(--border)">${T('src_top')}</div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="background:var(--bg)">
+                <th style="padding:.5rem .75rem;text-align:start;font-size:.8rem;color:var(--text-muted);font-weight:600">Requête</th>
+                <th style="padding:.5rem .75rem;text-align:end;font-size:.8rem;color:var(--text-muted);font-weight:600">${T('src_count')}</th>
+                <th style="padding:.5rem .75rem;text-align:end;font-size:.8rem;color:var(--text-muted);font-weight:600">${T('src_avg')}</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  } catch (e) { box.innerHTML = `<p style="color:red;padding:1rem">${esc(e.message)}</p>`; }
+}
+
 async function adminLoadAudit(page = 1) {
   const box = document.getElementById('admin-content');
   box.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
@@ -4349,7 +4478,19 @@ async function dashTab(tab, more = false) {
       <span id="fav-share-url" style="font-size:.82rem;color:var(--primary-text);word-break:break-all"></span>
     </div>`;
     if (!data.length) { c.innerHTML = shareBar + '<div class="empty-state"><div class="icon">❤️</div><h3>' + T('dash_no_fav') + '</h3><p>' + T('dash_fav_hint') + '</p></div>'; return; }
-    c.innerHTML = shareBar + `<div class="grid">${data.map(p => cardHTML(p)).join('')}</div>`;
+    const favCards = data.map(p => `
+      <div>
+        ${cardHTML(p)}
+        <div style="background:var(--white);border-radius:0 0 12px 12px;margin-top:-8px;padding:.6rem .75rem;box-shadow:var(--shadow)">
+          ${p.note ? `<div style="font-size:.82rem;color:var(--text-secondary);white-space:pre-line;margin-bottom:.4rem">${esc(p.note)}</div>` : ''}
+          <textarea rows="2" style="width:100%;resize:none;font-size:.82rem;border:1px solid var(--border);border-radius:6px;padding:.35rem .5rem;font-family:inherit;background:var(--bg)"
+            placeholder="${esc(T('fav_note_ph'))}" data-pid="${Number(p.id)}">${esc(p.note || '')}</textarea>
+          <div style="display:flex;gap:.4rem;margin-top:.3rem;justify-content:flex-end">
+            <button class="btn btn-outline btn-sm" style="font-size:.77rem" data-pid="${Number(p.id)}" onclick="saveFavNote(this)">${T('fav_note_save')}</button>
+          </div>
+        </div>
+      </div>`).join('');
+    c.innerHTML = shareBar + `<div class="grid">${favCards}</div>`;
   }
 
   if (tab === 'alertes') {
@@ -4498,6 +4639,16 @@ async function revokeFavorites() {
     if (urlEl) urlEl.textContent = '';
     if (revokeEl) revokeEl.style.display = 'none';
     toast('✅ ' + T('fav_share_revoked'));
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+async function saveFavNote(btn) {
+  const pid = Number(btn.dataset.pid);
+  const textarea = btn.closest('div').previousElementSibling;
+  const note = textarea ? textarea.value.trim() : '';
+  try {
+    await api('/favorites/' + pid + '/note', 'PUT', { note: note || null });
+    toast(T('fav_note_saved'));
   } catch (e) { toast('❌ ' + e.message); }
 }
 

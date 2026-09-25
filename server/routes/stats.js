@@ -214,4 +214,31 @@ router.get('/evolution', admin, async (req, res) => {
   res.json({ days, series: rows });
 });
 
+// GET /api/stats/searches?days=30 — requêtes de recherche texte (admin)
+router.get('/searches', admin, async (req, res) => {
+  const days = Math.min(90, Math.max(7, parseInt(req.query.days) || 30));
+  const { pool } = db;
+  const [topR, dailyR] = await Promise.all([
+    pool.query(`
+      SELECT query, COUNT(*)::int AS total, AVG(results_count)::int AS avg_results
+        FROM search_logs
+       WHERE created_at >= CURRENT_DATE - $1
+       GROUP BY query
+       ORDER BY total DESC
+       LIMIT 20
+    `, [days]),
+    pool.query(`
+      WITH dates AS (
+        SELECT d::date AS day
+          FROM generate_series(CURRENT_DATE - $1 + 1, CURRENT_DATE, interval '1 day') d
+      )
+      SELECT d.day::text, COALESCE(s.cnt, 0)::int AS searches
+        FROM dates d
+        LEFT JOIN (SELECT created_at::date AS day, COUNT(*)::int AS cnt FROM search_logs GROUP BY 1) s ON s.day = d.day
+       ORDER BY d.day
+    `, [days]),
+  ]);
+  res.json({ days, top: topR.rows, daily: dailyR.rows });
+});
+
 module.exports = router;

@@ -181,6 +181,11 @@ router.get('/', optionalAuth, async (req, res) => {
   ]);
 
   const total = parseInt(countR.rows[0].count);
+  if (q && typeof q === 'string' && q.trim())
+    pool.query(
+      `INSERT INTO search_logs(query, wilaya, mode, type_bien, results_count) VALUES($1,$2,$3,$4,$5)`,
+      [q.trim().slice(0, 200), wilaya || null, mode || null, type_bien || null, total]
+    ).catch(() => {});
   res.json({
     data:  dataR.rows,
     total,
