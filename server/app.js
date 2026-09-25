@@ -153,6 +153,17 @@ const publicStatsLimiter = rateLimit({
 });
 app.use('/api/stats/public', publicStatsLimiter);
 
+const vendeurLimiter = rateLimit({
+  ...shared('vendeur'),
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de requêtes. Réessayez dans une minute.' },
+  skip: () => process.env.NODE_ENV === 'test',
+});
+app.use('/api/auth/users/', vendeurLimiter);
+
 const exportLimiter = rateLimit({
   ...shared('export'),
   windowMs: 60 * 60 * 1000,

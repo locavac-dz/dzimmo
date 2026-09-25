@@ -289,7 +289,7 @@ router.get('/export', require('../middleware/auth'), async (req, res) => {
 // GET /api/auth/users/:id — profil public
 router.get('/users/:id', async (req, res) => {
   const user = await db.users.findById(req.params.id);
-  if (!user) return res.status(404).json({ error: 'Utilisateur introuvable.' });
+  if (!user || user.banned) return res.status(404).json({ error: 'Utilisateur introuvable.' });
   const property_count = await db.properties.count({ owner_id: user.id, status: 'active' });
   res.json({
     id: user.id, name: user.name, bio: user.bio || '',

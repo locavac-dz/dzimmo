@@ -119,7 +119,7 @@ test('le panneau se ferme au deuxième clic et n\'insère aucune donnée brute d
   const fn = app.slice(app.indexOf('async function showPropertyStats'), app.indexOf('\nfunction downloadStatsCsv'));
   assert.match(fn, /existing\.remove\(\)/);
   assert.match(fn, /statsData\._propId\s*=\s*id/);
-  assert.match(fn, /_statsCache\[id\]\s*=\s*statsData/);
+  assert.match(fn, /_statsCache\.set\(id,\s*statsData\)/);
   assert.match(fn, /statsPanelHTML\(statsData\)/);
   const html = panel({ ...base, advice: [{ code: 'no_phone', level: 'warn', params: {} }] });
   // Le bouton CSV utilise data-statsid + this.dataset (pattern approuvé) ; les conseils n'ont pas d'onclick

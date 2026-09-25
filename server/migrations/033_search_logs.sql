@@ -1,4 +1,4 @@
-CREATE TABLE search_logs (
+CREATE TABLE IF NOT EXISTS search_logs (
   id SERIAL PRIMARY KEY,
   query TEXT NOT NULL,
   wilaya TEXT,

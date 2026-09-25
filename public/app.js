@@ -488,7 +488,7 @@ const TRANSLATIONS = {
     vd_see_listings:'Voir ses annonces', vd_no_listings:'Aucune annonce active.',
     src_title:'Requêtes de recherche (30 derniers jours)', src_top:'Les plus recherchées',
     src_daily:'Volume journalier', src_count:'recherche(s)', src_no_data:'Aucune recherche texte enregistrée.',
-    src_avg:'résultats moy.',
+    src_avg:'résultats moy.', src_query:'Requête',
     fav_note_ph:'Ma note privée (500 car. max.)…', fav_note_save:'Enregistrer', fav_note_saved:'✅ Note enregistrée.',
     fav_note_del:'Effacer la note',
   },
@@ -958,7 +958,7 @@ const TRANSLATIONS = {
     vd_see_listings:'عرض إعلاناته', vd_no_listings:'لا توجد إعلانات نشطة.',
     src_title:'استعلامات البحث (آخر 30 يوماً)', src_top:'الأكثر بحثاً',
     src_daily:'الحجم اليومي', src_count:'بحث', src_no_data:'لا توجد عمليات بحث مسجَّلة.',
-    src_avg:'متوسط النتائج',
+    src_avg:'متوسط النتائج', src_query:'الاستعلام',
     fav_note_ph:'ملاحظة خاصة (500 حرف كحد أقصى)…', fav_note_save:'حفظ', fav_note_saved:'✅ تم حفظ الملاحظة.',
     fav_note_del:'حذف الملاحظة',
   }
@@ -1368,7 +1368,7 @@ function updatePassMeter(id, val) {
   el.classList.remove('hidden');
   const n = passStrength(val);
   const labels = [T('pass_weak'), T('pass_weak'), T('pass_fair'), T('pass_good'), T('pass_strong')];
-  const colors = ['#dc2626','#dc2626','#d97706','#16a34a','#0C6E4F'];
+  const colors = ['#dc2626','#dc2626','#d97706','#16a34a','var(--primary-text)'];
   el.innerHTML = `<div style="display:flex;gap:.3rem;align-items:center;margin-top:.3rem">
     ${[1,2,3,4].map(i => `<div style="height:4px;flex:1;border-radius:2px;background:${i<=n?colors[n]:'var(--border)'}"></div>`).join('')}
     <span style="font-size:.75rem;color:${colors[n]};min-width:4rem;margin-inline-start:.35rem">${labels[n]}</span>
@@ -2780,7 +2780,7 @@ document.addEventListener('keydown', e => {
 // ── Comparateur ────────────────────────────────────
 const _compareList = [];  // max 3 objets {id, title, price, image, ...}
 window._propCache = {};   // id → objet bien (peuplé par renderGrid/cardHTML)
-const _statsCache  = {};  // id → stats 30j (peuplé par showPropertyStats pour l'export CSV)
+const _statsCache  = new Map();  // id → stats 30j (peuplé par showPropertyStats pour l'export CSV)
 
 function toggleCompare(id) {
   const p = window._propCache[id];
@@ -2989,7 +2989,7 @@ async function loadVendeur(id) {
       api('/auth/users/' + id),
       api('/properties/user/' + id + '?limit=6'),
     ]);
-    const since = new Date(u.created_at).toLocaleDateString(T('site_title').startsWith('Dz') ? 'fr-DZ' : 'ar-DZ', { year: 'numeric', month: 'long' });
+    const since = new Date(u.created_at).toLocaleDateString(currentLang === 'ar' ? 'ar-DZ' : 'fr-DZ', { year: 'numeric', month: 'long' });
     const avatarLetter = (u.name || '?')[0].toUpperCase();
     const avatarHTML = u.avatar
       ? `<img src="${esc(u.avatar)}" alt="" style="width:80px;height:80px;border-radius:50%;object-fit:cover">`
@@ -3955,9 +3955,9 @@ async function adminLoadRecherches() {
     // Courbe journalière
     const maxD = Math.max(1, ...r.daily.map(d => d.searches));
     const barW = Math.max(1, Math.floor(320 / r.daily.length));
-    const bars = r.daily.map(d => {
+    const bars = r.daily.map((d, i) => {
       const h = Math.round((d.searches / maxD) * 80);
-      return `<rect x="${r.daily.indexOf(d) * barW}" y="${80 - h}" width="${Math.max(1, barW - 1)}" height="${h}" fill="var(--primary)" opacity=".7" title="${esc(d.day)}: ${d.searches}"/>`;
+      return `<rect x="${i * barW}" y="${80 - h}" width="${Math.max(1, barW - 1)}" height="${h}" fill="var(--primary)" opacity=".7" title="${esc(d.day)}: ${d.searches}"/>`;
     }).join('');
     const chartW = r.daily.length * barW;
     // Tableau top requêtes
@@ -3982,7 +3982,7 @@ async function adminLoadRecherches() {
           <table style="width:100%;border-collapse:collapse">
             <thead>
               <tr style="background:var(--bg)">
-                <th style="padding:.5rem .75rem;text-align:start;font-size:.8rem;color:var(--text-muted);font-weight:600">Requête</th>
+                <th style="padding:.5rem .75rem;text-align:start;font-size:.8rem;color:var(--text-muted);font-weight:600">${T('src_query')}</th>
                 <th style="padding:.5rem .75rem;text-align:end;font-size:.8rem;color:var(--text-muted);font-weight:600">${T('src_count')}</th>
                 <th style="padding:.5rem .75rem;text-align:end;font-size:.8rem;color:var(--text-muted);font-weight:600">${T('src_avg')}</th>
               </tr>
@@ -4250,7 +4250,7 @@ function advBadgeHTML(kind) {
 function ownerTrustHTML(p) {
   const score = Number(p.owner_trust_score) || 0;
   if (score === 0) return '';
-  const color = score >= 75 ? 'var(--primary-text)' : score >= 40 ? '#d97706' : 'var(--text-muted)';
+  const color = score >= 75 ? 'var(--primary-text)' : score >= 40 ? 'var(--gold-text)' : 'var(--text-muted)';
   const label = score >= 75 ? T('trust_high') : score >= 40 ? T('trust_mid') : T('trust_low');
   const filled = Math.round(score / 20);
   const dots = Array.from({length: 5}, (_, i) =>
@@ -4644,7 +4644,7 @@ async function revokeFavorites() {
 
 async function saveFavNote(btn) {
   const pid = Number(btn.dataset.pid);
-  const textarea = btn.closest('div').previousElementSibling;
+  const textarea = document.querySelector('textarea[data-pid="' + pid + '"]');
   const note = textarea ? textarea.value.trim() : '';
   try {
     await api('/favorites/' + pid + '/note', 'PUT', { note: note || null });
@@ -5949,7 +5949,8 @@ async function showPropertyStats(id, triggerBtn) {
   try {
     const statsData = await api('/properties/' + id + '/stats');
     statsData._propId = id;
-    _statsCache[id] = statsData;
+    if (_statsCache.size >= 50) _statsCache.delete(_statsCache.keys().next().value);
+    _statsCache.set(id, statsData);
     panel.innerHTML = statsPanelHTML(statsData);
   } catch {
     panel.innerHTML = `<div style="font-size:.83rem;color:#dc2626;padding:.5rem">${T('dash_error')}</div>`;
@@ -5958,7 +5959,7 @@ async function showPropertyStats(id, triggerBtn) {
 }
 
 function downloadStatsCsv(id) {
-  const stats = _statsCache[id];
+  const stats = _statsCache.get(id);
   if (!stats) return;
   const { days, views = [], favorites = [], clicks = [] } = stats;
   const viewAt  = d => views.filter(v => v.day === d).reduce((s, v) => s + Number(v.views || 0), 0);

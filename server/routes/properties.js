@@ -181,11 +181,16 @@ router.get('/', optionalAuth, async (req, res) => {
   ]);
 
   const total = parseInt(countR.rows[0].count);
-  if (q && typeof q === 'string' && q.trim())
+  if (q && typeof q === 'string' && q.trim()) {
+    const safeQ = q.trim()
+      .replace(/[\w.+'-]+@[\w-]+\.[a-z]{2,}/gi, '[email]')
+      .replace(/(?:\+213|0)[5-7]\d{8}/g, '[tel]')
+      .slice(0, 200);
     pool.query(
       `INSERT INTO search_logs(query, wilaya, mode, type_bien, results_count) VALUES($1,$2,$3,$4,$5)`,
-      [q.trim().slice(0, 200), wilaya || null, mode || null, type_bien || null, total]
+      [safeQ, wilaya || null, mode || null, type_bien || null, total]
     ).catch(() => {});
+  }
   res.json({
     data:  dataR.rows,
     total,
@@ -437,7 +442,10 @@ router.post('/', auth, async (req, res) => {
   // Un signal de qualité bloquant (prix très éloigné du marché, texte copié) envoie l'annonce en validation, même pour une agence
   // vérifiée ; seuls les administrateurs (et le mode MODERATION=off) publient sans contrôle.
   const trusted = await moderation.isTrusted(req.user);
-  const direct  = trusted && (req.user.is_admin || !moderation.enabled() || !assessment.blocking);
+  // Les annonceurs de confiance sont exemptés de content_bypass (numéros professionnels légitimes) ;
+  // les signaux de qualité (doublon tiers, prix aberrant) bloquent toujours.
+  const blockingFlags = trusted ? assessment.flags.filter(f => f !== 'content_bypass') : assessment.flags;
+  const direct  = trusted && (req.user.is_admin || !moderation.enabled() || !quality.isBlocking(blockingFlags));
 
   const property = await db.properties.insert({
     owner_id:     req.user.id,
@@ -553,9 +561,11 @@ router.put('/:id', auth, async (req, res) => {
   }
 
   // Publier d'abord un prix normal puis le modifier n'échappe pas au contrôle : un signal bloquant remet l'annonce en validation
-  if (assessed && assessed.blocking && !req.user.is_admin && moderation.enabled() && (changes.status || property.status) === 'active') {
-    changes.status = 'pending';
-    resubmitted = true;
+  // Les annonceurs de confiance sont exemptés de content_bypass (numéros professionnels légitimes).
+  if (assessed && !req.user.is_admin && moderation.enabled() && (changes.status || property.status) === 'active') {
+    const putTrusted = await moderation.isTrusted(req.user);
+    const putBlockingFlags = putTrusted ? assessed.flags.filter(f => f !== 'content_bypass') : assessed.flags;
+    if (quality.isBlocking(putBlockingFlags)) { changes.status = 'pending'; resubmitted = true; }
   }
   // Une modification par son propriétaire vaut confirmation de disponibilité ; remettre l'annonce en ligne annule son expiration
   if (property.owner_id === req.user.id) { changes.last_confirmed_at = new Date(); changes.expiry_notified_at = null; }

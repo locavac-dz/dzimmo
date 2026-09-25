@@ -607,7 +607,7 @@ function buildMonthlyReport(lang, { month, new_users, new_listings, sold_rented,
   const stat = (icon, label, val) =>
     `<div style="text-align:center;padding:.9rem .5rem"><div style="font-size:1.7rem;font-weight:900;color:#0C6E4F">${Number(val || 0).toLocaleString('fr-DZ')}</div><div style="font-size:.8rem;color:#666;margin-top:.2rem">${icon} ${esc(label)}</div></div>`;
   return {
-    subject: pick(lang, `📊 Rapport mensuel ${esc(month)} — DzImmo`, `📊 التقرير الشهري ${esc(month)} — DzImmo`),
+    subject: pick(lang, `📊 Rapport mensuel ${month} — DzImmo`, `📊 التقرير الشهري ${month} — DzImmo`),
     html: wrap(`
       <h2 style="color:#222;margin-top:0">${pick(lang, `Rapport mensuel — ${esc(month)} 📊`, `التقرير الشهري — ${esc(month)} 📊`)}</h2>
       <p>${pick(lang, 'Voici le résumé de l\'activité du mois écoulé :', 'إليك ملخص نشاط الشهر المنصرم:')}</p>

@@ -195,19 +195,19 @@ router.get('/evolution', admin, async (req, res) => {
     FROM dates d
     LEFT JOIN (
       SELECT created_at::date AS day, COUNT(*)::int AS cnt
-        FROM users GROUP BY 1
+        FROM users WHERE created_at >= CURRENT_DATE - $1 GROUP BY 1
     ) u ON u.day = d.day
     LEFT JOIN (
       SELECT created_at::date AS day, COUNT(*)::int AS cnt
-        FROM properties GROUP BY 1
+        FROM properties WHERE created_at >= CURRENT_DATE - $1 GROUP BY 1
     ) p ON p.day = d.day
     LEFT JOIN (
       SELECT day, SUM(views)::bigint AS cnt
-        FROM property_views_daily GROUP BY 1
+        FROM property_views_daily WHERE day >= CURRENT_DATE - $1 GROUP BY 1
     ) v ON v.day = d.day
     LEFT JOIN (
       SELECT created_at::date AS day, COUNT(*)::int AS cnt
-        FROM contact_requests GROUP BY 1
+        FROM contact_requests WHERE created_at >= CURRENT_DATE - $1 GROUP BY 1
     ) c ON c.day = d.day
     ORDER BY d.day
   `, [days]);
@@ -234,7 +234,7 @@ router.get('/searches', admin, async (req, res) => {
       )
       SELECT d.day::text, COALESCE(s.cnt, 0)::int AS searches
         FROM dates d
-        LEFT JOIN (SELECT created_at::date AS day, COUNT(*)::int AS cnt FROM search_logs GROUP BY 1) s ON s.day = d.day
+        LEFT JOIN (SELECT created_at::date AS day, COUNT(*)::int AS cnt FROM search_logs WHERE created_at >= CURRENT_DATE - $1 GROUP BY 1) s ON s.day = d.day
        ORDER BY d.day
     `, [days]),
   ]);
