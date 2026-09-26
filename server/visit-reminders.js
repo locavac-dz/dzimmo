@@ -15,8 +15,8 @@ async function sendVisitReminders() {
     SELECT c.id, c.user_id, c.visit_date, c.visit_time, c.property_id,
            p.title        AS property_title,
            p.owner_id,
-           u_req.name     AS requester_name, u_req.email AS requester_email, u_req.lang AS requester_lang,
-           u_own.name     AS owner_name,     u_own.email AS owner_email,     u_own.lang AS owner_lang
+           u_req.name     AS requester_name, u_req.email AS requester_email, u_req.lang AS requester_lang, u_req.email_verified AS requester_verified,
+           u_own.name     AS owner_name,     u_own.email AS owner_email,     u_own.lang AS owner_lang,   u_own.email_verified AS owner_verified
       FROM contact_requests c
       JOIN properties p   ON p.id = c.property_id
       JOIN users u_req ON u_req.id = c.user_id
@@ -29,8 +29,8 @@ async function sendVisitReminders() {
   for (const row of r.rows) {
     const propertyUrl = `${siteUrl()}/annonce/${row.property_id}`;
 
-    // E-mail au visiteur (si adresse disponible)
-    if (row.requester_email) {
+    // E-mail au visiteur (si adresse confirmée)
+    if (row.requester_email && row.requester_verified) {
       mailer.mailVisitReminder({
         email: row.requester_email, lang: row.requester_lang,
         recipientName: row.requester_name, requesterName: row.requester_name,
@@ -41,8 +41,8 @@ async function sendVisitReminders() {
       sent++;
     }
 
-    // E-mail à l'annonceur (si adresse disponible)
-    if (row.owner_email) {
+    // E-mail à l'annonceur (si adresse confirmée)
+    if (row.owner_email && row.owner_verified) {
       mailer.mailVisitReminder({
         email: row.owner_email, lang: row.owner_lang,
         recipientName: row.owner_name, requesterName: row.requester_name,
