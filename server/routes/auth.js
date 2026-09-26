@@ -245,7 +245,8 @@ router.get('/export', require('../middleware/auth'), async (req, res) => {
 
   const [props, msgs, sent, received, favs, revs, alerts] = await Promise.all([
     pool.query(
-      `SELECT id, title, mode, type_bien, price, surface_m2, wilaya, commune, description, status, created_at
+      `SELECT id, title, mode, type_bien, price, surface_m2, rooms, baths, floor, total_floors,
+              wilaya, commune, address, description, features, condition, video_url, tour_url, status, created_at
          FROM properties WHERE owner_id = $1 ORDER BY id`, [uid]),
     pool.query(
       `SELECT m.id, m.from_id, f.name AS from_name, m.to_id, t.name AS to_name,
@@ -284,7 +285,7 @@ router.get('/export', require('../middleware/auth'), async (req, res) => {
         WHERE r.author_id = $1
         ORDER BY r.id`, [uid]),
     pool.query(
-      `SELECT id, wilaya, mode, type_bien, min_price, max_price, min_surface, created_at
+      `SELECT id, wilaya, mode, type_bien, min_price, max_price, min_surface, rooms, condition, created_at
          FROM search_alerts WHERE user_id = $1 ORDER BY id`, [uid]),
   ]);
 

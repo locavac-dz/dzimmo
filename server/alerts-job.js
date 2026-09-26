@@ -17,12 +17,14 @@ async function sendSearchAlerts() {
       const conditions = ['p.status = $1', 'p.published_at > $2'];
       const params = ['active', alert.last_sent];
       let idx = 3;
-      if (alert.wilaya)      { conditions.push(`p.wilaya = $${idx++}`);      params.push(alert.wilaya); }
-      if (alert.mode)        { conditions.push(`p.mode = $${idx++}`);        params.push(alert.mode); }
-      if (alert.type_bien)   { conditions.push(`p.type_bien = $${idx++}`);   params.push(alert.type_bien); }
-      if (alert.min_price)   { conditions.push(`p.price >= $${idx++}`);      params.push(alert.min_price); }
-      if (alert.max_price)   { conditions.push(`p.price <= $${idx++}`);      params.push(alert.max_price); }
-      if (alert.min_surface) { conditions.push(`p.surface_m2 >= $${idx++}`); params.push(alert.min_surface); }
+      if (alert.wilaya)      { conditions.push(`p.wilaya = $${idx++}`);        params.push(alert.wilaya); }
+      if (alert.mode)        { conditions.push(`p.mode = $${idx++}`);          params.push(alert.mode); }
+      if (alert.type_bien)   { conditions.push(`p.type_bien = $${idx++}`);     params.push(alert.type_bien); }
+      if (alert.min_price)   { conditions.push(`p.price >= $${idx++}`);        params.push(alert.min_price); }
+      if (alert.max_price)   { conditions.push(`p.price <= $${idx++}`);        params.push(alert.max_price); }
+      if (alert.min_surface) { conditions.push(`p.surface_m2 >= $${idx++}`);   params.push(alert.min_surface); }
+      if (alert.rooms)       { conditions.push(`p.rooms >= $${idx++}`);        params.push(alert.rooms); }
+      if (alert.condition)   { conditions.push(`p.condition = $${idx++}`);     params.push(alert.condition); }
 
       const r = await pool.query(
         `SELECT p.id, p.title, p.price, p.wilaya FROM properties p

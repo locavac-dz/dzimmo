@@ -22,6 +22,8 @@ async function notifyMatchingAlerts(property) {
        AND (sa.min_price IS NULL OR sa.min_price <= $5)
        AND (sa.max_price IS NULL OR sa.max_price >= $5)
        AND (sa.min_surface IS NULL OR sa.min_surface <= $6)
+       AND (sa.rooms     IS NULL OR (p.rooms IS NOT NULL AND p.rooms >= sa.rooms))
+       AND (sa.condition IS NULL OR sa.condition = $7)
      LIMIT 500
   `, [
     property.owner_id,
@@ -30,6 +32,7 @@ async function notifyMatchingAlerts(property) {
     property.wilaya    || null,
     property.price     || 0,
     property.surface_m2 ?? 0,
+    property.condition || null,
   ]);
 
   for (const a of rows) {

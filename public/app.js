@@ -281,7 +281,7 @@ const TRANSLATIONS = {
     alert_title:'Mes alertes email', alert_empty:'Aucune alerte. Créez-en une depuis la page Annonces.',
     alert_new:'+ Nouvelle alerte', alert_del:'Supprimer',
     alert_wilaya:'Wilaya', alert_mode:'Mode', alert_type:'Type de bien',
-    alert_min_price:'Prix min (DZD)', alert_max_price:'Prix max (DZD)', alert_min_surf:'Surface min (m²)',
+    alert_min_price:'Prix min (DZD)', alert_max_price:'Prix max (DZD)', alert_min_surf:'Surface min (m²)', alert_min_rooms:'Pièces min', alert_condition:'État du bien',
     alert_save:'Enregistrer l\'alerte', alert_cancel:'Annuler',
     alert_saved:'✅ Alerte créée ! Vous serez notifié par email.', alert_max:'Maximum 5 alertes atteint.',
     alert_criteria:'Critères :',
@@ -757,7 +757,7 @@ const TRANSLATIONS = {
     alert_title:'تنبيهات البريد الإلكتروني', alert_empty:'لا توجد تنبيهات. أنشئ واحدة من صفحة الإعلانات.',
     alert_new:'+ تنبيه جديد', alert_del:'حذف',
     alert_wilaya:'الولاية', alert_mode:'النوع', alert_type:'نوع العقار',
-    alert_min_price:'الحد الأدنى للسعر (د.ج)', alert_max_price:'الحد الأقصى للسعر (د.ج)', alert_min_surf:'أدنى مساحة (م²)',
+    alert_min_price:'الحد الأدنى للسعر (د.ج)', alert_max_price:'الحد الأقصى للسعر (د.ج)', alert_min_surf:'أدنى مساحة (م²)', alert_min_rooms:'حد أدنى للغرف', alert_condition:'حالة العقار',
     alert_save:'حفظ التنبيه', alert_cancel:'إلغاء',
     alert_saved:'✅ تم إنشاء التنبيه! ستصلك إشعارات بالبريد الإلكتروني.', alert_max:'وصلت للحد الأقصى (5 تنبيهات).',
     alert_criteria:'المعايير:',
@@ -4527,6 +4527,8 @@ async function dashTab(tab, more = false) {
         a.min_price ? `≥ ${Number(a.min_price).toLocaleString('fr-DZ')} ${T('u_dzd')}` : null,
         a.max_price ? `≤ ${Number(a.max_price).toLocaleString('fr-DZ')} ${T('u_dzd')}` : null,
         a.min_surface ? `≥ ${a.min_surface} ${T('u_m2')}` : null,
+        a.rooms     ? `≥ ${a.rooms} ${unit(Number(a.rooms), 'u_room')}` : null,
+        a.condition ? CONDITIONS[a.condition] || a.condition : null,
       ].filter(Boolean).join(' · ');
       return `
         <div style="background:var(--white);border-radius:10px;padding:1rem 1.25rem;margin-bottom:.6rem;box-shadow:var(--shadow);display:flex;align-items:center;gap:1rem">
@@ -4568,8 +4570,18 @@ async function dashTab(tab, more = false) {
                 <option value="entrepot">${T('s_entrepot')}</option>
               </select></div>
             <div class="form-group"><label>${T('alert_min_surf')}</label><input id="al-surf" type="number" min="0" placeholder="${T('ph_example').replace('{v}', '80')}" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
+            <div class="form-group"><label>${T('alert_min_rooms')}</label><input id="al-rooms" type="number" min="1" max="20" placeholder="${T('ph_example').replace('{v}', '3')}" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
             <div class="form-group"><label>${T('alert_min_price')}</label><input id="al-min-price" type="number" min="0" placeholder="${T('ph_example').replace('{v}', formatPrice(5000000))}" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
             <div class="form-group"><label>${T('alert_max_price')}</label><input id="al-max-price" type="number" min="0" placeholder="${T('ph_example').replace('{v}', formatPrice(20000000))}" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
+            <div class="form-group"><label>${T('alert_condition')}</label>
+              <select id="al-condition" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
+                <option value="">${T('filter_cond_all')}</option>
+                <option value="brut">${T('pub_cond_brut')}</option>
+                <option value="semi_fini">${T('pub_cond_semi_fini')}</option>
+                <option value="renove">${T('pub_cond_renove')}</option>
+                <option value="bon_etat">${T('pub_cond_bon_etat')}</option>
+                <option value="neuf">${T('pub_cond_neuf')}</option>
+              </select></div>
           </div>
           <div style="display:flex;gap:.6rem;margin-top:.75rem">
             <button class="btn btn-primary btn-sm" onclick="saveAlert()">${T('alert_save')}</button>
@@ -4620,8 +4632,10 @@ async function createAlertFromFilters() {
   const min_price   = document.getElementById('f-min-price')?.value   || '';
   const max_price   = document.getElementById('f-max-price')?.value   || '';
   const min_surface = document.getElementById('f-min-surface')?.value || '';
+  const rooms       = document.getElementById('f-rooms')?.value       || '';
+  const condition   = document.getElementById('f-condition')?.value   || '';
   try {
-    await api('/alerts', 'POST', { wilaya, mode, type_bien, min_price, max_price, min_surface });
+    await api('/alerts', 'POST', { wilaya, mode, type_bien, min_price, max_price, min_surface, rooms, condition });
     toast(T('alert_saved'));
   } catch (e) {
     toast('❌ ' + (e.message || T('alert_max')));
@@ -4633,11 +4647,13 @@ async function saveAlert() {
   const wilaya     = document.getElementById('al-wilaya')?.value    || '';
   const mode       = document.getElementById('al-mode')?.value      || '';
   const type_bien  = document.getElementById('al-type')?.value      || '';
-  const min_price  = document.getElementById('al-min-price')?.value || '';
-  const max_price  = document.getElementById('al-max-price')?.value || '';
-  const min_surface= document.getElementById('al-surf')?.value      || '';
+  const min_price  = document.getElementById('al-min-price')?.value  || '';
+  const max_price  = document.getElementById('al-max-price')?.value  || '';
+  const min_surface= document.getElementById('al-surf')?.value       || '';
+  const rooms      = document.getElementById('al-rooms')?.value      || '';
+  const condition  = document.getElementById('al-condition')?.value  || '';
   try {
-    await api('/alerts', 'POST', { wilaya, mode, type_bien, min_price, max_price, min_surface });
+    await api('/alerts', 'POST', { wilaya, mode, type_bien, min_price, max_price, min_surface, rooms, condition });
     toast(T('alert_saved'));
     dashTab('alertes');
   } catch (e) {
