@@ -466,7 +466,7 @@ const TRANSLATIONS = {
     pass_good:'Bon',
     pass_strong:'Fort',
     trust_low:'Peu d\'historique', trust_mid:'Profil établi', trust_high:'Annonceur de confiance',
-    evol_title:'Évolution sur', evol_days:'jours', evol_users:'Inscriptions', evol_listings:'Annonces publiées', evol_views:'Vues', evol_contacts:'Demandes',
+    evol_title:'Évolution sur', evol_days:'jours', evol_users:'Inscriptions', evol_listings:'Annonces publiées', evol_views:'Vues', evol_contacts:'Demandes', evol_total:'Total', evol_yesterday:'Hier',
     prof_export:'Télécharger mes données (RGPD)',
     push_ask:'Activer les notifications push pour ne rien manquer ?', push_yes:'Oui', push_skip:'Plus tard',
     push_on:'🔔 Push activé', push_off:'🔕 Push désactivé',
@@ -936,7 +936,7 @@ const TRANSLATIONS = {
     pass_good:'جيدة',
     pass_strong:'قوية',
     trust_low:'ملف ناشئ', trust_mid:'ملف راسخ', trust_high:'مُعلِن موثوق',
-    evol_title:'التطور خلال', evol_days:'يوماً', evol_users:'تسجيلات', evol_listings:'إعلانات منشورة', evol_views:'مشاهدات', evol_contacts:'طلبات',
+    evol_title:'التطور خلال', evol_days:'يوماً', evol_users:'تسجيلات', evol_listings:'إعلانات منشورة', evol_views:'مشاهدات', evol_contacts:'طلبات', evol_total:'المجموع', evol_yesterday:'أمس',
     prof_export:'تنزيل بياناتي (RGPD)',
     push_ask:'تفعيل الإشعارات الفورية لا تفوّت شيئاً؟', push_yes:'نعم', push_skip:'لاحقاً',
     push_on:'🔔 الإشعارات مفعّلة', push_off:'🔕 الإشعارات معطّلة',
@@ -3920,9 +3920,9 @@ async function adminLoadEvolution(days) {
         <path d="${area}" fill="url(#eg-${key})"/>
         <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>
         <text x="${pad.l-2}" y="${H-4}" font-size="9" fill="var(--text-muted)">0</text>
-        <text x="${pad.l-2}" y="${pad.t+4}" font-size="9" fill="var(--text-muted)">${maxV.toLocaleString()}</text>
+        <text x="${pad.l-2}" y="${pad.t+4}" font-size="9" fill="var(--text-muted)">${maxV.toLocaleString(currentLang==='ar'?'ar-DZ':'fr-DZ')}</text>
       </svg>
-      <div style="font-size:.75rem;color:var(--text-muted);margin-top:.1rem">Total : <b>${total.toLocaleString()}</b> · Hier : <b>${last.toLocaleString()}</b></div>`;
+      <div style="font-size:.75rem;color:var(--text-muted);margin-top:.1rem">${T('evol_total')} : <b>${total.toLocaleString(currentLang==='ar'?'ar-DZ':'fr-DZ')}</b> · ${T('evol_yesterday')} : <b>${last.toLocaleString(currentLang==='ar'?'ar-DZ':'fr-DZ')}</b></div>`;
     }
 
     const btnRow = [30,60,90].map(n =>
@@ -4485,6 +4485,7 @@ async function dashTab(tab, more = false) {
           <textarea rows="2" style="width:100%;resize:none;font-size:.82rem;border:1px solid var(--border);border-radius:6px;padding:.35rem .5rem;font-family:inherit;background:var(--bg)"
             placeholder="${esc(T('fav_note_ph'))}" data-pid="${Number(p.id)}">${esc(p.note || '')}</textarea>
           <div style="display:flex;gap:.4rem;margin-top:.3rem;justify-content:flex-end">
+            <button class="btn btn-outline btn-sm" style="font-size:.77rem" data-pid="${Number(p.id)}" onclick="delFavNote(this)">${T('fav_note_del')}</button>
             <button class="btn btn-outline btn-sm" style="font-size:.77rem" data-pid="${Number(p.id)}" onclick="saveFavNote(this)">${T('fav_note_save')}</button>
           </div>
         </div>
@@ -4647,6 +4648,16 @@ async function saveFavNote(btn) {
   const note = textarea ? textarea.value.trim() : '';
   try {
     await api('/favorites/' + pid + '/note', 'PUT', { note: note || null });
+    toast(T('fav_note_saved'));
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+async function delFavNote(btn) {
+  const pid = Number(btn.dataset.pid);
+  const textarea = document.querySelector('textarea[data-pid="' + pid + '"]');
+  try {
+    await api('/favorites/' + pid + '/note', 'PUT', { note: null });
+    if (textarea) textarea.value = '';
     toast(T('fav_note_saved'));
   } catch (e) { toast('❌ ' + e.message); }
 }

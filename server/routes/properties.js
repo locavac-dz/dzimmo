@@ -551,7 +551,8 @@ router.put('/:id', auth, async (req, res) => {
   // même archivée : sinon il suffirait d'archiver, de réécrire le texte puis de réactiver pour publier sans contrôle.
   // Admins et agences vérifiées exemptés.
   let resubmitted = false;
-  if (changes.status !== 'archived' && !(await moderation.isTrusted(req.user))) {
+  const putTrusted = await moderation.isTrusted(req.user);
+  if (changes.status !== 'archived' && !putTrusted) {
     const edited = Object.keys(changes).some(k => k !== 'status');
     if ((property.status === 'rejected' && edited)
         || (!moderation.HIDDEN_STATUSES.includes(property.status) && moderation.contentChanged(property, changes))) {
@@ -563,7 +564,6 @@ router.put('/:id', auth, async (req, res) => {
   // Publier d'abord un prix normal puis le modifier n'échappe pas au contrôle : un signal bloquant remet l'annonce en validation
   // Les annonceurs de confiance sont exemptés de content_bypass (numéros professionnels légitimes).
   if (assessed && !req.user.is_admin && moderation.enabled() && (changes.status || property.status) === 'active') {
-    const putTrusted = await moderation.isTrusted(req.user);
     const putBlockingFlags = putTrusted ? assessed.flags.filter(f => f !== 'content_bypass') : assessed.flags;
     if (quality.isBlocking(putBlockingFlags)) { changes.status = 'pending'; resubmitted = true; }
   }

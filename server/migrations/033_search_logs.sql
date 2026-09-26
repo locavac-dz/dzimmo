@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS search_logs (
-  id SERIAL PRIMARY KEY,
+  id BIGSERIAL PRIMARY KEY,
   query TEXT NOT NULL,
   wilaya TEXT,
   mode TEXT,
