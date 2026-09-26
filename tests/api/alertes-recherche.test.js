@@ -33,13 +33,16 @@ describe('POST /api/alerts — créer une alerte', () => {
     assert.equal(status, 401);
   });
 
-  it('crée une alerte (201)', async () => {
+  it('crée une alerte avec critères étendus (201)', async () => {
     const { status, body } = await srv.request('POST', '/api/alerts', {
       token: subscriber.token,
-      body: { wilaya: 'Alger', mode: 'vente', type_bien: 'appartement', min_price: 1000000, max_price: 10000000 },
+      body: { wilaya: 'Alger', mode: 'vente', type_bien: 'appartement', min_price: 1000000, max_price: 10000000, rooms: 3, condition: 'neuf', commune: 'bir-el-djir' },
     });
     assert.equal(status, 201);
     assert.ok(body.id);
+    assert.equal(body.rooms, 3);
+    assert.equal(body.condition, 'neuf');
+    assert.equal(body.commune, 'bir-el-djir');
   });
 
   it('la nouvelle alerte apparaît dans la liste', async () => {
@@ -47,6 +50,16 @@ describe('POST /api/alerts — créer une alerte', () => {
     assert.equal(body.length, 1);
     assert.equal(body[0].wilaya, 'Alger');
     assert.equal(body[0].mode, 'vente');
+  });
+
+  it('rejette rooms non entier (400)', async () => {
+    const { status } = await srv.request('POST', '/api/alerts', { token: subscriber.token, body: { rooms: 1.5 } });
+    assert.equal(status, 400);
+  });
+
+  it('rejette condition invalide (400)', async () => {
+    const { status } = await srv.request('POST', '/api/alerts', { token: subscriber.token, body: { condition: 'moisi' } });
+    assert.equal(status, 400);
   });
 
   it('max 5 alertes par compte', async () => {
