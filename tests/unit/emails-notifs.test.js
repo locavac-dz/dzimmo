@@ -107,6 +107,24 @@ test('alerte : pluriel arabe (1, 2, 3-10, 11+) et noms de wilaya / mode / type e
     '🔔 1 nouvelle annonce — Toutes les wilayas · Tous modes · Tous types');
 });
 
+test('alerte : critères étendus (commune, pièces, état) dans le sujet et le corps', () => {
+  const fr = build.buildSearchAlert('fr', {
+    name: 'Test', properties: [{ title: 'Villa', wilaya: 'Oran', price: 5000000 }],
+    alertCriteria: { wilaya: 'Oran', mode: 'vente', type_bien: 'villa', rooms: 3, condition: 'neuf', commune: 'bir-el-djir' },
+  });
+  assert.match(fr.subject, /Oran/);
+  assert.match(fr.subject, /Bir El Djir/);
+  assert.match(fr.subject, /≥ 3 pièces/);
+  assert.match(fr.subject, /Neuf \/ Clé en main/);
+  const ar = build.buildSearchAlert('ar', {
+    name: 'Test', properties: [{ title: 'Villa', wilaya: 'Oran', price: 5000000 }],
+    alertCriteria: { wilaya: 'Oran', mode: 'vente', type_bien: 'villa', rooms: 1, condition: 'bon_etat', commune: 'bir-el-djir' },
+  });
+  assert.match(ar.subject, /وهران/);
+  assert.match(ar.subject, /≥ 1 غرفة/);
+  assert.match(ar.subject, /حالة جيدة/);
+});
+
 test('motif de refus : motifs proposés traduits, précision libre conservée', () => {
   const r = translateReason('Prix incohérent avec le bien — Trop cher pour 40 m²', 'ar');
   assert.equal(r, `${REASONS_AR['Prix incohérent avec le bien']} — Trop cher pour 40 m²`);

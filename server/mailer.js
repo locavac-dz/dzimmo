@@ -77,7 +77,12 @@ const TYPES = {
   ar: { appartement: 'شقة', villa: 'فيلا', maison: 'منزل', bureau: 'مكتب', local_commercial: 'محل تجاري',
         terrain: 'أرض', ferme: 'مزرعة', entrepot: 'مستودع', all: 'جميع الأنواع' },
 };
+const CONDITIONS_MAIL = {
+  fr: { brut: 'Brut (gros œuvre)', semi_fini: 'Semi-fini', renove: 'Rénové', bon_etat: 'Bon état', neuf: 'Neuf / Clé en main' },
+  ar: { brut: 'هيكل خام', semi_fini: 'نصف تشطيب', renove: 'مجدَّد', bon_etat: 'حالة جيدة', neuf: 'جديد / تسليم فوري' },
+};
 const wilayaName = (lang, w) => (w ? (lang === 'ar' && WILAYAS_AR[w]) || w : pick(lang, 'Toutes les wilayas', 'جميع الولايات'));
+const prettySlug  = s => String(s || '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 const fmt = n => Number(n).toLocaleString('fr-DZ');
 
 // « N nouvelles annonces » : l'arabe distingue 1, 2 (duel), 3-10 (pluriel) puis 11+ (singulier)
@@ -232,11 +237,15 @@ function buildNewMessage(lang, { senderName, propertyTitle, preview }) {
 
 function buildSearchAlert(lang, { name, properties, alertCriteria }) {
   const n = properties.length;
+  const L = lang === 'ar' ? 'ar' : 'fr';
   const criteria = [
     wilayaName(lang, alertCriteria.wilaya),
-    MODES[lang === 'ar' ? 'ar' : 'fr'][alertCriteria.mode] || MODES[lang === 'ar' ? 'ar' : 'fr'].all,
-    TYPES[lang === 'ar' ? 'ar' : 'fr'][alertCriteria.type_bien] || TYPES[lang === 'ar' ? 'ar' : 'fr'].all,
-  ].join(' · ');
+    alertCriteria.commune ? prettySlug(alertCriteria.commune) : null,
+    MODES[L][alertCriteria.mode] || MODES[L].all,
+    TYPES[L][alertCriteria.type_bien] || TYPES[L].all,
+    alertCriteria.rooms    ? pick(lang, `≥ ${alertCriteria.rooms} pièce${alertCriteria.rooms > 1 ? 's' : ''}`, `≥ ${alertCriteria.rooms} غرفة`) : null,
+    alertCriteria.condition ? CONDITIONS_MAIL[L][alertCriteria.condition] || alertCriteria.condition : null,
+  ].filter(Boolean).join(' · ');
   const u = ui(lang);
   const priceAlign = lang === 'ar' ? 'left' : 'right';
   const rows = properties.map(p => `
