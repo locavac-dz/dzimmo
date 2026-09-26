@@ -321,9 +321,11 @@ test('resend-verification : 401 sans auth, 200 si déjà vérifié, 503 sans SMT
 test('profil : modification, aucun champ, réinitialisation du mot de passe, suppression du compte', async () => {
   const u = await s.register('profil');
   assert.equal((await s.request('PUT', '/api/auth/profile', { token: u.token, body: {} })).status, 400);
-  const up = await s.request('PUT', '/api/auth/profile', { token: u.token, body: { name: '  Nouveau Nom ', phone: ' 0550 ', bio: ' Ma bio ' } });
+  // numéro invalide (trop court) → 400
+  assert.equal((await s.request('PUT', '/api/auth/profile', { token: u.token, body: { phone: '0550' } })).status, 400);
+  const up = await s.request('PUT', '/api/auth/profile', { token: u.token, body: { name: '  Nouveau Nom ', phone: ' 0550 123 456 ', bio: ' Ma bio ' } });
   assert.equal(up.status, 200);
-  assert.equal(up.body.name, 'Nouveau Nom'); assert.equal(up.body.phone, '0550'); assert.equal(up.body.bio, 'Ma bio');
+  assert.equal(up.body.name, 'Nouveau Nom'); assert.equal(up.body.phone, '0550123456'); assert.equal(up.body.bio, 'Ma bio');
   assert.doesNotMatch(up.text, /password/);
   assert.equal((await s.request('GET', '/api/auth/me', { token: u.token })).body.name, 'Nouveau Nom');
 

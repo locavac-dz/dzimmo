@@ -144,6 +144,7 @@ const TRANSLATIONS = {
     pub_desc_ph:'Décrivez votre bien : état, équipements, environnement…',
     pub_features:'🏷️ Caractéristiques', pub_photos:'📷 Photos',
     pub_photos_hint:'Cliquez pour ajouter des photos (max 10, JPEG/PNG/WebP)',
+    pub_condition:"État du bien", pub_cond_none:"— Non précisé —", pub_cond_brut:"Brut (gros œuvre)", pub_cond_semi_fini:"Semi-fini", pub_cond_renove:"Rénové", pub_cond_bon_etat:"Bon état", pub_cond_neuf:"Neuf / Clé en main", det_condition:"État",
     pub_media:'🎬 Vidéo et visite virtuelle (facultatif)', pub_video:'Vidéo (YouTube ou Vimeo)', pub_tour:'Visite virtuelle (Matterport ou Kuula)',
     pub_video_ph:'https://www.youtube.com/watch?v=…', pub_tour_ph:'https://my.matterport.com/show/?m=…',
     pub_media_hint:'Collez le lien de partage : nous n\'hébergeons aucun fichier vidéo. Le lecteur ne se charge qu\'au clic du visiteur.',
@@ -253,7 +254,7 @@ const TRANSLATIONS = {
     mfa_title:'Vérification en deux étapes', mfa_help:"Saisissez le code à 6 chiffres de votre application d'authentification, ou l'un de vos codes de secours.",
     mfa_code:'Code de vérification', mfa_verify:'Vérifier', mfa_back:'Retour', mfa_need_code:'Saisissez le code de vérification.',
     mfa_recovery_low:'Il vous reste {n} code(s) de secours : pensez à en générer de nouveaux (Administration → Sécurité).',
-    m_phone_hint:"Ce numéro est affiché sur vos annonces (boutons Appeler et WhatsApp). Depuis l'étranger : commencez par + et l'indicatif du pays (ex. <bdi dir=\"ltr\">+33 6 12 34 56 78</bdi>).",
+    m_phone_hint:"Numéro algérien : 05xx, 06xx ou 07xx (10 chiffres). Depuis l'étranger : +213 suivi de 9 chiffres (ex. <bdi dir=\"ltr\">+213 550 123 456</bdi>).",
     adv_identity:'Identité vérifiée', adv_business:'Professionnel vérifié',
     adv_identity_tip:"DzImmo a contrôlé une pièce d'identité de cet annonceur. Cela ne prouve pas qu'il est propriétaire du bien.",
     adv_business_tip:"DzImmo a contrôlé le registre de commerce ou l'agrément de ce professionnel.",
@@ -617,6 +618,7 @@ const TRANSLATIONS = {
     pub_desc_ph:'صف عقارك: الحالة، التجهيزات، المحيط…',
     pub_features:'🏷️ المميزات', pub_photos:'📷 الصور',
     pub_photos_hint:'انقر لإضافة صور (10 كحد أقصى، JPEG/PNG/WebP)',
+    pub_condition:"حالة العقار", pub_cond_none:"— غير محدَّد —", pub_cond_brut:"هيكل خام (بيتون)", pub_cond_semi_fini:"نصف تشطيب", pub_cond_renove:"مجدَّد", pub_cond_bon_etat:"حالة جيدة", pub_cond_neuf:"جديد / تسليم فوري", det_condition:"الحالة",
     pub_media:'🎬 فيديو وجولة افتراضية (اختياري)', pub_video:'فيديو (يوتيوب أو فيميو)', pub_tour:'جولة افتراضية (Matterport أو Kuula)',
     pub_video_ph:'https://www.youtube.com/watch?v=…', pub_tour_ph:'https://my.matterport.com/show/?m=…',
     pub_media_hint:'الصق رابط المشاركة: نحن لا نستضيف أي ملف فيديو. لا يُحمَّل المشغّل إلا بعد نقر الزائر.',
@@ -726,7 +728,7 @@ const TRANSLATIONS = {
     mfa_title:'التحقق بخطوتين', mfa_help:'أدخل الرمز المكوَّن من 6 أرقام من تطبيق المصادقة، أو أحد رموز الطوارئ الخاصة بك.',
     mfa_code:'رمز التحقق', mfa_verify:'تحقق', mfa_back:'رجوع', mfa_need_code:'أدخل رمز التحقق.',
     mfa_recovery_low:'بقي لديك {n} من رموز الطوارئ: فكّر في إنشاء رموز جديدة (الإدارة ← الأمان).',
-    m_phone_hint:'يظهر هذا الرقم على إعلاناتك (زرّا الاتصال والواتساب). من الخارج: ابدأ بـ + ثم رمز البلد (مثال: <bdi dir="ltr">+33 6 12 34 56 78</bdi>).',
+    m_phone_hint:'رقم جزائري: 05xx أو 06xx أو 07xx (10 أرقام). من الخارج: +213 متبوعاً بـ 9 أرقام (مثال: <bdi dir="ltr">+213-550-123-456</bdi>).',
     adv_identity:'الهوية موثَّقة', adv_business:'مهني موثَّق',
     adv_identity_tip:'تحقق DzImmo من وثيقة هوية هذا المعلن. وهذا لا يثبت أنه مالك العقار.',
     adv_business_tip:'تحقق DzImmo من السجل التجاري أو الاعتماد الخاص بهذا المهني.',
@@ -1031,6 +1033,8 @@ function rebuildSelects() {
     el.innerHTML = modeOpts.map(([v,k]) => `<option value="${v}">${T(k)}</option>`).join('');
     el.value = cur;
   });
+  const condOpts = [['','pub_cond_none'],['brut','pub_cond_brut'],['semi_fini','pub_cond_semi_fini'],['renove','pub_cond_renove'],['bon_etat','pub_cond_bon_etat'],['neuf','pub_cond_neuf']];
+  { const el = document.getElementById('pub-condition'); if (el) { const cur = el.value; el.innerHTML = condOpts.map(([v,k]) => `<option value="${v}">${T(k)}</option>`).join(''); el.value = cur; } }
   ['s-wilaya','pub-wilaya','f-wilaya','se-wilaya','map-wilaya','ag-wilaya','pg-wilaya'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -1093,6 +1097,7 @@ const i18nMap = keys => new Proxy(keys, { get: (m, k) => (Object.hasOwn(m, k) ? 
 const MODES = i18nMap({ vente:'s_vente', location_longue:'s_loc_longue', location_courte:'s_loc_courte' });
 const TYPES = i18nMap({ appartement:'s_appart', villa:'s_villa', maison:'s_maison', bureau:'s_bureau',
   local_commercial:'s_local', terrain:'s_terrain', ferme:'s_ferme', entrepot:'s_entrepot' });
+const CONDITIONS = i18nMap({ brut:'pub_cond_brut', semi_fini:'pub_cond_semi_fini', renove:'pub_cond_renove', bon_etat:'pub_cond_bon_etat', neuf:'pub_cond_neuf' });
 const FEATURES = i18nMap(Object.fromEntries(['meuble','parking','balcon','terrasse','ascenseur','gardien','piscine',
   'climatisation','chauffage','wifi','cave','jardin','alarme','interphone','eau','electricite','gaz','route','fibre']
   .map(k => [k, 'feat_' + k])));
@@ -2101,6 +2106,7 @@ function cardHTML(p) {
         <div class="card-meta">
           <span>${TYPES[p.type_bien] || p.type_bien}</span>
           ${meta ? `<span>${meta}</span>` : ''}
+          ${p.condition ? `<span>${CONDITIONS[p.condition] || ''}</span>` : ''}
           <span>${p.views || 0} ${unit(p.views || 0, 'u_view')}</span>
         </div>
       </div>
@@ -2222,9 +2228,10 @@ function renderDetail(p) {
           <div class="detail-loc">📍 ${esc([p.address, p.commune, wilayaName(p.wilaya)].filter(Boolean).join(', '))}</div>
           <div class="detail-price">${price}</div>
           <div class="detail-stats">
-            ${p.surface_m2 ? `<div class="stat-box"><div class="val">${p.surface_m2}</div><div class="lbl">${T('u_m2')}</div></div>` : ''}
-            ${p.rooms      ? `<div class="stat-box"><div class="val">${p.rooms}</div><div class="lbl">${capFirst(unit(p.rooms, 'u_room'))}</div></div>` : ''}
-            ${p.baths      ? `<div class="stat-box"><div class="val">${p.baths}</div><div class="lbl">${unit(p.baths, 'u_bath')}</div></div>` : ''}
+            ${p.surface_m2  ? `<div class="stat-box"><div class="val">${p.surface_m2}</div><div class="lbl">${T('u_m2')}</div></div>` : ''}
+            ${p.rooms       ? `<div class="stat-box"><div class="val">${p.rooms}</div><div class="lbl">${capFirst(unit(p.rooms, 'u_room'))}</div></div>` : ''}
+            ${p.baths       ? `<div class="stat-box"><div class="val">${p.baths}</div><div class="lbl">${unit(p.baths, 'u_bath')}</div></div>` : ''}
+            ${p.condition   ? `<div class="stat-box"><div class="val" style="font-size:.75rem">${CONDITIONS[p.condition] || ''}</div><div class="lbl">${T('det_condition')}</div></div>` : ''}
           </div>
           ${featuresHTML ? `<div class="detail-features">${featuresHTML}</div>` : ''}
           <h3 style="font-size:1rem;font-weight:700;margin-bottom:.75rem">${T('det_desc')}</h3>
@@ -2253,6 +2260,7 @@ function renderDetail(p) {
                   ? `<a class="owner-link" href="${esc(proPath({ id: p.agency_id, kind: p.agency_kind, name: p.agency_name }))}" onclick="return proGo(event,'agency-detail',${Number(p.agency_id)})">${esc(p.agency_name)}</a>`
                   : esc(p.agency_name || p.owner_name)}</div>
                 <div class="owner-agency">${T(p.agency_name ? (p.agency_kind === 'promoteur' ? 'kind_promoteur' : 'det_agency') : 'det_private')}</div>
+                ${p.agency_id && p.agency_rating ? `<div style="font-size:.85rem;color:var(--gold-text);margin:.2rem 0">⭐ ${p.agency_rating}/5 <span style="color:var(--text-muted);font-size:.8rem">(${p.agency_review_count} ${unit(p.agency_review_count, 'u_review')})</span></div>` : ''}
                 ${advBadgeHTML(advKind(p))}
                 ${ownerTrustHTML(p)}
                 ${!p.agency_id ? `<a href="/vendeur/${Number(p.owner_id)}" class="btn btn-outline btn-sm" style="margin-top:.5rem;font-size:.8rem;display:block;text-align:center" data-id="${Number(p.owner_id)}" onclick="showVendeur(event,this.dataset.id)">${T('vd_profile')}</a>` : ''}
@@ -4845,7 +4853,7 @@ function initEstimate() {
 // ── Modification d'une annonce : le formulaire de publication sert aussi d'écran « Modifier » ─────────────────────────────
 // Le mode, le type de bien et la wilaya restent figés (le serveur ne les change pas : ils fondent le contrôle de qualité et la recherche).
 const PUB_LOCKED = ['pub-mode', 'pub-type', 'pub-wilaya'];
-const PUB_FIELDS = ['pub-title', 'pub-price', 'pub-surface', 'pub-rooms', 'pub-baths', 'pub-floor', 'pub-commune', 'pub-address', 'pub-desc', 'pub-video', 'pub-tour'];
+const PUB_FIELDS = ['pub-title', 'pub-price', 'pub-surface', 'pub-rooms', 'pub-baths', 'pub-floor', 'pub-condition', 'pub-commune', 'pub-address', 'pub-desc', 'pub-video', 'pub-tour'];
 
 // Titre, bouton et note du formulaire selon le mode ; la clé i18n change aussi, pour que le changement de langue garde le bon texte
 function syncPublishMode() {
@@ -4877,6 +4885,7 @@ function fillPublishForm(p) {
   put('pub-title', p.title || ''); put('pub-mode', p.mode || ''); put('pub-type', p.type_bien || ''); put('pub-wilaya', p.wilaya || '');
   put('pub-price', fieldNum(p.price)); put('pub-surface', fieldNum(p.surface_m2)); put('pub-rooms', fieldNum(p.rooms));
   put('pub-baths', fieldNum(p.baths)); put('pub-floor', fieldNum(p.floor));
+  put('pub-condition', p.condition || '');
   put('pub-commune', p.commune || ''); put('pub-address', p.address || ''); put('pub-desc', p.description || '');
   put('pub-video', p.video_url || ''); put('pub-tour', p.tour_url || '');
   const feats = Array.isArray(p.features) ? p.features : [];
@@ -4947,6 +4956,7 @@ async function submitProperty() {
       rooms:       Number(val('pub-rooms')) || null,
       baths:       Number(val('pub-baths')) || null,
       floor:       val('pub-floor') === '' ? null : Number(val('pub-floor')),
+      condition:   val('pub-condition') || null,
       features, photos: photoUrls,
       image: photoUrls[0] || '',
       video_url:   val('pub-video').trim() || null,

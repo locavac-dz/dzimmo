@@ -57,7 +57,7 @@ test('badge : libellé et infobulle dans la langue du site, rien si non vérifi�
 
 test('les badges figurent sur les cartes et sur la fiche annonce', () => {
   assert.match(fn('cardHTML'), /\$\{advBadgeHTML\(advKind\(p\)\)\}/, 'carte de la liste');
-  assert.match(html, /<div class="owner-agency">[\s\S]{0,140}\$\{advBadgeHTML\(advKind\(p\)\)\}/, 'carte de contact de la fiche');
+  assert.match(html, /<div class="owner-agency">[\s\S]{0,500}\$\{advBadgeHTML\(advKind\(p\)\)\}/, 'carte de contact de la fiche');
 });
 
 test('types de documents du formulaire = types acceptés par le serveur', () => {

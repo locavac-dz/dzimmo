@@ -68,6 +68,11 @@ const LEXICON = [
   { kind: 'mode', key: 'location_courte',  terms: 'location saisonnière courte durée كراء موسمي إيجار قصير' },
   { kind: 'kind', key: 'agence',           terms: 'agence immobilière وكالة عقارية' },
   { kind: 'kind', key: 'promoteur',        terms: 'promoteur immobilier programme neuf مروج عقاري مشروع' },
+  { kind: 'condition', key: 'brut',        terms: 'brut gros oeuvre هيكل خام بيتون' },
+  { kind: 'condition', key: 'semi_fini',   terms: 'semi fini semi-fini نصف تشطيب' },
+  { kind: 'condition', key: 'renove',      terms: 'rénové rénovation مجدد تجديد' },
+  { kind: 'condition', key: 'bon_etat',    terms: 'bon etat بحالة جيدة' },
+  { kind: 'condition', key: 'neuf',        terms: 'neuf clé en main livraison جديد تسليم فوري' },
 ];
 
 // Aligne la table search_lexicon sur LEXICON et recalcule les textes de recherche si elle a changé. Appelée au démarrage (db.connect),

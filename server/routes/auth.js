@@ -13,6 +13,10 @@ const { sign, safe } = require('../tokens');
 // Emails de réinitialisation du mot de passe acceptés par compte et par heure (au-delà : réponse identique, aucun envoi)
 const RESET_MAX_PER_HOUR = 3;
 
+// Numéro algérien : 0[2-7]XXXXXXXX (10 chiffres) ou +213[2-7]XXXXXXXX
+const DZ_PHONE_RE = /^(\+213|0)[2-7]\d{8}$/;
+const normPhone = p => p.replace(/[\s\-.()]/g, '');
+
 // Compte qui a activé la double authentification : ni jeton de session ni fiche, seulement un défi de 5 minutes à valider par
 // POST /api/auth/2fa/login (server/two-factor.js). Le mot de passe (ou Google) seul ne suffit plus.
 function sendSession(res, user, extra = {}) {
@@ -32,10 +36,13 @@ router.post('/register', async (req, res) => {
   const existing = await db.users.findOne({ email: email.toLowerCase().trim() });
   if (existing) return res.status(409).json({ error: 'Cet email est déjà utilisé.' });
   const verificationToken = crypto.randomBytes(32).toString('hex');
+  const cleanPhone = phone ? normPhone(String(phone)) : null;
+  if (cleanPhone && !DZ_PHONE_RE.test(cleanPhone))
+    return res.status(400).json({ error: 'Numéro de téléphone invalide. Exemples valides : 0550 123 456 ou +213 550 123 456.' });
   const user = await db.users.insert({
     name: name.trim(), email: email.toLowerCase().trim(),
     password: await bcrypt.hash(password, 10),
-    phone: phone || null, is_agent: false, lang: req.lang,
+    phone: cleanPhone || null, is_agent: false, lang: req.lang,
     email_verified: false, verification_token: verificationToken,
   });
   const baseUrl = process.env.APP_URL || 'http://localhost:3001';
@@ -138,7 +145,12 @@ router.put('/profile', require('../middleware/auth'), async (req, res) => {
     return res.status(400).json({ error: images.BAD_IMAGE });
   const changes = {};
   if (name   !== undefined) changes.name   = name.trim();
-  if (phone  !== undefined) changes.phone  = phone.trim() || null;
+  if (phone !== undefined) {
+    const cp = phone.trim() ? normPhone(phone.trim()) : null;
+    if (cp && !DZ_PHONE_RE.test(cp))
+      return res.status(400).json({ error: 'Numéro de téléphone invalide. Exemples valides : 0550 123 456 ou +213 550 123 456.' });
+    changes.phone = cp || null;
+  }
   if (bio    !== undefined) changes.bio    = bio.trim();
   if (avatar !== undefined) changes.avatar = avatar.trim() || null;
   if (notify_price_drop !== undefined) changes.notify_price_drop = notify_price_drop;

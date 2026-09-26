@@ -212,6 +212,8 @@ const AR = {
   "Envoi d'emails non configuré sur le serveur.": 'إرسال البريد الإلكتروني غير مُعدّ على الخادم.',
   "L'email de test n'a pas pu être envoyé.": 'تعذّر إرسال رسالة الاختبار.',
   "Impossible d'envoyer l'email. Vérifiez la configuration SMTP.": 'تعذّر إرسال البريد. تحقق من إعدادات SMTP.',
+  'Numéro de téléphone invalide. Exemples valides : 0550 123 456 ou +213 550 123 456.': 'رقم الهاتف غير صالح. أمثلة صالحة: 0550 123 456 أو +213 550 123 456.',
+  'État du bien invalide.': 'حالة العقار غير صالحة.',
   'Campagne introuvable.': 'الحملة غير موجودة.',
 
   // Notifications push navigateur (server/routes/push.js)

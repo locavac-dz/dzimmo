@@ -26,7 +26,7 @@ async function isTrusted(user) {
 }
 
 // Une modification de ces champs sur une annonce publiée la remet en modération
-const CONTENT_FIELDS = ['title', 'description', 'image', 'photos', 'video_url', 'tour_url'];
+const CONTENT_FIELDS = ['title', 'description', 'image', 'photos', 'video_url', 'tour_url', 'condition'];
 
 function contentChanged(property, changes) {
   return CONTENT_FIELDS.some(k => {

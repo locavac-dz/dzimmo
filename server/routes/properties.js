@@ -16,6 +16,7 @@ const priceDrop = require('../price-drop');
 
 const MODES_VALIDES    = ['vente', 'location_longue', 'location_courte'];
 const TYPES_VALIDES    = ['appartement','villa','maison','bureau','local_commercial','terrain','ferme','entrepot'];
+const CONDITIONS_VALIDES = ['brut','semi_fini','renove','bon_etat','neuf'];
 // Statuts qu'un propriétaire peut demander ; « pending » / « rejected » relèvent de la modération
 const STATUTS_VALIDES  = ['active','sold','rented','archived'];
 // Statuts consultables par le public dans les listes
@@ -33,12 +34,17 @@ function cleanFeatures(features) {
 }
 
 async function withOwner(property) {
-  const [owner, agency, project] = await Promise.all([
+  const [owner, agency, project, agencyRv] = await Promise.all([
     db.users.findById(property.owner_id),
     property.agency_id ? db.agencies.findById(property.agency_id) : null,
     property.project_id ? db.pool.query(
       `SELECT j.id, j.name, j.status FROM projects j JOIN agencies a ON a.id = j.agency_id
         WHERE j.id = $1 AND COALESCE(a.verified, false) = true`, [property.project_id]) : null,
+    property.agency_id ? db.pool.query(
+      `SELECT COALESCE(COUNT(r.id), 0)::int AS review_count,
+              ROUND(AVG(r.rating)::numeric, 1)::float AS rating
+         FROM reviews r JOIN properties p ON p.id = r.property_id
+        WHERE p.agency_id = $1`, [property.agency_id]) : null,
   ]);
   // Score de confiance 0-100 : ancienneté (25), réactif (25), vérifié identity (25) ou business (50)
   const ageDays = owner ? Math.floor((Date.now() - new Date(owner.created_at).getTime()) / 86400000) : 0;
@@ -59,6 +65,8 @@ async function withOwner(property) {
     agency_logo:  agency ? agency.logo  : null,
     agency_phone: agency ? agency.phone : null,
     agency_kind:  agency ? agency.kind  : null,
+    agency_rating:       agencyRv && agencyRv.rows[0] ? agencyRv.rows[0].rating : null,
+    agency_review_count: agencyRv && agencyRv.rows[0] ? agencyRv.rows[0].review_count : 0,
     project:      project && project.rows[0] ? project.rows[0] : null,
     // { provider, url, embed } reconstruits par le serveur : la page ne met jamais dans un iframe une adresse saisie
     video:        videos.describe('video', property.video_url),
@@ -409,7 +417,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 // POST /api/properties
 router.post('/', auth, async (req, res) => {
   const { title, description, mode, type_bien, price, surface_m2, rooms, baths, floor, total_floors,
-          wilaya, commune, address, lat, lng, image, photos, features, video_url, tour_url } = req.body;
+          wilaya, commune, address, lat, lng, image, photos, features, video_url, tour_url, condition } = req.body;
 
   if (!title || !mode || !type_bien || !price || !wilaya)
     return res.status(400).json({ error: 'Champs obligatoires : titre, mode, type, prix, wilaya.' });
@@ -417,6 +425,8 @@ router.post('/', auth, async (req, res) => {
     return res.status(400).json({ error: 'Mode invalide.' });
   if (!TYPES_VALIDES.includes(type_bien))
     return res.status(400).json({ error: 'Type de bien invalide.' });
+  if (condition !== undefined && condition !== null && !CONDITIONS_VALIDES.includes(condition))
+    return res.status(400).json({ error: 'État du bien invalide.' });
   // image et photos sont rendues dans des attributs src : uniquement nos envois (voir server/images.js)
   const imageError = images.invalid({ image, photos });
   if (imageError) return res.status(400).json({ error: imageError });
@@ -463,6 +473,7 @@ router.post('/', auth, async (req, res) => {
     image: finalImage, photos: JSON.stringify(finalPhotos),
     video_url: videos.clean('video', video_url), tour_url: videos.clean('tour', tour_url),
     features: JSON.stringify(cleanFeats),
+    condition: CONDITIONS_VALIDES.includes(condition) ? condition : null,
     status:       direct ? 'active' : 'pending',
     published_at: direct ? new Date() : null,
   });
@@ -493,7 +504,7 @@ router.put('/:id', auth, async (req, res) => {
   if (property.owner_id !== req.user.id && !req.user.is_admin)
     return res.status(403).json({ error: 'Accès refusé.' });
 
-  const { title, description, price, surface_m2, rooms, baths, floor, commune, address, status, features, image, photos, video_url, tour_url } = req.body;
+  const { title, description, price, surface_m2, rooms, baths, floor, commune, address, status, features, image, photos, video_url, tour_url, condition } = req.body;
   // Champs saisis dans l'écran « Modifier » : mêmes règles que la publication, mais un nombre absurde est refusé (jamais NaN en base)
   if (title !== undefined && (typeof title !== 'string' || !title.trim())) return res.status(400).json({ error: 'Titre invalide.' });
   if (price !== undefined && !(Number(price) > 0 && Number.isFinite(Number(price)))) return res.status(400).json({ error: 'Prix invalide.' });
@@ -506,6 +517,8 @@ router.put('/:id', auth, async (req, res) => {
   if (videoError) return res.status(400).json({ error: videoError });
   const cleanFeats = features !== undefined ? cleanFeatures(features) : undefined;
   if (cleanFeats === null) return res.status(400).json({ error: 'Équipements invalides.' });
+  if (condition !== undefined && condition !== null && condition !== '' && !CONDITIONS_VALIDES.includes(condition))
+    return res.status(400).json({ error: 'État du bien invalide.' });
   const changes = {};
   if (title       !== undefined) changes.title       = title.trim();
   if (description !== undefined) changes.description = String(description ?? '');
@@ -519,6 +532,7 @@ router.put('/:id', auth, async (req, res) => {
   if (image       !== undefined) changes.image       = image || '';
   if (video_url   !== undefined) changes.video_url   = videos.clean('video', video_url);
   if (tour_url    !== undefined) changes.tour_url    = videos.clean('tour', tour_url);
+  if (condition   !== undefined) changes.condition   = CONDITIONS_VALIDES.includes(condition) ? condition : null;
   if (status      !== undefined && STATUTS_VALIDES.includes(status)) {
     // Un propriétaire ne peut pas court-circuiter la modération : une annonce en attente, refusée,
     // ou archivée après un refus (motif conservé) ne repasse pas « active » sans validation.

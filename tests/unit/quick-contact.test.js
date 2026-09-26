@@ -117,10 +117,10 @@ test('numéros : jamais de caractère à risque dans les liens (chiffres seuleme
 test('champs « téléphone » : ils préviennent que le numéro est affiché et expliquent le format depuis l\'étranger', () => {
   const start = html.indexOf('const TRANSLATIONS = {'), end = html.indexOf('function T(key)');
   const T = vm.runInNewContext('(' + html.slice(start, end).replace(/^const TRANSLATIONS = /, '').trim().replace(/;$/, '') + ')');
-  assert.match(T.fr.m_phone_hint, /affiché sur vos annonces/);
-  assert.match(T.fr.m_phone_hint, /\+ et l'indicatif/);
-  assert.match(T.ar.m_phone_hint, /يظهر هذا الرقم على إعلاناتك/);
-  assert.match(T.ar.m_phone_hint, /<bdi dir="ltr">\+33 6 12 34 56 78<\/bdi>/, 'exemple isolé de droite à gauche');
+  assert.match(T.fr.m_phone_hint, /Numéro algérien/);
+  assert.match(T.fr.m_phone_hint, /\+213/);
+  assert.match(T.ar.m_phone_hint, /رقم جزائري/);
+  assert.match(T.ar.m_phone_hint, /<bdi dir="ltr">\+213/, 'exemple isolé de droite à gauche');
   assert.match(html, /id="reg-phone"[^>]*><div class="field-hint" data-i18n-html="m_phone_hint">/, 'inscription');
   assert.match(html, /id="p-phone"[^>]*><div class="field-hint">\$\{T\('m_phone_hint'\)\}/, 'profil');
 });
