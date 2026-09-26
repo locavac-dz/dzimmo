@@ -49,7 +49,7 @@ function fakeDom() {
       classList: { add: c => cls.add(c), remove: c => cls.delete(c), contains: c => cls.has(c), toggle: (c, on) => { if (on === undefined ? !cls.has(c) : on) cls.add(c); else cls.delete(c); } },
       setAttribute(k, v) { this.attrs[k] = v; }, getAttribute(k) { return this.attrs[k]; } });
   };
-  ['pub-title', 'pub-mode', 'pub-type', 'pub-wilaya', 'pub-price', 'pub-surface', 'pub-rooms', 'pub-baths', 'pub-floor', 'pub-commune', 'pub-address',
+  ['pub-title', 'pub-mode', 'pub-type', 'pub-wilaya', 'pub-price', 'pub-surface', 'pub-rooms', 'pub-baths', 'pub-floor', 'pub-total-floors', 'pub-commune', 'pub-address',
    'pub-desc', 'pub-video', 'pub-tour', 'pub-heading-text', 'pub-submit-btn', 'pub-error', 'pub-success'].forEach(id => make(id));
   make('pub-edit-note', { hidden: true }); make('pub-as-wrap');
   const toggles = ['parking', 'balcon', 'piscine'].map(v => { const b = make('ft-' + v); b.dataset = { v }; return b; });
@@ -77,7 +77,7 @@ function load() {
 }
 
 const annonce = { id: 7, title: 'Villa vue mer', mode: 'vente', type_bien: 'villa', wilaya: 'Oran', price: '12000000.00', surface_m2: '250', rooms: 5, baths: 2,
-  floor: 0, commune: 'Aïn El Turck', address: null, description: 'Belle villa', features: ['parking', 'piscine'],
+  floor: 0, total_floors: 3, commune: 'Aïn El Turck', address: null, description: 'Belle villa', features: ['parking', 'piscine'],
   photos: ['/uploads/a.jpg', '/uploads/b.jpg'], image: '/uploads/a.jpg', video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', tour_url: null };
 
 test('remplissage : chaque champ reprend l\'annonce, l\'étage 0 est gardé, les équipements et photos existants sont repris', () => {
@@ -88,6 +88,7 @@ test('remplissage : chaque champ reprend l\'annonce, l\'étage 0 est gardé, les
   assert.equal(v('pub-title'), 'Villa vue mer'); assert.equal(v('pub-mode'), 'vente'); assert.equal(v('pub-type'), 'villa'); assert.equal(v('pub-wilaya'), 'Oran');
   assert.equal(v('pub-price'), '12000000'); assert.equal(v('pub-surface'), '250'); assert.equal(v('pub-rooms'), '5'); assert.equal(v('pub-baths'), '2');
   assert.equal(v('pub-floor'), '0', 'rez-de-chaussée');
+  assert.equal(v('pub-total-floors'), '3', 'nombre de niveaux');
   assert.equal(v('pub-commune'), 'Aïn El Turck'); assert.equal(v('pub-address'), ''); assert.equal(v('pub-desc'), 'Belle villa');
   assert.equal(v('pub-video'), 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'); assert.equal(v('pub-tour'), '');
   assert.deepEqual(dom.toggles.map(b => b.classList.contains('selected')), [true, false, true]);
@@ -154,6 +155,7 @@ test('envoi : la modification passe par PUT sans mode, type ni wilaya ; les phot
   assert.match(fields, /video_url:\s+val\('pub-video'\)\.trim\(\) \|\| null/);
   assert.match(fields, /tour_url:\s+val\('pub-tour'\)\.trim\(\) \|\| null/);
   assert.match(fields, /floor:\s+val\('pub-floor'\) === '' \? null : Number\(val\('pub-floor'\)\)/);
+  assert.match(fields, /total_floors:\s+Number\(val\('pub-total-floors'\)\) \|\| null/);
 });
 
 test('aperçu des photos : l\'adresse est échappée (elle vient de la base en mode édition)', () => {

@@ -504,11 +504,11 @@ router.put('/:id', auth, async (req, res) => {
   if (property.owner_id !== req.user.id && !req.user.is_admin)
     return res.status(403).json({ error: 'Accès refusé.' });
 
-  const { title, description, price, surface_m2, rooms, baths, floor, commune, address, status, features, image, photos, video_url, tour_url, condition } = req.body;
+  const { title, description, price, surface_m2, rooms, baths, floor, total_floors, commune, address, status, features, image, photos, video_url, tour_url, condition } = req.body;
   // Champs saisis dans l'écran « Modifier » : mêmes règles que la publication, mais un nombre absurde est refusé (jamais NaN en base)
   if (title !== undefined && (typeof title !== 'string' || !title.trim())) return res.status(400).json({ error: 'Titre invalide.' });
   if (price !== undefined && !(Number(price) > 0 && Number.isFinite(Number(price)))) return res.status(400).json({ error: 'Prix invalide.' });
-  for (const v of [surface_m2, rooms, baths, floor])
+  for (const v of [surface_m2, rooms, baths, floor, total_floors])
     if (v !== undefined && v !== null && v !== '' && !(Number.isFinite(Number(v)) && Number(v) >= 0))
       return res.status(400).json({ error: 'Valeur numérique invalide.' });
   const imageError = images.invalid({ image, photos });
@@ -526,7 +526,8 @@ router.put('/:id', auth, async (req, res) => {
   if (surface_m2  !== undefined) changes.surface_m2  = surface_m2 ? Number(surface_m2) : null;
   if (rooms       !== undefined) changes.rooms       = rooms      ? Number(rooms)      : null;
   if (baths       !== undefined) changes.baths       = baths      ? Number(baths)      : null;
-  if (floor       !== undefined) changes.floor       = floor === null || floor === '' ? null : Number(floor);
+  if (floor         !== undefined) changes.floor         = floor === null || floor === '' ? null : Number(floor);
+  if (total_floors  !== undefined) changes.total_floors  = total_floors ? Number(total_floors) : null;
   if (commune     !== undefined) changes.commune     = typeof commune === 'string' && commune.trim() ? commune.trim().slice(0, 120) : null;
   if (address     !== undefined) changes.address     = typeof address === 'string' && address.trim() ? address.trim().slice(0, 200) : null;
   if (image       !== undefined) changes.image       = image || '';

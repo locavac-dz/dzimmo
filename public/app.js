@@ -145,6 +145,7 @@ const TRANSLATIONS = {
     pub_features:'🏷️ Caractéristiques', pub_photos:'📷 Photos',
     pub_photos_hint:'Cliquez pour ajouter des photos (max 10, JPEG/PNG/WebP)',
     pub_condition:"État du bien", pub_cond_none:"— Non précisé —", pub_cond_brut:"Brut (gros œuvre)", pub_cond_semi_fini:"Semi-fini", pub_cond_renove:"Rénové", pub_cond_bon_etat:"Bon état", pub_cond_neuf:"Neuf / Clé en main", det_condition:"État",
+    pub_total_floors:"Nb. de niveaux", det_floor:"Étage", det_floor_rdc:"RDC", det_price_m2:"Prix/m²",
     pub_media:'🎬 Vidéo et visite virtuelle (facultatif)', pub_video:'Vidéo (YouTube ou Vimeo)', pub_tour:'Visite virtuelle (Matterport ou Kuula)',
     pub_video_ph:'https://www.youtube.com/watch?v=…', pub_tour_ph:'https://my.matterport.com/show/?m=…',
     pub_media_hint:'Collez le lien de partage : nous n\'hébergeons aucun fichier vidéo. Le lecteur ne se charge qu\'au clic du visiteur.',
@@ -619,6 +620,7 @@ const TRANSLATIONS = {
     pub_features:'🏷️ المميزات', pub_photos:'📷 الصور',
     pub_photos_hint:'انقر لإضافة صور (10 كحد أقصى، JPEG/PNG/WebP)',
     pub_condition:"حالة العقار", pub_cond_none:"— غير محدَّد —", pub_cond_brut:"هيكل خام (بيتون)", pub_cond_semi_fini:"نصف تشطيب", pub_cond_renove:"مجدَّد", pub_cond_bon_etat:"حالة جيدة", pub_cond_neuf:"جديد / تسليم فوري", det_condition:"الحالة",
+    pub_total_floors:"عدد الطوابق", det_floor:"الطابق", det_floor_rdc:"ط.أ", det_price_m2:"سعر/م²",
     pub_media:'🎬 فيديو وجولة افتراضية (اختياري)', pub_video:'فيديو (يوتيوب أو فيميو)', pub_tour:'جولة افتراضية (Matterport أو Kuula)',
     pub_video_ph:'https://www.youtube.com/watch?v=…', pub_tour_ph:'https://my.matterport.com/show/?m=…',
     pub_media_hint:'الصق رابط المشاركة: نحن لا نستضيف أي ملف فيديو. لا يُحمَّل المشغّل إلا بعد نقر الزائر.',
@@ -2232,6 +2234,8 @@ function renderDetail(p) {
             ${p.rooms       ? `<div class="stat-box"><div class="val">${p.rooms}</div><div class="lbl">${capFirst(unit(p.rooms, 'u_room'))}</div></div>` : ''}
             ${p.baths       ? `<div class="stat-box"><div class="val">${p.baths}</div><div class="lbl">${unit(p.baths, 'u_bath')}</div></div>` : ''}
             ${p.condition   ? `<div class="stat-box"><div class="val" style="font-size:.75rem">${CONDITIONS[p.condition] || ''}</div><div class="lbl">${T('det_condition')}</div></div>` : ''}
+            ${p.floor !== null && p.floor !== undefined ? `<div class="stat-box"><div class="val">${p.floor === 0 ? T('det_floor_rdc') : p.floor}${p.total_floors ? '/' + p.total_floors : ''}</div><div class="lbl">${T('det_floor')}</div></div>` : ''}
+            ${p.surface_m2 > 0 && p.price > 0 ? `<div class="stat-box"><div class="val" style="font-size:.8rem">${formatPrice(Math.round(p.price / p.surface_m2))}</div><div class="lbl">${T('det_price_m2')}</div></div>` : ''}
           </div>
           ${featuresHTML ? `<div class="detail-features">${featuresHTML}</div>` : ''}
           <h3 style="font-size:1rem;font-weight:700;margin-bottom:.75rem">${T('det_desc')}</h3>
@@ -4853,7 +4857,7 @@ function initEstimate() {
 // ── Modification d'une annonce : le formulaire de publication sert aussi d'écran « Modifier » ─────────────────────────────
 // Le mode, le type de bien et la wilaya restent figés (le serveur ne les change pas : ils fondent le contrôle de qualité et la recherche).
 const PUB_LOCKED = ['pub-mode', 'pub-type', 'pub-wilaya'];
-const PUB_FIELDS = ['pub-title', 'pub-price', 'pub-surface', 'pub-rooms', 'pub-baths', 'pub-floor', 'pub-condition', 'pub-commune', 'pub-address', 'pub-desc', 'pub-video', 'pub-tour'];
+const PUB_FIELDS = ['pub-title', 'pub-price', 'pub-surface', 'pub-rooms', 'pub-baths', 'pub-floor', 'pub-total-floors', 'pub-condition', 'pub-commune', 'pub-address', 'pub-desc', 'pub-video', 'pub-tour'];
 
 // Titre, bouton et note du formulaire selon le mode ; la clé i18n change aussi, pour que le changement de langue garde le bon texte
 function syncPublishMode() {
@@ -4885,6 +4889,7 @@ function fillPublishForm(p) {
   put('pub-title', p.title || ''); put('pub-mode', p.mode || ''); put('pub-type', p.type_bien || ''); put('pub-wilaya', p.wilaya || '');
   put('pub-price', fieldNum(p.price)); put('pub-surface', fieldNum(p.surface_m2)); put('pub-rooms', fieldNum(p.rooms));
   put('pub-baths', fieldNum(p.baths)); put('pub-floor', fieldNum(p.floor));
+  put('pub-total-floors', fieldNum(p.total_floors));
   put('pub-condition', p.condition || '');
   put('pub-commune', p.commune || ''); put('pub-address', p.address || ''); put('pub-desc', p.description || '');
   put('pub-video', p.video_url || ''); put('pub-tour', p.tour_url || '');
@@ -4955,8 +4960,9 @@ async function submitProperty() {
       surface_m2:  Number(val('pub-surface')) || null,
       rooms:       Number(val('pub-rooms')) || null,
       baths:       Number(val('pub-baths')) || null,
-      floor:       val('pub-floor') === '' ? null : Number(val('pub-floor')),
-      condition:   val('pub-condition') || null,
+      floor:         val('pub-floor') === '' ? null : Number(val('pub-floor')),
+      total_floors:  Number(val('pub-total-floors')) || null,
+      condition:     val('pub-condition') || null,
       features, photos: photoUrls,
       image: photoUrls[0] || '',
       video_url:   val('pub-video').trim() || null,
