@@ -11,7 +11,7 @@ async function notifyMatchingAlerts(property) {
 
   const { rows } = await pool.query(`
     SELECT sa.id, sa.user_id, sa.wilaya, sa.mode, sa.type_bien,
-           u.name, u.email, u.lang, u.email_confirmed
+           u.name, u.email, u.lang, u.email_verified
       FROM search_alerts sa
       JOIN users u ON u.id = sa.user_id
      WHERE sa.user_id    != $1
@@ -55,7 +55,7 @@ async function notifyMatchingAlerts(property) {
       tag:  'search_alert',
     }).catch(() => {});
 
-    if (a.email_confirmed) {
+    if (a.email_verified) {
       mailSearchAlert({
         email: a.email, lang,
         name: a.name,

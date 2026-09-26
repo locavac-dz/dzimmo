@@ -10,7 +10,7 @@ async function sendSearchAlerts() {
       SELECT sa.*, u.email, u.name, u.lang
       FROM search_alerts sa
       JOIN users u ON u.id = sa.user_id
-      WHERE u.banned = false
+      WHERE u.banned = false AND u.email_verified = true
     `);
     let sent = 0;
     for (const alert of alerts.rows) {
