@@ -490,7 +490,7 @@ const TRANSLATIONS = {
     src_daily:'Volume journalier', src_count:'recherche(s)', src_no_data:'Aucune recherche texte enregistrée.',
     src_avg:'résultats moy.', src_query:'Requête',
     fav_note_ph:'Ma note privée (500 car. max.)…', fav_note_save:'Enregistrer', fav_note_saved:'✅ Note enregistrée.',
-    fav_note_del:'Effacer la note',
+    fav_note_del:'Effacer la note', fav_note_cleared:'✅ Note effacée.',
   },
   ar: {
     site_title:'DzImmo — العقارات في الجزائر',
@@ -960,7 +960,7 @@ const TRANSLATIONS = {
     src_daily:'الحجم اليومي', src_count:'بحث', src_no_data:'لا توجد عمليات بحث مسجَّلة.',
     src_avg:'متوسط النتائج', src_query:'الاستعلام',
     fav_note_ph:'ملاحظة خاصة (500 حرف كحد أقصى)…', fav_note_save:'حفظ', fav_note_saved:'✅ تم حفظ الملاحظة.',
-    fav_note_del:'حذف الملاحظة',
+    fav_note_del:'حذف الملاحظة', fav_note_cleared:'✅ تم حذف الملاحظة.',
   }
 };
 
@@ -2969,7 +2969,7 @@ function copyPropertyLink(id) {
 function shareNative(btn) {
   const id    = Number(btn.dataset.id);
   const title = btn.dataset.title;
-  const url   = location.origin + '/annonce/' + id;
+  const url   = annonceUrl(id, title);
   navigator.share({ title, text: '🏠 ' + title + ' — DzImmo', url }).catch(() => {});
 }
 
@@ -3964,7 +3964,7 @@ async function adminLoadRecherches() {
       <tr style="border-bottom:1px solid var(--border)">
         <td style="padding:.5rem .75rem;font-size:.88rem">${esc(q.query)}</td>
         <td style="padding:.5rem .75rem;text-align:right;font-size:.88rem;font-weight:700">${q.total}</td>
-        <td style="padding:.5rem .75rem;text-align:right;font-size:.83rem;color:var(--text-muted)">${q.avg_results} ${T('src_avg')}</td>
+        <td style="padding:.5rem .75rem;text-align:right;font-size:.83rem;color:var(--text-muted)">${q.avg_results}</td>
       </tr>`).join('');
     box.innerHTML = `
       <div style="padding:1rem">
@@ -4658,7 +4658,7 @@ async function delFavNote(btn) {
   try {
     await api('/favorites/' + pid + '/note', 'PUT', { note: null });
     if (textarea) textarea.value = '';
-    toast(T('fav_note_saved'));
+    toast(T('fav_note_cleared'));
   } catch (e) { toast('❌ ' + e.message); }
 }
 

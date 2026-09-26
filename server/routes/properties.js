@@ -184,7 +184,7 @@ router.get('/', optionalAuth, async (req, res) => {
   if (q && typeof q === 'string' && q.trim()) {
     const safeQ = q.trim()
       .replace(/[\w.+'-]+@[\w-]+\.[a-z]{2,}/gi, '[email]')
-      .replace(/(?:\+213|0)[5-7]\d{8}/g, '[tel]')
+      .replace(/(?:\+213|0)[\s.-]?[5-7](?:[\s.-]?\d){8}/g, '[tel]')
       .slice(0, 200);
     pool.query(
       `INSERT INTO search_logs(query, wilaya, mode, type_bien, results_count) VALUES($1,$2,$3,$4,$5)`,
