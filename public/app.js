@@ -491,6 +491,9 @@ const TRANSLATIONS = {
     src_avg:'résultats moy.', src_query:'Requête',
     fav_note_ph:'Ma note privée (500 car. max.)…', fav_note_save:'Enregistrer', fav_note_saved:'✅ Note enregistrée.',
     fav_note_del:'Effacer la note', fav_note_cleared:'✅ Note effacée.',
+    email_verif_sent:'✅ Lien de vérification envoyé. Consultez votre boite email.',
+    email_not_verified:'Votre adresse email n\'est pas vérifiée.',
+    email_resend_link:'Renvoyer le lien',
   },
   ar: {
     site_title:'DzImmo — العقارات في الجزائر',
@@ -961,6 +964,9 @@ const TRANSLATIONS = {
     src_avg:'متوسط النتائج', src_query:'الاستعلام',
     fav_note_ph:'ملاحظة خاصة (500 حرف كحد أقصى)…', fav_note_save:'حفظ', fav_note_saved:'✅ تم حفظ الملاحظة.',
     fav_note_del:'حذف الملاحظة', fav_note_cleared:'✅ تم حذف الملاحظة.',
+    email_verif_sent:'✅ تم إرسال رابط التحقق. تفقّد بريدك الإلكتروني.',
+    email_not_verified:'بريدك الإلكتروني غير مؤكَّد.',
+    email_resend_link:'إعادة إرسال الرابط',
   }
 };
 
@@ -4565,6 +4571,7 @@ async function dashTab(tab, more = false) {
           <h3 style="font-size:1rem;font-weight:700;margin-bottom:1.25rem">${T('prof_title')}</h3>
           <div class="form-row"><label>${T('prof_name')}</label><input id="p-name" value="${esc(currentUser.name)}"></div>
           <div class="form-row"><label>${T('prof_email')}</label><input value="${esc(currentUser.email)}" disabled style="background:#f1f5f9"></div>
+          ${!currentUser.email_verified ? `<div class="field-hint" style="color:var(--warn-text);margin-bottom:.5rem">${T('email_not_verified')} <a href="#" onclick="sendVerifEmail();return false">${T('email_resend_link')}</a></div>` : ''}
           <div class="form-row"><label>${T('prof_phone')}</label><input id="p-phone" type="tel" value="${esc(currentUser.phone || '')}"><div class="field-hint">${T('m_phone_hint')}</div></div>
           <div class="form-row"><label>${T('prof_bio')}</label><textarea id="p-bio" rows="3">${esc(currentUser.bio || '')}</textarea></div>
           <label class="profile-check"><input type="checkbox" id="p-notify-drop"${currentUser.notify_price_drop === false ? '' : ' checked'}> <span>${T('prof_notify_drop')}</span></label>
@@ -4682,6 +4689,15 @@ function fillWilayaSelect(select) {
 async function updateContact(id, status) {
   try { await api('/contacts/' + id + '/status', 'PUT', { status }); dashTab('mes-contacts'); toast(T('dash_status_updated')); }
   catch (e) { toast('❌ ' + e.message); }
+}
+
+async function sendVerifEmail() {
+  try {
+    await api('/auth/resend-verification', 'POST');
+    toast(T('email_verif_sent'));
+  } catch (e) {
+    toast('❌ ' + (e.message || 'Erreur'));
+  }
 }
 
 async function updateProfile() {

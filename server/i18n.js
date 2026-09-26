@@ -211,6 +211,7 @@ const AR = {
   'Aucun abonné confirmé.': 'لا يوجد أي مشترك مؤكَّد.',
   "Envoi d'emails non configuré sur le serveur.": 'إرسال البريد الإلكتروني غير مُعدّ على الخادم.',
   "L'email de test n'a pas pu être envoyé.": 'تعذّر إرسال رسالة الاختبار.',
+  "Impossible d'envoyer l'email. Vérifiez la configuration SMTP.": 'تعذّر إرسال البريد. تحقق من إعدادات SMTP.',
   'Campagne introuvable.': 'الحملة غير موجودة.',
 
   // Notifications push navigateur (server/routes/push.js)

@@ -189,6 +189,19 @@ router.post('/reset-password', async (req, res) => {
   res.json({ ok: true });
 });
 
+// POST /api/auth/resend-verification — renvoi du lien de vérification email (compte non encore confirmé)
+router.post('/resend-verification', require('../middleware/auth'), async (req, res) => {
+  const user = await db.users.findById(req.user.id);
+  if (!user) return res.status(404).json({ error: 'Utilisateur introuvable.' });
+  if (user.email_verified) return res.json({ ok: true });
+  const token = require('crypto').randomBytes(32).toString('hex');
+  await db.users.update({ id: user.id }, { verification_token: token });
+  const baseUrl = process.env.APP_URL || 'http://localhost:3001';
+  const ok = await mailer.mailVerifyEmail({ name: user.name, email: user.email, lang: req.lang || user.lang, verifyUrl: `${baseUrl}/api/auth/verify-email?token=${token}` });
+  if (!ok) return res.status(503).json({ error: 'Impossible d\'envoyer l\'email. Vérifiez la configuration SMTP.' });
+  res.json({ ok: true });
+});
+
 // GET /api/auth/verify-email?token=xxx
 router.get('/verify-email', async (req, res) => {
   const { token } = req.query;
@@ -246,7 +259,7 @@ router.get('/export', require('../middleware/auth'), async (req, res) => {
          JOIN users u ON u.id = c.user_id
         ORDER BY c.id`, [uid]),
     pool.query(
-      `SELECT f.property_id, p.title AS property_title, p.mode, p.type_bien, p.price, p.wilaya,
+      `SELECT f.property_id, f.note, p.title AS property_title, p.mode, p.type_bien, p.price, p.wilaya,
               p.status, f.created_at
          FROM favorites f
          JOIN properties p ON p.id = f.property_id

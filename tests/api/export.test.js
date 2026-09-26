@@ -104,6 +104,7 @@ test('export complet : structure, sections et en-têtes', async () => {
   assert.equal(d.favorites.length, 1);
   assert.equal(d.favorites[0].property_id, adminProp);
   assert.ok(d.favorites[0].property_title, 'titre de l\'annonce favorite présent');
+  assert.ok('note' in d.favorites[0], 'champ note présent dans l\'export RGPD');
 
   // Avis (aucun pour owner)
   assert.ok(Array.isArray(d.reviews));
