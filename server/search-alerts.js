@@ -22,17 +22,20 @@ async function notifyMatchingAlerts(property) {
        AND (sa.min_price IS NULL OR sa.min_price <= $5)
        AND (sa.max_price IS NULL OR sa.max_price >= $5)
        AND (sa.min_surface IS NULL OR sa.min_surface <= $6)
-       AND (sa.rooms     IS NULL OR (p.rooms IS NOT NULL AND p.rooms >= sa.rooms))
-       AND (sa.condition IS NULL OR sa.condition = $7)
+       AND (sa.rooms     IS NULL OR $7::SMALLINT >= sa.rooms)
+       AND (sa.condition IS NULL OR sa.condition = $8)
+       AND (sa.commune   IS NULL OR dz_norm($9) = dz_norm(sa.commune))
      LIMIT 500
   `, [
     property.owner_id,
-    property.mode      || null,
-    property.type_bien || null,
-    property.wilaya    || null,
-    property.price     || 0,
+    property.mode       || null,
+    property.type_bien  || null,
+    property.wilaya     || null,
+    property.price      || 0,
     property.surface_m2 ?? 0,
-    property.condition || null,
+    property.rooms      ?? null,
+    property.condition  || null,
+    property.commune    || null,
   ]);
 
   for (const a of rows) {

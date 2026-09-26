@@ -15,7 +15,7 @@ const CONDITIONS_VALIDES = ['brut','semi_fini','renove','bon_etat','neuf'];
 
 // POST /api/alerts — créer une alerte (max 5 par user)
 router.post('/', auth, async (req, res) => {
-  const { wilaya, mode, type_bien, min_price, max_price, min_surface, rooms, condition } = req.body;
+  const { wilaya, mode, type_bien, min_price, max_price, min_surface, rooms, condition, commune } = req.body;
 
   if (condition && !CONDITIONS_VALIDES.includes(condition))
     return res.status(400).json({ error: 'État du bien invalide.' });
@@ -32,11 +32,12 @@ router.post('/', auth, async (req, res) => {
     return res.status(400).json({ error: 'Maximum 5 alertes autorisées par compte.' });
 
   const r = await pool.query(
-    `INSERT INTO search_alerts (user_id, wilaya, mode, type_bien, min_price, max_price, min_surface, rooms, condition)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+    `INSERT INTO search_alerts (user_id, wilaya, commune, mode, type_bien, min_price, max_price, min_surface, rooms, condition)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
     [
       req.user.id,
       wilaya      || null,
+      commune     || null,
       mode        || null,
       type_bien   || null,
       min_price   || null,

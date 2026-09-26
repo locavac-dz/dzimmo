@@ -51,12 +51,14 @@ test('render : au plus 4 photos, description bornée, langue inconnue = françai
 
 test('textes : le français et l\'arabe ont les mêmes entrées, l\'arabe est en arabe', () => {
   const p = { id: 1, title: 'T', mode: 'location_longue', type_bien: 'appartement', price: 50000, wilaya: 'Alger', status: 'rented',
-    surface_m2: 80, rooms: 3, baths: 1, floor: 4, total_floors: 8, features: ['wifi'], photos: [] };
+    surface_m2: 80, rooms: 3, baths: 1, floor: 4, total_floors: 8, condition: 'neuf', features: ['wifi'], photos: [] };
   const ctx = { pageUrl: 'https://dzimmo.test/annonce/1-t', backPath: '/annonce/1-t' };
   const fr = fiche.render(p, { ...ctx, lang: 'fr' }), ar = fiche.render(p, { ...ctx, lang: 'ar' });
   assert.match(fr, /Loué/); assert.match(fr, /Étage 4 sur 8/); assert.match(fr, /1 salle de bain/); assert.match(fr, /Wi-Fi/);
+  assert.match(fr, /Neuf \/ Clé en main/, 'état du bien en français');
   assert.match(ar, /مؤجَّر/); assert.match(ar, /الطابق 4 من 8/); assert.match(ar, /حمّام واحد/); assert.match(ar, /واي فاي/);
   assert.match(ar, /الوصف|التجهيزات|الاتصال/);
+  assert.match(ar, /جديد \/ تسليم فوري/, 'état du bien en arabe');
 });
 
 test('front : bouton « Imprimer la fiche » traduit en français et en arabe ; CSS de la fiche sans style en ligne, imprimable', () => {

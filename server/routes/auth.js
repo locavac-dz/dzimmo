@@ -285,7 +285,7 @@ router.get('/export', require('../middleware/auth'), async (req, res) => {
         WHERE r.author_id = $1
         ORDER BY r.id`, [uid]),
     pool.query(
-      `SELECT id, wilaya, mode, type_bien, min_price, max_price, min_surface, rooms, condition, created_at
+      `SELECT id, wilaya, commune, mode, type_bien, min_price, max_price, min_surface, rooms, condition, created_at
          FROM search_alerts WHERE user_id = $1 ORDER BY id`, [uid]),
   ]);
 

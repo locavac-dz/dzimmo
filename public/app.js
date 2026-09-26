@@ -4529,6 +4529,7 @@ async function dashTab(tab, more = false) {
         a.min_surface ? `≥ ${a.min_surface} ${T('u_m2')}` : null,
         a.rooms     ? `≥ ${a.rooms} ${unit(Number(a.rooms), 'u_room')}` : null,
         a.condition ? CONDITIONS[a.condition] || a.condition : null,
+        a.commune   ? prettySlug(a.commune) : null,
       ].filter(Boolean).join(' · ');
       return `
         <div style="background:var(--white);border-radius:10px;padding:1rem 1.25rem;margin-bottom:.6rem;box-shadow:var(--shadow);display:flex;align-items:center;gap:1rem">
@@ -4550,6 +4551,7 @@ async function dashTab(tab, more = false) {
           <h4 style="margin:0 0 1rem;font-size:.95rem;font-weight:700">${T('alert_new')}</h4>
           <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:.6rem">
             <div class="form-group"><label>${T('alert_wilaya')}</label><select id="al-wilaya" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"><option value="">${T('s_all_wilayas')}</option></select></div>
+            <div class="form-group"><label>${T('pub_commune')}</label><input id="al-commune" type="text" placeholder="${T('pub_commune_ph')}" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem"></div>
             <div class="form-group"><label>${T('alert_mode')}</label>
               <select id="al-mode" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
                 <option value="">${T('s_all_modes')}</option>
@@ -4634,8 +4636,9 @@ async function createAlertFromFilters() {
   const min_surface = document.getElementById('f-min-surface')?.value || '';
   const rooms       = document.getElementById('f-rooms')?.value       || '';
   const condition   = document.getElementById('f-condition')?.value   || '';
+  const commune     = _commune?.slug || '';
   try {
-    await api('/alerts', 'POST', { wilaya, mode, type_bien, min_price, max_price, min_surface, rooms, condition });
+    await api('/alerts', 'POST', { wilaya, mode, type_bien, min_price, max_price, min_surface, rooms, condition, commune });
     toast(T('alert_saved'));
   } catch (e) {
     toast('❌ ' + (e.message || T('alert_max')));
@@ -4652,8 +4655,9 @@ async function saveAlert() {
   const min_surface= document.getElementById('al-surf')?.value       || '';
   const rooms      = document.getElementById('al-rooms')?.value      || '';
   const condition  = document.getElementById('al-condition')?.value  || '';
+  const commune    = document.getElementById('al-commune')?.value    || '';
   try {
-    await api('/alerts', 'POST', { wilaya, mode, type_bien, min_price, max_price, min_surface, rooms, condition });
+    await api('/alerts', 'POST', { wilaya, mode, type_bien, min_price, max_price, min_surface, rooms, condition, commune });
     toast(T('alert_saved'));
     dashTab('alertes');
   } catch (e) {

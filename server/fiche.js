@@ -40,6 +40,7 @@ const TEXT = {
     baths: n => `${n} salle${n > 1 ? 's' : ''} de bain`,
     floor: (n, total) => n === 0 ? 'Rez-de-chaussée' : `Étage ${n}${total ? ` sur ${total}` : ''}`,
     photo: 'Photo',
+    conditions: { brut: 'Brut (gros œuvre)', semi_fini: 'Semi-fini', renove: 'Rénové', bon_etat: 'Bon état', neuf: 'Neuf / Clé en main' },
   },
   ar: {
     title: (name) => `بطاقة العقار: ${name} | DzImmo`,
@@ -52,6 +53,7 @@ const TEXT = {
     baths: n => n === 1 ? 'حمّام واحد' : n === 2 ? 'حمّامان' : n <= 10 ? `${n} حمّامات` : `${n} حمّامًا`,
     floor: (n, total) => n === 0 ? 'الطابق الأرضي' : `الطابق ${n}${total ? ` من ${total}` : ''}`,
     photo: 'صورة',
+    conditions: { brut: 'هيكل خام (بيتون)', semi_fini: 'نصف تشطيب', renove: 'مجدَّد', bon_etat: 'حالة جيدة', neuf: 'جديد / تسليم فوري' },
   },
 };
 
@@ -99,6 +101,7 @@ function render(p, { lang, pageUrl, backPath }) {
     rooms && ['🚪', t.rooms(rooms)],
     baths && ['🛁', tx.baths(baths)],
     floor !== null && ['🏢', tx.floor(floor, count(p.total_floors))],
+    p.condition && tx.conditions?.[p.condition] && ['🏗️', tx.conditions[p.condition]],
   ].filter(Boolean);
 
   const labels = FEATURES[lang] || FEATURES.fr;

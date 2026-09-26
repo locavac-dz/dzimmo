@@ -1,0 +1,2 @@
+ALTER TABLE search_alerts
+  ADD COLUMN IF NOT EXISTS commune TEXT;

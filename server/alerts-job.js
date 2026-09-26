@@ -23,8 +23,9 @@ async function sendSearchAlerts() {
       if (alert.min_price)   { conditions.push(`p.price >= $${idx++}`);        params.push(alert.min_price); }
       if (alert.max_price)   { conditions.push(`p.price <= $${idx++}`);        params.push(alert.max_price); }
       if (alert.min_surface) { conditions.push(`p.surface_m2 >= $${idx++}`);   params.push(alert.min_surface); }
-      if (alert.rooms)       { conditions.push(`p.rooms >= $${idx++}`);        params.push(alert.rooms); }
-      if (alert.condition)   { conditions.push(`p.condition = $${idx++}`);     params.push(alert.condition); }
+      if (alert.rooms)       { conditions.push(`p.rooms >= $${idx++}`);                    params.push(alert.rooms); }
+      if (alert.condition)   { conditions.push(`p.condition = $${idx++}`);                 params.push(alert.condition); }
+      if (alert.commune)     { conditions.push(`dz_norm(p.commune) = dz_norm($${idx++})`); params.push(alert.commune); }
 
       const r = await pool.query(
         `SELECT p.id, p.title, p.price, p.wilaya FROM properties p
