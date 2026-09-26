@@ -110,7 +110,7 @@ async function affiliation(user, body, current = {}) {
 // GET /api/properties — avec pagination SQL
 router.get('/', optionalAuth, async (req, res) => {
   const { wilaya, commune, mode, type_bien, min_price, max_price,
-          min_surface, max_surface, rooms, q, status,
+          min_surface, max_surface, rooms, q, status, condition: conditionQ,
           page, limit: limitQ, sort, features: featuresQ } = req.query;
 
   // Les annonces en attente / refusées / archivées ne sont pas listables publiquement
@@ -155,6 +155,7 @@ router.get('/', optionalAuth, async (req, res) => {
     const feats = featuresQ.split(',').map(f => f.trim()).filter(f => FEATURES_VALIDES.includes(f));
     if (feats.length) add('p.features @> ?::jsonb', JSON.stringify(feats));
   }
+  if (conditionQ && CONDITIONS_VALIDES.includes(conditionQ)) add('p.condition = ?', conditionQ);
   // Filtres de présence de média (pas de paramètre lié : condition pure)
   if (req.query.has_video === '1') conds.push('p.video_url IS NOT NULL');
   if (req.query.has_tour  === '1') conds.push('p.tour_url IS NOT NULL');

@@ -259,6 +259,17 @@
           </select>
         </div>
         <div>
+          <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem" data-i18n="filter_condition">État</label>
+          <select id="f-condition" onchange="loadAnnonces(1)" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem">
+            <option value="">— Tous —</option>
+            <option value="brut">Brut</option>
+            <option value="semi_fini">Semi-fini</option>
+            <option value="renove">Rénové</option>
+            <option value="bon_etat">Bon état</option>
+            <option value="neuf">Neuf</option>
+          </select>
+        </div>
+        <div>
           <label style="font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem" data-i18n="filter_search">Recherche</label>
           <div id="suggest-wrap" style="position:relative">
             <input id="f-q" type="text" data-i18n="filter_kw_ph" data-i18n-attr="placeholder" placeholder="Mot-clé…" style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem" autocomplete="off">

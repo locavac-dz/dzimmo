@@ -146,6 +146,7 @@ const TRANSLATIONS = {
     pub_photos_hint:'Cliquez pour ajouter des photos (max 10, JPEG/PNG/WebP)',
     pub_condition:"État du bien", pub_cond_none:"— Non précisé —", pub_cond_brut:"Brut (gros œuvre)", pub_cond_semi_fini:"Semi-fini", pub_cond_renove:"Rénové", pub_cond_bon_etat:"Bon état", pub_cond_neuf:"Neuf / Clé en main", det_condition:"État",
     pub_total_floors:"Nb. de niveaux", det_floor:"Étage", det_floor_rdc:"RDC", det_price_m2:"Prix/m²",
+    filter_condition:"État", filter_cond_all:"Tous", cmp_r_condition:"État",
     pub_media:'🎬 Vidéo et visite virtuelle (facultatif)', pub_video:'Vidéo (YouTube ou Vimeo)', pub_tour:'Visite virtuelle (Matterport ou Kuula)',
     pub_video_ph:'https://www.youtube.com/watch?v=…', pub_tour_ph:'https://my.matterport.com/show/?m=…',
     pub_media_hint:'Collez le lien de partage : nous n\'hébergeons aucun fichier vidéo. Le lecteur ne se charge qu\'au clic du visiteur.',
@@ -621,6 +622,7 @@ const TRANSLATIONS = {
     pub_photos_hint:'انقر لإضافة صور (10 كحد أقصى، JPEG/PNG/WebP)',
     pub_condition:"حالة العقار", pub_cond_none:"— غير محدَّد —", pub_cond_brut:"هيكل خام (بيتون)", pub_cond_semi_fini:"نصف تشطيب", pub_cond_renove:"مجدَّد", pub_cond_bon_etat:"حالة جيدة", pub_cond_neuf:"جديد / تسليم فوري", det_condition:"الحالة",
     pub_total_floors:"عدد الطوابق", det_floor:"الطابق", det_floor_rdc:"ط.أ", det_price_m2:"سعر/م²",
+    filter_condition:"الحالة", filter_cond_all:"الكل", cmp_r_condition:"الحالة",
     pub_media:'🎬 فيديو وجولة افتراضية (اختياري)', pub_video:'فيديو (يوتيوب أو فيميو)', pub_tour:'جولة افتراضية (Matterport أو Kuula)',
     pub_video_ph:'https://www.youtube.com/watch?v=…', pub_tour_ph:'https://my.matterport.com/show/?m=…',
     pub_media_hint:'الصق رابط المشاركة: نحن لا نستضيف أي ملف فيديو. لا يُحمَّل المشغّل إلا بعد نقر الزائر.',
@@ -1037,6 +1039,7 @@ function rebuildSelects() {
   });
   const condOpts = [['','pub_cond_none'],['brut','pub_cond_brut'],['semi_fini','pub_cond_semi_fini'],['renove','pub_cond_renove'],['bon_etat','pub_cond_bon_etat'],['neuf','pub_cond_neuf']];
   { const el = document.getElementById('pub-condition'); if (el) { const cur = el.value; el.innerHTML = condOpts.map(([v,k]) => `<option value="${v}">${T(k)}</option>`).join(''); el.value = cur; } }
+  { const el = document.getElementById('f-condition'); if (el) { const cur = el.value; el.innerHTML = [['',T('filter_cond_all')],['brut',T('pub_cond_brut')],['semi_fini',T('pub_cond_semi_fini')],['renove',T('pub_cond_renove')],['bon_etat',T('pub_cond_bon_etat')],['neuf',T('pub_cond_neuf')]].map(([v,l]) => `<option value="${v}">${l}</option>`).join(''); el.value = cur; } }
   ['s-wilaya','pub-wilaya','f-wilaya','se-wilaya','map-wilaya','ag-wilaya','pg-wilaya'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -1206,6 +1209,7 @@ async function init() {
     set('f-max-price',   params.get('f-max-price'));
     set('f-rooms',       params.get('f-rooms'));
     set('f-min-surface', params.get('f-min-surface'));
+    set('f-condition',   params.get('f-condition'));
     set('f-q',           params.get('f-q'));
     set('f-sort',        params.get('f-sort'));
     const featsParam = params.get('f-features');
@@ -1955,6 +1959,7 @@ async function loadAnnonces(page = 1) {
   if (get('f-max-price'))   params.set('max_price',   get('f-max-price'));
   if (get('f-rooms'))       params.set('rooms',       get('f-rooms'));
   if (get('f-min-surface')) params.set('min_surface', get('f-min-surface'));
+  if (get('f-condition'))   params.set('condition',   get('f-condition'));
   if (get('f-q'))           params.set('q',           get('f-q'));
   if (get('f-sort'))        params.set('sort',        get('f-sort'));
   const activeFeats = getActiveFeats();
@@ -1966,7 +1971,7 @@ async function loadAnnonces(page = 1) {
   // Persister les filtres dans l'URL (partage de recherche)
   const urlParams = new URLSearchParams();
   urlParams.set('page', 'annonces');
-  ['f-wilaya','f-mode','f-type','f-min-price','f-max-price','f-rooms','f-min-surface','f-q','f-sort'].forEach(id => {
+  ['f-wilaya','f-mode','f-type','f-min-price','f-max-price','f-rooms','f-min-surface','f-condition','f-q','f-sort'].forEach(id => {
     const v = get(id);
     if (v) urlParams.set(id, v);
   });
@@ -1977,7 +1982,7 @@ async function loadAnnonces(page = 1) {
   if (page > 1) urlParams.set('p', page);
   // Seuls mode / type / wilaya (+ commune) (tri par défaut, page 1, sans autres filtres) : URL indexable /vente/appartements/oran
   const landingOnly = get('f-mode') && page === 1 && (!get('f-sort') || get('f-sort') === 'date_desc')
-    && !['f-min-price', 'f-max-price', 'f-rooms', 'f-min-surface', 'f-q'].some(id => get(id))
+    && !['f-min-price', 'f-max-price', 'f-rooms', 'f-min-surface', 'f-condition', 'f-q'].some(id => get(id))
     && !activeFeats.length && !mf.has_video && !mf.has_tour;
   if (landingOnly) {
     const commune = get('f-wilaya') && _commune ? _commune : null;
@@ -2849,6 +2854,7 @@ function openCompare() {
     [capFirst(T('u_room_many')),     p => p.rooms || '—'],
     [T('u_bath_one'),                p => p.baths || '—'],
     [T('cmp_r_floor'),               p => p.floor !== null && p.floor !== undefined ? p.floor : '—'],
+    [T('cmp_r_condition'),           p => p.condition ? esc(CONDITIONS[p.condition] || p.condition) : '—'],
     [capFirst(T('u_view_many')),     p => p.views || 0],
     [T('cmp_r_published'),           p => new Date(p.created_at).toLocaleDateString('fr-DZ')],
     [T('cmp_r_verified'),            p => p.verified ? '✅' : '—'],
