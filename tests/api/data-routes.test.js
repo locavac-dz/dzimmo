@@ -297,6 +297,27 @@ test('vérification d\'email par lien', async () => {
   assert.equal((await s.request('GET', '/api/auth/verify-email')).headers.get('location'), '/?verify=invalid');
 });
 
+test('resend-verification : 401 sans auth, 200 si déjà vérifié, 503 sans SMTP, token remplacé', async () => {
+  // 401 sans jeton
+  assert.equal((await s.request('POST', '/api/auth/resend-verification')).status, 401);
+
+  // 200 immédiat si l'email est déjà vérifié (aucun envoi)
+  const uVerif = await s.register('resend-verif');
+  await q('UPDATE users SET email_verified = true WHERE id = $1', [uVerif.id]);
+  const rVerif = await s.request('POST', '/api/auth/resend-verification', { token: uVerif.token });
+  assert.equal(rVerif.status, 200);
+  assert.deepEqual(rVerif.body, { ok: true });
+
+  // 503 sans SMTP : le token est tout de même remplacé en base
+  const uNew = await s.register('resend-new');
+  const tokenAvant = (await q('SELECT verification_token FROM users WHERE id = $1', [uNew.id])).rows[0].verification_token;
+  const r503 = await s.request('POST', '/api/auth/resend-verification', { token: uNew.token });
+  assert.equal(r503.status, 503);
+  const tokenApres = (await q('SELECT verification_token FROM users WHERE id = $1', [uNew.id])).rows[0].verification_token;
+  assert.ok(tokenApres, 'token présent après l\'appel');
+  assert.notEqual(tokenApres, tokenAvant, 'token remplacé même en cas de 503');
+});
+
 test('profil : modification, aucun champ, réinitialisation du mot de passe, suppression du compte', async () => {
   const u = await s.register('profil');
   assert.equal((await s.request('PUT', '/api/auth/profile', { token: u.token, body: {} })).status, 400);

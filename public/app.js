@@ -4571,7 +4571,7 @@ async function dashTab(tab, more = false) {
           <h3 style="font-size:1rem;font-weight:700;margin-bottom:1.25rem">${T('prof_title')}</h3>
           <div class="form-row"><label>${T('prof_name')}</label><input id="p-name" value="${esc(currentUser.name)}"></div>
           <div class="form-row"><label>${T('prof_email')}</label><input value="${esc(currentUser.email)}" disabled style="background:#f1f5f9"></div>
-          ${!currentUser.email_verified ? `<div class="field-hint" style="color:var(--warn-text);margin-bottom:.5rem">${T('email_not_verified')} <a href="#" onclick="sendVerifEmail();return false">${T('email_resend_link')}</a></div>` : ''}
+          ${!currentUser.email_verified ? `<div class="field-hint" style="color:var(--gold-text);margin-bottom:.5rem">${T('email_not_verified')} <a href="#" onclick="sendVerifEmail();return false">${T('email_resend_link')}</a></div>` : ''}
           <div class="form-row"><label>${T('prof_phone')}</label><input id="p-phone" type="tel" value="${esc(currentUser.phone || '')}"><div class="field-hint">${T('m_phone_hint')}</div></div>
           <div class="form-row"><label>${T('prof_bio')}</label><textarea id="p-bio" rows="3">${esc(currentUser.bio || '')}</textarea></div>
           <label class="profile-check"><input type="checkbox" id="p-notify-drop"${currentUser.notify_price_drop === false ? '' : ' checked'}> <span>${T('prof_notify_drop')}</span></label>

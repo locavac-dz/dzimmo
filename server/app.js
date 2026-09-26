@@ -98,8 +98,9 @@ const authLimiter = rateLimit({
 app.use('/api/auth/login',           authLimiter);
 app.use('/api/auth/register',        authLimiter);
 app.use('/api/auth/google',          authLimiter);
-app.use('/api/auth/forgot-password', authLimiter);   // chaque appel peut envoyer un email (voir aussi le plafond par compte dans la route)
-app.use('/api/auth/reset-password',  authLimiter);
+app.use('/api/auth/forgot-password',        authLimiter);   // chaque appel peut envoyer un email (voir aussi le plafond par compte dans la route)
+app.use('/api/auth/resend-verification', authLimiter);   // idem : chaque appel peut envoyer un email de vérification
+app.use('/api/auth/reset-password',      authLimiter);
 app.use('/api/auth/2fa',             authLimiter);   // en plus du verrou par compte (5 essais) : freine aussi le balayage de comptes
 
 const uploadLimiter = rateLimit({

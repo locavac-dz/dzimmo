@@ -194,7 +194,7 @@ router.post('/resend-verification', require('../middleware/auth'), async (req, r
   const user = await db.users.findById(req.user.id);
   if (!user) return res.status(404).json({ error: 'Utilisateur introuvable.' });
   if (user.email_verified) return res.json({ ok: true });
-  const token = require('crypto').randomBytes(32).toString('hex');
+  const token = crypto.randomBytes(32).toString('hex');
   await db.users.update({ id: user.id }, { verification_token: token });
   const baseUrl = process.env.APP_URL || 'http://localhost:3001';
   const ok = await mailer.mailVerifyEmail({ name: user.name, email: user.email, lang: req.lang || user.lang, verifyUrl: `${baseUrl}/api/auth/verify-email?token=${token}` });
