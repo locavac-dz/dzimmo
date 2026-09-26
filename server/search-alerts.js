@@ -15,7 +15,7 @@ async function notifyMatchingAlerts(property) {
       FROM search_alerts sa
       JOIN users u ON u.id = sa.user_id
      WHERE sa.user_id    != $1
-       AND u.suspended   IS NOT TRUE
+       AND u.banned      IS NOT TRUE
        AND (sa.mode      IS NULL OR sa.mode      = $2)
        AND (sa.type_bien IS NULL OR sa.type_bien = $3)
        AND (sa.wilaya    IS NULL OR sa.wilaya    = $4)
@@ -57,7 +57,7 @@ async function notifyMatchingAlerts(property) {
 
     if (a.email_confirmed) {
       mailSearchAlert({
-        to: a.email, lang,
+        email: a.email, lang,
         name: a.name,
         properties: [{
           id:     property.id,

@@ -21,7 +21,7 @@ router.post('/', auth, async (req, res) => {
     return res.status(400).json({ error: 'État du bien invalide.' });
 
   const roomsVal = rooms ? Number(rooms) : null;
-  if (roomsVal !== null && (!Number.isFinite(roomsVal) || roomsVal < 1))
+  if (roomsVal !== null && (!Number.isInteger(roomsVal) || roomsVal < 1))
     return res.status(400).json({ error: 'Valeur numérique invalide.' });
 
   const count = await pool.query(
